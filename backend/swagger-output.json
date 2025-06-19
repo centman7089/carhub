@@ -1,11 +1,17 @@
 {
   "swagger": "2.0",
   "info": {
-    "version": "1.0.0",
-    "title": "REST API",
-    "description": ""
+    "title": "InnoTech API",
+    "description": "API documentation for the InnoTech platform",
+    "version": "1.0.0"
   },
   "host": "localhost:3000",
+  "servers": [
+    {
+      "url": "https://page-inno-tech.onrender.com",
+      "description": "Production Render Server"
+    }
+  ],
   "basePath": "/",
   "schemes": [
     "http"
@@ -432,8 +438,8 @@
         }
       }
     },
-    "/api/auth/users/from-url": {
-      "post": {
+    "/api/auth/users/google": {
+      "get": {
         "description": "",
         "responses": {
           "default": {
@@ -442,8 +448,8 @@
         }
       }
     },
-    "/api/auth/users/local": {
-      "post": {
+    "/api/auth/users/google/callback": {
+      "get": {
         "description": "",
         "responses": {
           "default": {
