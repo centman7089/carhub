@@ -45,25 +45,26 @@ app.use( cookieParser() );
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use( cors() )
 
-const swaggerOptions = {
-	definition: {
-	  openapi: "3.0.0",
-	  info: {
-		title: "Test API",
-		version: "1.0.0",
-	  },
-	  servers: [
-		{
-		  url: "http://localhost:5000", // match your API port
-		},
-	  ],
-	},
-	apis: ["./routes/*.js"], // adjust to your routes
-  };
+// Allow both local dev and deployed frontend
+const allowedOrigins = [
+	"http://localhost:3000", // React dev server
+	"https://page-inno-tech.onrender.com", // your deployed frontend (optional)
+	"https://page-inno-tech.onrender.com/", // Swagger UI or others
+  ];
   
-  const swaggerDoc = swaggerDocument(swaggerOptions);
+  app.use(cors({
+	origin: (origin, callback) => {
+	  if (!origin || allowedOrigins.includes(origin)) {
+		callback(null, true);
+	  } else {
+		callback(new Error("CORS Not Allowed"));
+	  }
+	},
+	credentials: true,
+  }));
+
+
 
 app.use(session({
 	secret: process.env.SESSION_SECRET,
@@ -95,7 +96,7 @@ app.get( '/', ( req, res ) =>
 } )
 
 app.use( '/uploads', express.static( path.join( __dirname, 'uploads' ) ) );
-app.use("/api-docs",swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+app.use("/api-docs",swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 http://localhost:5000 => backend,frontend
 
