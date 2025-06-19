@@ -1,0 +1,39 @@
+
+import express from "express";
+import {
+   
+} from "../controllers/userController.js";
+import protectRoute from "../middlewares/protectRoute.js";
+import { addCustomSkill, getSkillsByCourse, removeSkill, updateCourses, updateProfile, updateSkills, updateUser } from "../controllers/internProfileController.js";
+import { photoUpload, resumeUpload } from "../middlewares/upload.js";
+
+
+
+const internProfileRouter = express.Router();
+
+
+internProfileRouter.get('/me', protectRoute, );
+internProfileRouter.get('/skills', protectRoute, getSkillsByCourse);
+internProfileRouter.post('/update-skills', protectRoute, updateSkills);
+internProfileRouter.post('/update-courses', protectRoute, updateCourses);
+internProfileRouter.post('/add-skill', protectRoute, addCustomSkill);
+internProfileRouter.post('/remove-skill', protectRoute, removeSkill);
+internProfileRouter.post('/update-user', protectRoute, updateUser);
+internProfileRouter.post(
+  '/update-profile',
+  protectRoute,
+  (req, res, next) => {
+    resumeUpload.single('resume')(req, res, function (err) {
+      if (err) return res.status(400).json({ error: err.message });
+      photoUpload.single('photo')(req, res, function (err) {
+        if (err) return res.status(400).json({ error: err.message });
+        next();
+      });
+    });
+  },
+  updateProfile
+);
+
+
+
+export default internProfileRouter;

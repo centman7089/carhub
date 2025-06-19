@@ -1,0 +1,109 @@
+
+.mobileScreen {
+    width: 402;
+    height: 2114;
+   
+}
+/* Home Top Section */
+.homeNav {
+    width: 402;
+    height: 165;
+    border: Mixed solid #DEDEDE;
+    padding-left: 17px;
+    padding-right: 23.54px;
+    padding-bottom: 13px;
+    padding-top: 46px;
+}
+.first-row {
+    display: flex;
+    flex-direction: row;
+}
+.welcome {
+    width: 149;
+    height: 38;
+   
+}
+.amara {
+    width: 148.99998474121094;
+height: 18.333332061767578;
+}
+.amara p {
+font-family: DM Sans;
+font-weight: 800;
+font-size: 14px;
+line-height: 100%;
+letter-spacing: 0%;
+color: #000;
+}
+.amara p span {
+    color: #00A5E4;
+
+}
+.onboard {
+    width: 148.99998474121094;
+    height: 18.333332061767578;
+}
+.onboard p {
+    font-family: DM Sans;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 100%;
+    letter-spacing: 0%; 
+}
+
+.layout {
+    width: 123.50100708007812;
+height: 28.50101089477539;
+display: flex;
+flex-direction: row;
+gap: 23px;
+padding-left: 79px;
+padding-top: 6.03px;
+}
+.layout p {
+    width: 25px;
+    height: 25px;
+    border-radius: 50%;
+}
+
+/* Search */
+.search {
+    display: flex;
+    flex-direction: row;  
+    border: 2px solid #000;
+   gap: 80px;
+}
+
+.search-box {
+    width: 299.62493896484375;
+    height: 47.40781784057617;
+  
+    border: 2px solid red;
+}
+.search-box .icon {
+    width: 28.50101089477539;
+    height: 28.50101089477539;
+    border-width: 1.28px;
+}
+
+.search-box input {
+    width: 172;
+height: 15;
+font-family: DM Sans;
+font-weight: 400;
+font-size: 14.62px;
+line-height: 100%;
+letter-spacing: 0%;
+border: none;
+padding-left: 8.5px;
+
+}
+
+.search-icon-box {
+    width: 39.46279525756836;
+    height: 47.40781784057617;
+    padding-left: 20px;
+    background: #FFFFFF;
+    border: 2px solid #741b1b;
+   
+}
