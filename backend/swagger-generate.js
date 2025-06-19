@@ -10,7 +10,7 @@ const doc = {
     },
     servers: [
       {
-        url: 'https://page-inno-tech.onrender.com',
+        url: 'https://page-tech.onrender.com/.com',
         description: 'Production Render Server'
       }
     ],

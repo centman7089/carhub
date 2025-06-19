@@ -49,8 +49,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 // Allow both local dev and deployed frontend
 const allowedOrigins = [
 	"http://localhost:3000", // React dev server
-	"https://page-inno-tech.onrender.com", // your deployed frontend (optional)
-	"https://page-inno-tech.onrender.com/", // Swagger UI or others
+	"https://page-tech.onrender.com", // your deployed frontend (optional)
+	"https://page-tech.onrender.com/", // Swagger UI or others
   ];
   
   app.use(cors({
