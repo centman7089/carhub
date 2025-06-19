@@ -1,55 +1,49 @@
 // @ts-nocheck
-// const passport = require('passport');
-const GoogleStrategy = require( 'passport-google-oauth20' ).Strategy;
+// config/passport.js
+import passport from "passport"
+const GoogleStrategy = require('passport-google-oauth20').Strategy;
+import Intern from "../model/internModel.js";
 
-const passport = require("passport")
-const FacebookStrategy = require('passport-facebook').Strategy;
-const GitHubStrategy = require('passport-github2').Strategy;
-const User = require('../../models/userModel.js')
-
-// Google Strategy
 passport.use(
   new GoogleStrategy(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: '/api/users/auth/google/callback',
+      callbackURL: '/api/auth/google/callback',
+      proxy: true
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        let user = await User.findOne({googleId: profile.id});
+        let user = await Intern.findOne({ googleId: profile.id });
 
-       if (!user) {
-        user = await User.create({
-          name: profile.displayName,
-          email: profile.emails[0].value,
-          googleId: profile.id,
-          provider: 'google',
-          isVerified: true,
-          avatar: profile.photos[0].value
-        });
+        if (user) {
+          return done(null, user);
         }
-        return done(null, user)
-       
+
+        // Create new user
+        user = await Intern.create({
+          googleId: profile.id,
+          firstName: profile.name.givenName,
+          lastName: profile.name.familyName,
+          email: profile.emails[0].value,
+          isEmailVerified: true,
+          provider: 'google',
+          profileImage: profile.photos[0].value
+        });
+
+        done(null, user);
       } catch (err) {
-        return done(err, null);
+        done(err, null);
       }
     }
   )
 );
-
-
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
 
 passport.deserializeUser(async (id, done) => {
-  try {
-    const user = await User.findById(id);
-    done(null, user);
-  } catch (error) {
-    done(error, null);
-  }
+  const user = await Intern.findById(id);
+  done(null, user);
 });
-

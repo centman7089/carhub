@@ -1,4 +1,5 @@
 import express from "express";
+import passport from "passport"
 import {
 	followUnFollowUser,
 	getUserProfile,
@@ -17,6 +18,7 @@ import {
 	verifyEmail,
 	uploadFromUrl,
 	uploadFromLocal,
+	googleAuthSuccess,
 	
 } from "../controllers/userController.js";
 import protectRoute from "../middlewares/protectRoute.js";
@@ -43,6 +45,23 @@ router.post("/login", login);
 router.post( "/forgot-password", forgotPassword );
 router.post( "/reset-password", resetPassword );
 router.post( "/change-password", protectRoute, changePassword );
+
+// Google auth routes
+router.get(
+	'/google',
+	passport.authenticate('google', {
+	  scope: ['profile', 'email']
+	})
+  );
+  
+  router.get(
+	'/google/callback',
+	passport.authenticate('google', {
+	  failureRedirect: '/login',
+	  session: false
+	}),
+	googleAuthSuccess
+  );
 
 
 

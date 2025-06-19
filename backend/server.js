@@ -1,7 +1,7 @@
 // @ts-nocheck
 import path from "path";
 import express from "express";
-
+import cors from "cors"
 import dotenv from "dotenv";
 import connectDB from "./db/connectDB.js";
 import cookieParser from "cookie-parser";
@@ -44,6 +44,8 @@ app.use(express.urlencoded({ extended: true })); // To parse form data in the re
 app.use( cookieParser() );
 
 app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cors())
 
 app.use(session({
 	secret: process.env.SESSION_SECRET,

@@ -523,6 +523,25 @@ const forgotPassword = async (req, res) => {
 	  res.status(500).json({ error: "Cloudinary upload failed" });
 	}
   }
+
+  // controllers/authController.js
+const googleAuthSuccess = async (req, res, next) => {
+    try {
+      const token = getSignedJwtToken(req.user._id);
+      
+      // Redirect or send token based on your frontend needs
+      res.redirect(`${process.env.FRONTEND_URL}/auth/success?token=${token}`);
+      
+      // Or send JSON response
+      // res.status(200).json({
+      //   success: true,
+      //   token
+      // });
+    } catch (err) {
+      next(err);
+    }
+  };
+ 
 export {
 	register,
 	login,
@@ -539,5 +558,6 @@ export {
 	changePassword,
 	uploadFromUrl,
 	uploadFromLocal,
+	googleAuthSuccess
 	
 };
