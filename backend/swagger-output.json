@@ -1,20 +1,27 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "InnoTech API",
-    "description": "API documentation for the InnoTech platform",
+    "title": "Tec Intern API",
+    "description": "API documentation for the Tech Intern platform",
     "version": "1.0.0"
   },
-  "host": "localhost:3000",
+  "host": "https://page-tech.onrender.com",
   "servers": [
     {
-      "url": "https://page-inno-tech.onrender.com",
-      "description": "Production Render Server"
+      "url": "https://page-tech.onrender.com",
+      "description": "APi for TechIntern"
     }
   ],
   "basePath": "/",
   "schemes": [
-    "http"
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
   ],
   "paths": {
     "/": {
@@ -1395,5 +1402,6 @@
         }
       }
     }
-  }
+  },
+  "openai": "5.1.1"
 }

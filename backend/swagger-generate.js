@@ -3,15 +3,21 @@
 import swaggerAutogen from "swagger-autogen"
 
 const doc = {
+  openai: "5.1.1",
     info: {
-      title: 'InnoTech API',
-      description: 'API documentation for the InnoTech platform',
+      title: 'Tec Intern API',
+      description: 'API documentation for the Tech Intern platform',
       version: '1.0.0',
-    },
+  },
+  host: "https://page-tech.onrender.com",
+  schemes: ['http', 'https'],
+  basePath: '/',
+  consumes: ['application/json'],
+  produces: ['application/json'],
     servers: [
       {
-        url: 'https://page-tech.onrender.com/.com',
-        description: 'Production Render Server'
+        url: 'https://page-tech.onrender.com',
+        description: 'APi for TechIntern'
       }
     ],
   };
