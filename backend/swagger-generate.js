@@ -9,9 +9,8 @@ const doc = {
       description: 'API documentation for the Tech Intern platform',
       version: '1.0.0',
   },
-  host: "https://page-tech.onrender.com",
+  host: "page-tech.onrender.com",
   schemes: ['http', 'https'],
-  basePath: '/',
   consumes: ['application/json'],
   produces: ['application/json'],
     servers: [
