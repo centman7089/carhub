@@ -8,7 +8,7 @@
   "host": "page-tech.onrender.com",
   "servers": [
     {
-      "url": "https://page-tech.onrender.com",
+      "url": "page-tech.onrender.com",
       "description": "APi for TechIntern"
     }
   ],
