@@ -37,8 +37,8 @@ const register = async ( req, res ) =>
 	try {
 		const {companyName, email,password,logo, description } = req.body;
 		const userExists = await Employer.findOne({ email });
-		  if (!companyName || !email || !logo || !description ) {
-			return res.status(404).json({message: "All fields are required"});
+		  if (!companyName || !email) {
+			return res.status(404).json({message: "Company Name and Email are required"});
 		  }
 	
 
