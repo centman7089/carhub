@@ -7,7 +7,8 @@ const EmployerSchema = new mongoose.Schema({
     password: String,
     logo: {type: String,
         default: ""},         // uploaded logo
-    description: String,
+    description: {type: String,
+        default: ""},  
     createdAt: { type: Date, default: Date.now },
     
 		lastLogin: {
