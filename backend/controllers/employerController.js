@@ -93,10 +93,16 @@ const login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
 		const user = await Employer.findOne( { email} );
-		if (!user || !user.isVerified) return res.status(400).json({ msg: "Invalid credentials or unverified email" });
+		if ( !user || !user.isVerified )
+		{
+			return res.status(400).json({ msg: "Invalid credentials or unverified email" });
+		}
 		const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
 
-		if (!isPasswordCorrect) return res.status(400).json({ error: "Invalid email or password" });
+		if ( !isPasswordCorrect )
+		{
+			return res.status(400).json({ error: "Invalid email or password" });
+		}
 
 		if (user.isFrozen) {
 			user.isFrozen = false;
@@ -127,7 +133,10 @@ const updateUser = async (req, res) => {
 	const userId = req.user._id;
 	try {
 		let user = await Employer.findById(userId);
-		if (!user) return res.status(400).json({ error: "User not found" });
+		if ( !user )
+		{
+			return res.status(400).json({ error: "User not found" });
+		}
 
 		// if (req.params.id !== userId.toString())
 		// 	return res.status(400).json({ error: "You cannot update other user's profile" });
@@ -209,7 +218,10 @@ const verifyEmail = async (req, res) => {
 	  const { email } = req.body;
 	  const user = await Employer.findOne({ email });
   
-	  if (!user || user.isVerified) return res.status(400).json({ msg: "User not found or already verified" });
+		if ( !user || user.isVerified )
+		{
+			return res.status(400).json({ msg: "User not found or already verified" });
+	  }
   
 	  const code = generateCode();
 	  user.emailCode = code;
@@ -229,7 +241,10 @@ const forgotPassword = async (req, res) => {
 	  const { email } = req.body;
 	  const user = await Employer.findOne({ email });
   
-	  if (!user) return res.status(400).json({ msg: "Email not found" });
+		if ( !user )
+		{
+			return res.status(400).json({ msg: "Email not found" });
+	  }
   
 	  const code = generateCode();
 	  user.resetCode = code;
@@ -249,11 +264,17 @@ const forgotPassword = async (req, res) => {
 	  const { email, code, newPassword, confirmPassword } = req.body;
 	  const user = await Employer.findOne({ email });
   
-	  if (!user || user.resetCode !== code || Date.now() > user.resetCodeExpires)
-		return res.status(400).json({ msg: "Invalid or expired code" });
+		if ( !user || user.resetCode !== code || Date.now() > user.resetCodeExpires )
+		{
+			return res.status(400).json({ msg: "Invalid or expired code" });
+	  }
+	
   
-	  if (newPassword !== confirmPassword)
-		return res.status(400).json({ msg: "Passwords do not match" });
+		if ( newPassword !== confirmPassword )
+		{
+			return res.status(400).json({ msg: "Passwords do not match" });
+	  }
+		
   
 	  const hashed = await bcrypt.hash(newPassword, 10);
 	  user.password = hashed;
@@ -278,14 +299,23 @@ const forgotPassword = async (req, res) => {
 	  }
   
 	  const user = await Employer.findById(userId);
-	  if (!user) return res.status(404).json({ msg: "User not found" });
+		if ( !user )
+		{
+			return res.status(404).json({ msg: "User not found" });
+	  }
   
 	  const isMatch = await bcrypt.compare(currentPassword, user.password);
-	  if (!isMatch) return res.status(400).json({ msg: "Current password is incorrect" });
+		if ( !isMatch )
+		{
+			return res.status(400).json({ msg: "Current password is incorrect" });
+	  }
   
 	  // Check if newPassword is same as current password
 	  const isSame = await bcrypt.compare(newPassword, user.password);
-	  if (isSame) return res.status(400).json({ msg: "New password cannot be the same as the old password" });
+		if ( isSame )
+		{
+			return res.status(400).json({ msg: "New password cannot be the same as the old password" });
+	  }
   
 	  // Check password history
 	  for (let entry of user.passwordHistory || []) {
