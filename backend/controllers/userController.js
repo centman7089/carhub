@@ -128,31 +128,55 @@ const register = async ( req, res ) =>
 
 const login = async (req, res) => {
 	try {
-		const { email, password } = req.body;
-		const user = await User.findOne( { email} );
-		if (!user || !user.isVerified) return res.status(400).json({ msg: "Invalid credentials or unverified email" });
-		const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
-
-		if (!isPasswordCorrect) return res.status(400).json({ error: "Invalid email or password" });
-
-		if (user.isFrozen) {
-			user.isFrozen = false;
-			await user.save();
-		}
-
-		const token = generateTokenAndSetCookie(user._id, res);
-
-		res.status( 200 ).json( {
-			token,
-			_id: user._id,
-			email: user.email,
-			msg: "Login Successful" 
+	  const { email, password } = req.body;
+	  const user = await User.findOne({ email });
+	  
+	  if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+  
+	  const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
+  
+	  if (!isPasswordCorrect) return res.status(400).json({ error: "Invalid email or password" });
+  
+	  // If user is not verified
+	  if (!user.isVerified) {
+		// Generate new verification code
+		const code = generateCode();
+		user.emailCode = code;
+		user.emailCodeExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+		await user.save();
+  
+		// Send verification email
+		await sendEmail(
+		  email,
+		  "New Verification Code",
+		  `Your new verification code is: ${code}`
+		);
+  
+		return res.status(403).json({ 
+		  msg: "Account not verified. A new verification code has been sent to your email.",
+		  isVerified: false 
 		});
+	  }
+  
+	  if (user.isFrozen) {
+		user.isFrozen = false;
+		await user.save();
+	  }
+  
+	  const token = generateTokenAndSetCookie(user._id, res);
+  
+	  res.status(200).json({
+		token,
+		_id: user._id,
+		email: user.email,
+		msg: "Login Successful",
+		isVerified: true
+	  });
 	} catch (error) {
-		res.status(500).json({ error: error.message });
-		console.log("Error in loginUser: ", error.message);
+	  res.status(500).json({ error: error.message });
+	  console.log("Error in loginUser: ", error.message);
 	}
-};
+  };
 
 const logoutUser = (req, res) => {
 	try {
