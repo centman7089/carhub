@@ -53,16 +53,18 @@ const allowedOrigins = [
 	"https://page-tech.onrender.com/", // Swagger UI or others
   ];
   
-  app.use(cors({
-	origin: (origin, callback) => {
-	  if (!origin || allowedOrigins.includes(origin)) {
-		callback(null, true);
-	  } else {
-		callback(new Error("CORS Not Allowed"));
-	  }
-	},
-	credentials: true,
-  }));
+//   app.use(cors({
+// 	origin: (origin, callback) => {
+// 	  if (!origin || allowedOrigins.includes(origin)) {
+// 		callback(null, true);
+// 	  } else {
+// 		callback(new Error("CORS Not Allowed"));
+// 	  }
+// 	},
+// 	credentials: true,
+//   }));
+
+app.use(cors())
 
 
 
