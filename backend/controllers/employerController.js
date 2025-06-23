@@ -92,6 +92,31 @@ const register = async ( req, res ) =>
 const login = async (req, res) => {
 	try {
 		const { email, password } = req.body;
+		const user = await User.findOne( { email} );
+		if (!user || !user.isVerified) return res.status(400).json({ msg: "Invalid credentials or unverified email" });
+		const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
+
+		if (!isPasswordCorrect) return res.status(400).json({ error: "Invalid email or password" });
+
+		if (user.isFrozen) {
+			user.isFrozen = false;
+			await user.save();
+		}
+
+		const token = generateTokenAndSetCookie(user._id, res);
+
+		res.status( 200 ).json( {
+			token,
+			_id: user._id,
+			email: user.email,
+			msg: "Login Successful" 
+		});
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+		console.log("Error in loginUser: ", error.message);
+	}
+};	try {
+		const { email, password } = req.body;
 		const user = await Employer.findOne( { email} ).select('-password');
 		if (!user || !user.isVerified) return res.status(400).json({ msg: "Invalid credentials or unverified email" });
 		const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
