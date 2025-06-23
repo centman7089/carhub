@@ -94,6 +94,13 @@ const userSchema = mongoose.Schema(
 		},
 		course: [String],
 		skills: [ String ],
+		resume: {
+			originalUrl: String,
+			cloudinaryUrl: String,
+			publicId: String,
+			fileType: String,
+			uploadedAt: Date
+		  },
 		resumes: [ { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' } ], // Array of resume references
 		filePath: String,
 		lastLogin: {

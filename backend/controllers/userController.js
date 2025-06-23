@@ -466,7 +466,8 @@ const forgotPassword = async (req, res) => {
   
   const uploadFromUrl = async (req, res) => {
 	const { fileUrl } = req.body;
-	
+	const userId = req.user?._id; // Get the authenticated user's ID
+  
 	if (!fileUrl) {
 	  return res.status(400).json({ error: "File URL is required" });
 	}
@@ -480,6 +481,7 @@ const forgotPassword = async (req, res) => {
 	const tempPath = path.join(tempDir, uuidv4());
 	
 	try {
+	  // Download the file from URL
 	  const response = await axios({
 		url: fileUrl,
 		method: "GET",
@@ -494,20 +496,34 @@ const forgotPassword = async (req, res) => {
 		writer.on('error', reject);
 	  });
   
+	  // Upload to Cloudinary
 	  const cloudRes = await cloudinary.uploader.upload(tempPath, {
 		resource_type: "auto",
+		folder: "resumes", // Optional: organize files in Cloudinary
 	  });
   
+	  // Delete the temporary file
 	  await fsp.unlink(tempPath);
   
-	  const newFile = new User({
-		originalUrl: fileUrl,
-		cloudinaryUrl: cloudRes.secure_url,
-		fileType: cloudRes.resource_type,
-	  });
+	  // Update the user's resume field
+	  const updatedUser = await User.findByIdAndUpdate(
+		userId,
+		{
+		  resume: {
+			originalUrl: fileUrl,
+			cloudinaryUrl: cloudRes.secure_url,
+			publicId: cloudRes.public_id, // Store public_id for future management
+			fileType: cloudRes.resource_type,
+			uploadedAt: new Date(),
+		  },
+		},
+		{ new: true } // Return the updated document
+	  );
   
-	  await newFile.save();
-	  res.status(200).json({ message: "Uploaded successfully", file: newFile });
+	  res.status(200).json({ 
+		message: "Resume uploaded successfully", 
+		resume: updatedUser?.resume 
+	  });
 	} catch (err) {
 	  console.error('Upload error:', err);
 	  try {
@@ -524,29 +540,58 @@ const forgotPassword = async (req, res) => {
 	}
   };
 
-  const uploadFromLocal = async (req, res) => {
-	try {
-	  const cloudRes = await cloudinary.uploader.upload(req.file?.path, {
-		resource_type: "auto",
-	  });
+
+const uploadFromLocal = async (req, res) => {
+	const userId = req.user?._id; // Get the authenticated user's ID
   
-	  if (req.file?.path) await fs.unlink(req.file.path).catch(() => {}); // delete temp file
-  
-	  const newFile = new User({
-		originalUrl: null,
-		cloudinaryUrl: cloudRes.secure_url,
-		fileType: cloudRes.resource_type,
-	  });
-  
-	  await newFile.save();
-	  res.status(200).json({ message: "Uploaded successfully", file: newFile });
-	} catch (err) {
-	  console.log(err);
-	  // Clean up temp file if it exists
-	  if (req.file?.path) await fs.unlink(req.file.path).catch(() => {});
-	  res.status(500).json({ error: "Cloudinary upload failed" });
+	if (!req.file) {
+	  return res.status(400).json({ error: "No file uploaded" });
 	}
-  }
+  
+	try {
+	  // Upload to Cloudinary
+	  const cloudRes = await cloudinary.uploader.upload(req.file.path, {
+		resource_type: "auto",
+		folder: "resumes", // Optional: organize files in Cloudinary
+	  });
+  
+	  // Delete the temporary file
+	  if (req.file.path) {
+		await fsp.unlink(req.file.path).catch(console.error);
+	  }
+  
+	  // Update the user's resume field
+	  const updatedUser = await User.findByIdAndUpdate(
+		userId,
+		{
+		  resume: {
+			cloudinaryUrl: cloudRes.secure_url,
+			publicId: cloudRes.public_id, // Store public_id for future management
+			fileType: cloudRes.resource_type,
+			uploadedAt: new Date(),
+		  },
+		},
+		{ new: true } // Return the updated document
+	  );
+  
+	  res.status(200).json({ 
+		message: "Resume uploaded successfully", 
+		resume: updatedUser.resume 
+	  });
+	} catch ( err )
+	{
+		console.log(err);
+		
+	  console.error('Upload error:', err);
+	  // Clean up temp file if it exists
+	  if (req.file?.path) {
+		await fsp.unlink(req.file.path).catch(console.error);
+	  }
+	  res.status(500).json({ 
+		error: err.message || "Cloudinary upload failed" 
+	  });
+	}
+  };
 
   // controllers/authController.js
 const googleAuthSuccess = async (req, res, next) => {

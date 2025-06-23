@@ -1,3 +1,4 @@
+// @ts-nocheck
 import express from "express";
 import passport from "passport"
 import {
@@ -23,10 +24,8 @@ import {
 } from "../controllers/userController.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import multer from "multer";
-import auth from "../middlewares/authMiddleware.js";
-import { resumeUpload, photoUpload } from "../middlewares/upload.js";
-// Set up multer for local upload
-const upload = multer({ dest: "temp_uploads/" });
+
+
 
 const router = express.Router();
 
@@ -45,6 +44,41 @@ router.post("/login", login);
 router.post( "/forgot-password", forgotPassword );
 router.post( "/reset-password", resetPassword );
 router.post( "/change-password", protectRoute, changePassword );
+
+
+// Multer configuration - accepts both documents and images
+const upload = multer({ 
+	dest: 'temp_uploads/',
+	fileFilter: (req, file, cb) => {
+	  const allowedMimeTypes = [
+		// Documents
+		'application/pdf',
+		'application/msword',
+		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		
+		// Images
+		'image/jpeg',
+		'image/jpg',
+		'image/png'
+	  ];
+  
+	  if (allowedMimeTypes.includes(file.mimetype)) {
+		cb(null, true);
+	  } else {
+		cb(new Error('Invalid file type. Only PDF, Word docs, JPG, JPEG, PNG allowed'), false);
+	  }
+	},
+	limits: {
+	  fileSize: 5 * 1024 * 1024 // 5MB
+	}
+  });
+  
+  // Upload from URL (already handles all file types via Cloudinary)
+  router.post('/resume/url', protectRoute, uploadFromUrl);
+  
+  // Upload from local device (now accepts both docs and images)
+  router.post('/resume/local', protectRoute, upload.single('resume'), uploadFromLocal);
+  
 
 // Google auth routes
 router.get(
