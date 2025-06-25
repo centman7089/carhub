@@ -1,5 +1,7 @@
 // @ts-nocheck
 import mongoose from "mongoose";
+import crypto from "crypto"
+import bcrypt from "bcryptjs"
 
 const userSchema = mongoose.Schema(
 	{
@@ -129,6 +131,37 @@ const userSchema = mongoose.Schema(
 		timestamps: true,
 	}
 );
+
+userSchema.pre( "save", async function ( next )
+{
+	if (!this.isModified("password")) {
+		return next();
+	}
+	this.password = await bcrypt.hash( this.password, 12 );
+	next();
+} )
+
+userSchema.methods.correctPassword = async function ( candPwd )
+{
+	return bcrypt.compare(candPwd, this.password)
+}
+
+
+userSchema.methods.setPasswordResetCode = function ()
+{
+	const code = Math.floor( 1000 + Math.random() * 9000 ).toString();
+	this.resetCode = crypto.createHash( "sha256" ).update( code ).digest( "hex" )
+	this.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10minute
+	return code; // we will email this
+};
+
+userSchema.methods.validateResetCode = function ( code )
+{
+	const hash = crypto.createHash( "sha256" ).update( code ).digest( "hex" );
+	return (
+		hash === this.resetCode && this.resetCodeExpires && this.resetCodeExpires > Date.now()
+	);
+}
 
 const User = mongoose.model("User", userSchema);
 

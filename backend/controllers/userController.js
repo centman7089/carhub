@@ -342,6 +342,26 @@ const verifyEmail = async (req, res) => {
 	} catch (err) {
 	  res.status(500).json({ msg: err.message });
 	}
+};
+const verifyPasswordResetCode = async (req, res) => {
+	try {
+	  const { email, code } = req.body;
+	  const user = await User.findOne({ email });
+  
+	//   if (!user || user.isVerified) return res.status(400).json({ msg: "Invalid request" });
+  
+	  if (user.resetCode !== code || Date.now() > user.reseCodeExpires)
+		return res.status(400).json({ msg: "Code expired or incorrect" });
+  
+	  user.isVerified = true;
+	  user.resetCode = null;
+	  user.resetCodeExpires = null;
+	  await user.save();
+  
+	  res.json({ msg: "code verified successfully" });
+	} catch (err) {
+	  res.status(500).json({ msg: err.msg });
+	}
   };
   
   // Resend Verification Code
@@ -364,48 +384,31 @@ const verifyEmail = async (req, res) => {
 	}
   };
   // Forgot Password
-const forgotPassword = async (req, res) => {
-	try {
-	  const { email } = req.body;
-	  const user = await User.findOne({ email });
-  
-	  if (!user) return res.status(400).json({ msg: "Email not found" });
-  
-	  const code = generateCode();
-	  user.resetCode = code;
-	  user.resetCodeExpires = Date.now() + 10 * 60 * 1000;
-	  await user.save();
-  
-	  await sendEmail(email, "Password Reset Code", `Your reset code is: ${code}`);
-	  res.json({ msg: "Password reset code sent" });
-	} catch (err) {
-	  res.status(500).json({ msg: err.message });
-	}
-  };
+
   
   // Reset Password
-  const resetPassword = async (req, res) => {
-	try {
-	  const { email, code, newPassword, confirmPassword } = req.body;
-	  const user = await User.findOne({ email });
+//   const resetPassword = async (req, res) => {
+// 	try {
+// 	  const { email, code, newPassword, confirmPassword } = req.body;
+// 	  const user = await User.findOne({ email });
   
-	  if (!user || user.resetCode !== code || Date.now() > user.resetCodeExpires)
-		return res.status(400).json({ msg: "Invalid or expired code" });
+// 	  if (!user || user.resetCode !== code || Date.now() > user.resetCodeExpires)
+// 		return res.status(400).json({ msg: "Invalid or expired code" });
   
-	  if (newPassword !== confirmPassword)
-		return res.status(400).json({ msg: "Passwords do not match" });
+// 	  if (newPassword !== confirmPassword)
+// 		return res.status(400).json({ msg: "Passwords do not match" });
   
-	  const hashed = await bcrypt.hash(newPassword, 10);
-	  user.password = hashed;
-	  user.resetCode = null;
-	  user.resetCodeExpires = null;
-	  await user.save();
+// 	  const hashed = await bcrypt.hash(newPassword, 10);
+// 	  user.password = hashed;
+// 	  user.resetCode = null;
+// 	  user.resetCodeExpires = null;
+// 	  await user.save();
   
-	  res.json({ msg: "Password has been reset" });
-	} catch (err) {
-	  res.status(500).json({ msg: err.message });
-	}
-  };
+// 	  res.json({ msg: "Password has been reset" });
+// 	} catch (err) {
+// 	  res.status(500).json({ msg: err.message });
+// 	}
+//   };
   
 
   // Forgot Password
@@ -609,8 +612,84 @@ const googleAuthSuccess = async (req, res, next) => {
     } catch (err) {
       next(err);
     }
+};
+
+const forgotPassword = async (req, res) => {
+	try {
+	  const { email } = req.body;
+	  const user = await User.findOne({ email });
+  
+		if ( !user )
+		{
+			return res.status(400).json({ msg: "Email not found" });
+	  }
+  
+		const code = user.setPasswordResetCode();
+		await user.save({validateBeforeSave: false})
+	  await sendEmail(email, "Password Reset Code", `Your reset code is: ${code}`);
+	  res.json({ msg: "Password reset code sent" });
+	} catch (err) {
+	  res.status(500).json({ msg: err.message });
+	}
   };
- 
+  
+
+  const verifyResetCode = async (req, res) => {
+	try {
+	  const { email, code} = req.body;
+	  const user = await User.findOne({ email });
+  
+	  if (!user || !user.validateResetCode(code)) {
+		return res.status(400).json({ message: "Invalid/expired OTP" });
+	  }
+  
+	  // Generate short-lived JWT (15 mins expiry)
+	  const token = jwt.sign(
+		{ userId: user._id, purpose: "password_reset" },
+		process.env.JWT_SECRET,
+		{ expiresIn: "15m" }
+	  );
+  
+	  res.json({ success: true, token, message: "OTP verified" });
+	} catch (error) {
+	  res.status(500).json({ message: "Server error" });
+	}
+  };
+// Step 3 – change the password with the JWT
+const resetPassword = async (req, res) => {
+	try {
+	  const { token, newPassword, confirmPassword } = req.body;
+  
+	  if (newPassword !== confirmPassword) {
+		return res.status(400).json({ message: "Passwords do not match" });
+	  }
+  
+	  // Verify JWT
+	  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+	  if (decoded.purpose !== "password_reset") {
+		return res.status(400).json({ message: "Invalid token" });
+	  }
+  
+	  const user = await User.findById(decoded.userId);
+	  if (!user) {
+		return res.status(404).json({ message: "User not found" });
+	  }
+  
+	  // Update password & clear OTP
+	  user.password = newPassword;
+	  user.otp = undefined;
+	  user.otpExpires = undefined;
+	  await user.save();
+  
+	  res.json({ success: true, message: "Password updated" });
+	} catch (error) {
+	  if (error.name === "TokenExpiredError") {
+		return res.status(400).json({ message: "Token expired" });
+	  }
+	  res.status(500).json({ message: "Server error" });
+	}
+  };
+   
 export {
 	register,
 	login,
@@ -622,6 +701,7 @@ export {
 	freezeAccount,
 	verifyEmail,
 	resendCode,
+	verifyResetCode,
 	forgotPassword,
 	resetPassword,
 	changePassword,
