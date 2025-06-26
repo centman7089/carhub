@@ -22,8 +22,10 @@ const adminSchema = new  mongoose.Schema( {
         required: true,
     },
     role: {
-
-    }
+        type: String,
+        enum: ['admin', 'superAdmin'],
+        default: 'admin',
+      },
 }, { timestamps: true } )
 
 const Admin = mongoose.models || mongoose.model( "Admin", adminSchema )
