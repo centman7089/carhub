@@ -91,7 +91,6 @@ const userSchema = mongoose.Schema(
 		  type: Date,
 		  default: Date.now,
 		},
-		name: String,
 		provider: {
 		  type: String,
 		  enum: ['local', 'google'],
@@ -119,9 +118,9 @@ const userSchema = mongoose.Schema(
 		  emailCode: String,
 		  emailCodeExpires: Date,
 		  resetCode: String,
-		resetCodeExpires: Date,
-		verificationToken: String,
-		passwordHistory: [
+		  resetCodeExpires: Date,
+		  verificationToken: String,
+		  passwordHistory: [
 			{
 			  password: String,
 			  changedAt: Date

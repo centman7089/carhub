@@ -6,28 +6,48 @@ const adminSchema = new  mongoose.Schema( {
         required: true,
     },
     lastName: {
-        type: Number,
+        type: String,
         required: true,
     },
     email: {
-        type: Number,
+        type: String,
         required: true,
     },
     password: {
-        type: Number,
+        type: String,
         required: true,
     },
     phone: {
         type: String,
         required: true,
     },
-    role: {
+    country: {
         type: String,
-        enum: ['admin', 'superAdmin'],
+        required: true,
+    },
+    role
+        : {
+        type: String,
+        enum: ['admin', 'superadmin'],
         default: 'admin',
+    },
+    isVerified: {
+        type: Boolean,
+        default: false,
       },
+    emailCode: String,
+    emailCodeExpires: Date,
+    resetCode: String,
+    resetCodeExpires: Date,
+    verificationToken: String,
+    passwordHistory: [
+      {
+        password: String,
+        changedAt: Date
+      }
+    ]
 }, { timestamps: true } )
 
-const Admin = mongoose.models || mongoose.model( "Admin", adminSchema )
+const Admin = mongoose.model( "Admin", adminSchema )
 
 export default Admin

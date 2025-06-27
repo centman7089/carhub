@@ -22,6 +22,7 @@ import courseRoute from "./routes/courseRoute.js";
 import internProfileRouter from "./routes/internProfileRoute.js";
 import EmployerRouter from "./routes/employerRoutes.js";
 import uploadRouter from "./routes/upload.js";
+import adminRoute from "./routes/adminRoutes.js";
 
 
 dotenv.config();
@@ -82,6 +83,7 @@ app.use(passport.session())
 
 // Routes
 app.use("/api/auth/users", userRoutes);
+app.use("/api/admin", adminRoute);
 app.use("/api/posts", postRoutes);
 app.use( "/api/messages", messageRoutes );
 app.use( "/api/auth", authRouter );

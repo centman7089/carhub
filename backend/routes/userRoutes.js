@@ -36,7 +36,7 @@ router.get("/suggested", protectRoute, getSuggestedUsers);
 
 router.post("/logout", logoutUser);
 router.post("/follow/:id", protectRoute, followUnFollowUser); // Toggle state(follow/unfollow)
-router.patch("/update/:id", protectRoute, updateUser);
+
 router.patch( "/freeze", protectRoute, freezeAccount );
 
 router.post("/register", register);
@@ -47,6 +47,7 @@ router.post("/login", login);
 router.post( "/forgot-password", forgotPassword );
 router.post( "/reset-password", resetPassword );
 router.post( "/change-password", protectRoute, changePassword );
+router.patch("/update/:id", protectRoute, updateUser);
 
 
 // Multer configuration - accepts both documents and images
