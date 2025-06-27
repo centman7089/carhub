@@ -1,7 +1,7 @@
 // @ts-nocheck
 import express from "express";
 import passport from "passport"
-// import { issueTokenAndRedirect } from "../db/passport.js";
+
 import {
 	followUnFollowUser,
 	getUserProfile,
