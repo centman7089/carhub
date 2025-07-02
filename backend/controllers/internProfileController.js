@@ -150,12 +150,58 @@ const updateUser = async (req, res) => {
     
 	}
 };
+// Change Profile Picture
+const updatePhoto = async (req, res) => {
+  try {
+      const { id } = req.params;
+      const userId = req.user._id;
+
+      if (id !== userId) {
+          return res.status(403).json({ message: "Unauthorized: You can only change your own profile image." });
+      }
+
+      if (!req.file) {
+          return res.status(422).json({ message: "Please select an image." });
+      }
+
+    
+      const user = await User.findById(id);
+      if (!user) {
+          return res.status(404).json({ message: "Student not found." });
+      }
+
+    
+      // Default avatar URL
+      const defaultAvatar = "https://res.cloudinary.com/dq5puvtne/image/upload/v1740648447/next_crib_avatar_jled2z.jpg";
+
+      // Delete old Cloudinary image (if exists)
+      if (user.profilePic && user.profilePic !== defaultAvatar) {
+          const publicIdMatch = user.profilePic.match(/\/([^/]+)\.[a-z]+$/);
+          if (publicIdMatch) {
+              const publicId = `intern_profile/${publicIdMatch[1]}`;
+              await cloudinary.uploader.destroy(publicId);
+          }
+      }
+
+      // Save new image URL from multer-cloudinary
+      user.profilePic = req.file.path;
+      await user.save();
+
+      return res.status(200).json({
+          message: "File successfully uploaded.",
+          profilePic: user.profilePic,
+      });
+  } catch (err) {
+      console.error("Error processing request:", err);
+      return res.status(500).json({ message: "An error occurred while processing your request." });
+  }
+};
   
 export
 {
   createIntern, getInterns, getSkillsByCourse, updateCourses,
   updateProfile, updateSkills, addCustomSkill, removeSkill,
-  updateUser
+  updateUser, updatePhoto
 }
   
   

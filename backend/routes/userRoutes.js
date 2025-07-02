@@ -1,6 +1,8 @@
 // @ts-nocheck
 import express from "express";
 import passport from "passport"
+// import { issueTokenAndRedirect } from "../db/passport.js"
+import { keys } from "../db/Key.js";
 
 import {
 	followUnFollowUser,
@@ -26,6 +28,10 @@ import {
 } from "../controllers/userController.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import multer from "multer";
+
+function generateToken(user) {
+	return jwt.sign({ id: user._id }, keys.jwtSecret, { expiresIn: "7d" });
+  }
 
 
 
@@ -102,8 +108,22 @@ const upload = multer({
 //   );
 
 
-
 // Google
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get("/google/callback", passport.authenticate("google", { session: false }), (req, res) => {
+  const token = generateToken(req.user);
+  res.redirect(`${keys.clientURL}/oauth-success?token=${token}`);
+} );
+
+// GitHub
+router.get("/github", passport.authenticate("github", { scope: ["user:email"] }));
+router.get("/github/callback", passport.authenticate("github", { session: false }), (req, res) => {
+  const token = generateToken(req.user);
+  res.redirect(`${keys.clientURL}/oauth-success?token=${token}`);
+});
+
+
+// // Google
 // router.get(
 // 	"/google",
 // 	passport.authenticate("google", { scope: ["profile", "email"] })
@@ -117,7 +137,7 @@ const upload = multer({
 //   );
 //   router.get("/facebook/callback", passport.authenticate("facebook"), issueTokenAndRedirect);
   
-//   // GitHub
+  // GitHub
 //   router.get(
 // 	"/github",
 // 	passport.authenticate("github", { scope: ["user:email"] })

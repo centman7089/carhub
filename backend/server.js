@@ -23,6 +23,10 @@ import internProfileRouter from "./routes/internProfileRoute.js";
 import EmployerRouter from "./routes/employerRoutes.js";
 import uploadRouter from "./routes/upload.js";
 import adminRoute from "./routes/adminRoutes.js";
+import "./db/passport.js";
+import jobRouter from "./routes/jobRoutes.js";
+import internRouter from "./routes/internRoute.js";
+import onboardRouter from "./routes/onboardRoutes.js";
 
 
 dotenv.config();
@@ -81,6 +85,10 @@ app.use(session({
 app.use( passport.initialize() );
 app.use(passport.session())
 
+
+// Serve static files
+app.use( '/uploads', express.static( path.join( __dirname, 'uploads' ) ) );
+
 // Routes
 app.use("/api/auth/users", userRoutes);
 app.use("/api/admin", adminRoute);
@@ -90,6 +98,11 @@ app.use( "/api/auth", authRouter );
 app.use( "/api/employer", EmployerRouter);
 app.use("/api/course", courseRoute)
 app.use( "/api/intern/profile", internProfileRouter )
+
+
+app.use('/api/onboarding', onboardRouter);
+app.use('/api/profile', internRouter);
+app.use('/api/jobs',jobRouter);
 // Routes
 app.use('/api', uploadRouter);
 

@@ -4,8 +4,9 @@ import {
    
 } from "../controllers/userController.js";
 import protectRoute from "../middlewares/protectRoute.js";
-import { addCustomSkill, getSkillsByCourse, removeSkill, updateCourses, updateProfile, updateSkills, updateUser } from "../controllers/internProfileController.js";
+import { addCustomSkill, getSkillsByCourse, removeSkill, updateCourses, updatePhoto, updateProfile, updateSkills, updateUser } from "../controllers/internProfileController.js";
 import { photoUpload, resumeUpload } from "../middlewares/upload.js";
+import upload from "../utils/upload.js";
 
 
 
@@ -18,7 +19,8 @@ internProfileRouter.post('/update-skills', protectRoute, updateSkills);
 internProfileRouter.post('/update-courses', protectRoute, updateCourses);
 internProfileRouter.post('/add-skill', protectRoute, addCustomSkill);
 internProfileRouter.post('/remove-skill', protectRoute, removeSkill);
-internProfileRouter.post('/update-user', protectRoute, updateUser);
+internProfileRouter.patch( '/update-user', protectRoute, updateUser );
+internProfileRouter.patch('/:id/change-avatar', protectRoute, upload.single("profilePic"), updatePhoto);
 internProfileRouter.post(
   '/update-profile',
   protectRoute,

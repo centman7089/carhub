@@ -110,6 +110,10 @@ const userSchema = mongoose.Schema(
 		lastLogin: {
 			type: Date,
 			default: Date.now,
+		},
+		profile: {
+			type: mongoose.Schema.Types.ObjectId,
+			ref: 'InternProfile'
 		  },
 		  isVerified: {
 			type: Boolean,
@@ -119,13 +123,21 @@ const userSchema = mongoose.Schema(
 		  emailCodeExpires: Date,
 		  resetCode: String,
 		  resetCodeExpires: Date,
-		  verificationToken: String,
+		verificationToken: String,
+		onboardingCompleted: {
+			type: Boolean,
+			default: false
+		  },
 		  passwordHistory: [
 			{
 			  password: String,
 			  changedAt: Date
 			}
-		  ]
+		],
+		createdAt: {
+			type: Date,
+			default: Date.now
+		  }
 		  
 	},
 	

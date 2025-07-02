@@ -15,6 +15,8 @@ import axios from "axios";
 // const fs = require( 'fs' ).promises; // Import the promises version of fs
 import fs from 'fs';
 import { promises as fsp } from 'fs'; // for promise-based operations
+import { profile } from "console";
+import InternProfile from "../models/internProfile.js";
 
 // In-memory session store (use Redis in production)
 const resetSessions = new Map()
@@ -90,10 +92,22 @@ const register = async ( req, res ) =>
 			passwordHistory: [ { password: hashedPassword, changedAt: new Date() } ],
 			isVerified: false
 		} );
+
+
+		 // Create empty profile for job seeker
+		 const profile = new InternProfile({
+			user: user._id
+		  });
+		  await profile.save();
+	
+		  // Update user with profile reference
+		  user.profile = profile._id;
+		  await user.save();
 		
 	    // @ts-ignore
 	    await sendEmail(email, "Verify your email", `Your verification code is: ${code}`);
     
+
 
 		if (user) {
 			generateTokenAndSetCookie(user._id, res);
@@ -108,8 +122,7 @@ const register = async ( req, res ) =>
 				state: user.state,
 				city: user.city,
 				address: user.address,
-				username: user.username,
-				bio: user.bio,
+				profile: user.profile,
 				profilePic: user.profilePic,
 				msg: "User registered. Verification code sent to email."
 			})
@@ -170,7 +183,8 @@ const login = async (req, res) => {
 		_id: user._id,
 		email: user.email,
 		msg: "Login Successful",
-		isVerified: true
+		isVerified: true,
+		onboardingCompleted: user.onboardingCompleted
 	  });
 	} catch (error) {
 	  res.status(500).json({ error: error.message });
@@ -199,7 +213,6 @@ const followUnFollowUser = async (req, res) => {
 
 		if (!userToModify || !currentUser) return res.status(400).json({ error: "User not found" });
 
-qwweeh
 		if (isFollowing) {
 			// Unfollow user
 			await User.findByIdAndUpdate(id, { $pull: { followers: req.user._id } });
@@ -688,7 +701,9 @@ const resetPassword = async (req, res) => {
 	  }
 	  res.status(500).json({ message: "Server error" });
 	}
-  };
+};
+  
+
    
 export {
 	register,

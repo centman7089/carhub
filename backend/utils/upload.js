@@ -1,30 +1,17 @@
-// @ts-nocheck
-import express from "express";
-import multer from "multer";
-import axios from "axios";
+const multer = require("multer");
+const { CloudinaryStorage } = require("multer-storage-cloudinary");
+const { v2: cloudinary } = require("cloudinary");
 
-import dotenv from "dotenv";
-
-dotenv.config();
-
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+// Configure Cloudinary storage
+const storage = new CloudinaryStorage({
+    cloudinary,
+    params: {
+        folder: "intern_profile",
+        allowed_formats: ["jpg", "jpeg", "png", "gif"],
+    },
 });
 
-const router = express.Router();
+// Set up multer
+const upload = multer({ storage });
 
-
-
-/**
- * Upload file from public URL
- */
-
-
-/**
- * Upload local file (PDF, image, doc)
- */
-
-
-export default router;
+module.exports = upload;
