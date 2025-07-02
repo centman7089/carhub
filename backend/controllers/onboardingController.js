@@ -103,10 +103,8 @@ const getCourseSkill =  async (req, res) => {
 // @route   POST api/onboarding/upload-resume
 // @desc    Upload resume to Cloudinary during onboarding
 // @access  Private (Job Seeker)
-router.post(
-  '/upload-resume',
-  auth,
-  async (req, res) => {
+
+const uploadResumeCloud =  async (req, res) => {
     try {
       const { file } = req.body; // Expecting base64 encoded file
       
@@ -166,7 +164,6 @@ router.post(
       res.status(500).send('Server Error');
     }
   }
-);
 
 
 // @route   PUT api/onboarding/set-active-resume/:resumeId
@@ -372,5 +369,5 @@ const CompleteOnboarding = async ( req, res ) =>
 export
 {
   getAllCourse, getCourseSkill,setActiveResume, deleteResume,
-  uploadResume,CompleteOnboarding,saveUrlResume
+  uploadResumeCloud,CompleteOnboarding,saveUrlResume
 }
