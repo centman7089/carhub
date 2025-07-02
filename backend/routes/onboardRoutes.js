@@ -5,8 +5,13 @@ import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResu
 // const { resumeStorage } = require( '../db/config/cloudinary.js' );
 // import { resumeStorage } from "../db/config/cloudinary.js";
 import multer from "multer";
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+import { v2 as cloudinary } from 'cloudinary';
+import
+  {
+    CloudinaryStorage
+  
+ } from "multer-storage-cloudinary";
+
 
 
 const onboardRouter = express.Router()
@@ -53,27 +58,27 @@ const upload = multer({ storage });
 
   
   // Configure Multer for file uploads
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/resumes/');
-    },
-    filename: (req, file, cb) => {
-      cb(null, `resume-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
-    }
-  }),
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
-  fileFilter: (req, file, cb) => {
-    const filetypes = /pdf|doc|docx|jpg|jpeg|png/;
-    const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
-    const mimetype = filetypes.test(file.mimetype);
-    if (extname && mimetype) {
-      cb(null, true);
-    } else {
-      cb(new Error('Only PDF, DOC, DOCX, JPG, JPEG, PNG files are allowed'));
-    }
-  }
-});
+// const upload = multer({
+//   storage: multer.diskStorage({
+//     destination: (req, file, cb) => {
+//       cb(null, 'uploads/resumes/');
+//     },
+//     filename: (req, file, cb) => {
+//       cb(null, `resume-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
+//     }
+//   }),
+//   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+//   fileFilter: (req, file, cb) => {
+//     const filetypes = /pdf|doc|docx|jpg|jpeg|png/;
+//     const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
+//     const mimetype = filetypes.test(file.mimetype);
+//     if (extname && mimetype) {
+//       cb(null, true);
+//     } else {
+//       cb(new Error('Only PDF, DOC, DOCX, JPG, JPEG, PNG files are allowed'));
+//     }
+//   }
+// });
 
 //@route GET /api/auth/google
 onboardRouter.get( "/course", getAllCourse )
