@@ -29,6 +29,27 @@ const onboardRouter = express.Router()
 //       cb(null, `resume-${req.user.id}-${Date.now()}${path.extname(file.originalname)}`);
 //     }
 //   });
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Set up Cloudinary storage engine
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jobseeker-resumes',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
+    resource_type: 'auto',
+    transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // For images
+  }
+});
+
+const upload = multer({ storage });
+
   
   // Configure Multer for file uploads
 const upload = multer({
@@ -57,7 +78,7 @@ const upload = multer({
 onboardRouter.get( "/course", getAllCourse )
 onboardRouter.get( '/skills/:courseId', getCourseSkill  )
 onboardRouter.post('/save-url-resume', protectRoute, saveUrlResume )
-onboardRouter.post('/upload-resume', protectRoute, uploadResumeCloud )
+onboardRouter.post('/upload-resume', protectRoute, upload.single('resume') ,uploadResumeCloud )
 onboardRouter.post( '/set-active-resume/:resumeId', protectRoute, setActiveResume)
 onboardRouter.post( '/delete-resume/:resumeId', protectRoute, deleteResume)
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
