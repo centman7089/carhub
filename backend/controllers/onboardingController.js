@@ -49,124 +49,124 @@ const getCourseSkill =  async (req, res) => {
 // @route   POST api/onboarding/upload-resume
 // @desc    Upload resume during onboarding
 // @access  Private (Job Seeker)
-const uploadResume = async (req, res) => {
-  try
-  {
-    const {file} = req.body
-    if (!req.file) {
-      return res.status(400).json({ msg: 'No file uploaded' });
-    }
+// const uploadResume = async (req, res) => {
+//   try
+//   {
+//     const {file} = req.body
+//     if (!req.file) {
+//       return res.status(400).json({ msg: 'No file uploaded' });
+//     }
 
-    // Check if user already has a profile
-    let profile = await InternProfile.findOne({ user: req.user.id });
+//     // Check if user already has a profile
+//     let profile = await InternProfile.findOne({ user: req.user.id });
     
-    if (!profile) {
-      // Create new profile if doesn't exist
-      profile = new InternProfile({
-        user: req.user.id,
-        resumes: []
-      });
-    }
+//     if (!profile) {
+//       // Create new profile if doesn't exist
+//       profile = new InternProfile({
+//         user: req.user.id,
+//         resumes: []
+//       });
+//     }
 
-    // Add new resume (mark as active)
-    const newResume = {
-      sourceType: 'upload',
-      url: req.file.path,
-      fileName: req.file.originalname,
-      format: path.extname(req.file.originalname).slice(1),
-      isActive: true
-    };
+//     // Add new resume (mark as active)
+//     const newResume = {
+//       sourceType: 'upload',
+//       url: req.file.path,
+//       fileName: req.file.originalname,
+//       format: path.extname(req.file.originalname).slice(1),
+//       isActive: true
+//     };
 
-    // Mark all other resumes as inactive
-    if (profile.resumes && profile.resumes.length > 0) {
-      profile.resumes.forEach(resume => {
-        resume.isActive = false;
-      });
-    }
+//     // Mark all other resumes as inactive
+//     if (profile.resumes && profile.resumes.length > 0) {
+//       profile.resumes.forEach(resume => {
+//         resume.isActive = false;
+//       });
+//     }
 
-    profile.resumes.push(newResume);
-    await profile.save();
+//     profile.resumes.push(newResume);
+//     await profile.save();
 
-    res.json({
-      resume: newResume,
-      msg: 'Resume uploaded successfully'
-    });
-  } catch (err) {
-    console.error(err.message);
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({ msg: 'File size cannot exceed 5MB' });
-    }
-    res.status(500).send('Server Error');
-  }
-}
+//     res.json({
+//       resume: newResume,
+//       msg: 'Resume uploaded successfully'
+//     });
+//   } catch (err) {
+//     console.error(err.message);
+//     if (err.code === 'LIMIT_FILE_SIZE') {
+//       return res.status(400).json({ msg: 'File size cannot exceed 5MB' });
+//     }
+//     res.status(500).send('Server Error');
+//   }
+// }
 
 // @route   POST api/onboarding/upload-resume
 // @desc    Upload resume to Cloudinary during onboarding
 // @access  Private (Job Seeker)
-// router.post(
-//   '/upload-resume',
-//   auth,
-//   async (req, res) => {
-//     try {
-//       const { file } = req.body; // Expecting base64 encoded file
+router.post(
+  '/upload-resume',
+  auth,
+  async (req, res) => {
+    try {
+      const { file } = req.body; // Expecting base64 encoded file
       
-//       if (!file) {
-//         return res.status(400).json({ msg: 'No file provided' });
-//       }
+      if (!file) {
+        return res.status(400).json({ msg: 'No file provided' });
+      }
 
-//       const profile = await JobSeekerProfile.findOne({ user: req.user.id });
+      const profile = await JobSeekerProfile.findOne({ user: req.user.id });
       
-//       if (!profile) {
-//         return res.status(404).json({ msg: 'Profile not found' });
-//       }
+      if (!profile) {
+        return res.status(404).json({ msg: 'Profile not found' });
+      }
 
-//       // Upload to Cloudinary
-//       const uploadResponse = await cloudinary.uploader.upload(file, {
-//         folder: 'linkedin-clone/resumes',
-//         resource_type: 'auto',
-//         allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx']
-//       });
+      // Upload to Cloudinary
+      const uploadResponse = await cloudinary.uploader.upload(file, {
+        folder: 'tech-intern/resumes',
+        resource_type: 'auto',
+        allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx']
+      });
 
-//       // Create new resume entry
-//       const newResume = {
-//         sourceType: 'cloudinary',
-//         url: uploadResponse.secure_url,
-//         public_id: uploadResponse.public_id,
-//         fileName: uploadResponse.original_filename || `resume-${Date.now()}`,
-//         format: uploadResponse.format,
-//         isActive: true
-//       };
+      // Create new resume entry
+      const newResume = {
+        sourceType: 'cloudinary',
+        url: uploadResponse.secure_url,
+        public_id: uploadResponse.public_id,
+        fileName: uploadResponse.original_filename || `resume-${Date.now()}`,
+        format: uploadResponse.format,
+        isActive: true
+      };
 
-//       // Mark all existing resumes as inactive
-//       if (profile.resumes && profile.resumes.length > 0) {
-//         profile.resumes.forEach(resume => {
-//           resume.isActive = false;
-//         });
-//       }
+      // Mark all existing resumes as inactive
+      if (profile.resumes && profile.resumes.length > 0) {
+        profile.resumes.forEach(resume => {
+          resume.isActive = false;
+        });
+      }
 
-//       // Add new resume
-//       profile.resumes = [...(profile.resumes || []), newResume];
-//       await profile.save();
+      // Add new resume
+      profile.resumes = [...(profile.resumes || []), newResume];
+      await profile.save();
 
-//       res.json({
-//         resume: newResume,
-//         msg: 'Resume uploaded successfully'
-//       });
-//     } catch (err) {
-//       console.error(err.message);
+      res.json({
+        resume: newResume,
+        msg: 'Resume uploaded successfully'
+      });
+    } catch (err) {
+      console.error(err.message);
       
-//       // Handle Cloudinary-specific errors
-//       if (err.message.includes('File size too large')) {
-//         return res.status(400).json({ msg: 'File size exceeds 10MB limit' });
-//       }
-//       if (err.message.includes('Invalid file type')) {
-//         return res.status(400).json({ msg: 'Invalid file type. Only JPG, PNG, PDF, DOC, DOCX allowed' });
-//       }
+      // Handle Cloudinary-specific errors
+      if (err.message.includes('File size too large')) {
+        return res.status(400).json({ msg: 'File size exceeds 10MB limit' });
+      }
+      if (err.message.includes('Invalid file type')) {
+        return res.status(400).json({ msg: 'Invalid file type. Only JPG, PNG, PDF, DOC, DOCX allowed' });
+      }
       
-//       res.status(500).send('Server Error');
-//     }
-//   }
-// );
+      res.status(500).send('Server Error');
+    }
+  }
+);
 
 
 // @route   PUT api/onboarding/set-active-resume/:resumeId
