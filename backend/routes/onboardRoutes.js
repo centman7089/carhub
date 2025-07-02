@@ -1,7 +1,7 @@
 // @ts-nocheck
 import express from "express";
 import protectRoute from "../middlewares/protectRoute.js";
-import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResume, CompleteOnboarding } from "../controllers/onboardingController.js";
+import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResume, CompleteOnboarding, uploadResume } from "../controllers/onboardingController.js";
 // const { resumeStorage } = require( '../db/config/cloudinary.js' );
 import { resumeStorage } from "../db/config/cloudinary.js";
 import multer from "multer";
@@ -57,6 +57,7 @@ const upload = multer({
 onboardRouter.get( "/course", getAllCourse )
 onboardRouter.get( '/skills/:courseId', getCourseSkill  )
 onboardRouter.post('/save-url-resume', protectRoute, saveUrlResume )
+onboardRouter.post('/upload-resume', protectRoute, uploadResume )
 onboardRouter.post( '/set-active-resume/:resumeId', protectRoute, setActiveResume)
 onboardRouter.post( '/delete-resume/:resumeId', protectRoute, deleteResume)
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)

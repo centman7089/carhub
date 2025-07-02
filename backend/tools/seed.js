@@ -2,11 +2,11 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv"
 import Course from '../models/Course.js';
-import Skill from '../models/Skills.js';
+import Skill from '../models/Skill.js';
 
 dotenv.config();
 
-const dbUrl = process.env.MONGO_URI || 'mongodb://localhost:27017/Tech'
+const dbUrl = process.env.MONGO_URI || 'mongodb+srv://pageinnovations1234:2nmmLzjqh1233uA4@cluster0.zykhvjj.mongodb.net/Tech_Intern_Main?retryWrites=true&w=majority&appName=Cluster0'
 mongoose.connect(dbUrl, {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -23,7 +23,10 @@ const seedSkills = async () => {
     { name: 'MongoDB', category: 'Database' },
     { name: 'Git', category: 'Tools' },
     { name: 'Docker', category: 'DevOps' },
-    { name: 'AWS', category: 'Cloud' }
+    { name: 'AWS', category: 'Cloud' },
+    { name: 'Photoshop', category: 'Graphics' },
+    { name: 'CorelDraw', category: 'Graphics' },
+    { name: 'Figma', category: 'Graphics' }
   ];
 
   await Skill.deleteMany({});
@@ -36,6 +39,7 @@ const seedCourses = async (skills) => {
     {
       name: 'Web Development',
       description: 'Full stack web development course',
+      category: 'Web Development',
       relatedSkills: [
         skills.find(s => s.name === 'JavaScript')._id,
         skills.find(s => s.name === 'React')._id,
@@ -45,6 +49,7 @@ const seedCourses = async (skills) => {
     },
     {
       name: 'Data Science',
+      category: 'Data Science',
       description: 'Data science and machine learning',
       relatedSkills: [
         skills.find(s => s.name === 'Python')._id,
@@ -53,11 +58,22 @@ const seedCourses = async (skills) => {
     },
     {
       name: 'DevOps',
+      category: 'DevOps',
       description: 'DevOps and cloud computing',
       relatedSkills: [
         skills.find(s => s.name === 'Docker')._id,
         skills.find(s => s.name === 'AWS')._id,
         skills.find(s => s.name === 'Git')._id
+      ]
+    },
+    {
+      name: 'Graphics',
+      category: 'Graphics',
+      description: 'Graphics and Editing',
+      relatedSkills: [
+        skills.find(s => s.name === 'Photoshop')._id,
+        skills.find(s => s.name === 'CorelDraw')._id,
+        skills.find(s => s.name === 'Figma')._id
       ]
     }
   ];
