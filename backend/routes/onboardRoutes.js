@@ -3,14 +3,15 @@ import express from "express";
 import protectRoute from "../middlewares/protectRoute.js";
 import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResume, CompleteOnboarding, uploadResumeCloud } from "../controllers/onboardingController.js";
 // const { resumeStorage } = require( '../db/config/cloudinary.js' );
-import { resumeStorage } from "../db/config/cloudinary.js";
+// import { resumeStorage } from "../db/config/cloudinary.js";
 import multer from "multer";
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 
 const onboardRouter = express.Router()
 
-// const cloudinary = require('cloudinary').v2;
-// const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
 
 // // Configure Cloudinary
 // cloudinary.config({
@@ -32,7 +33,7 @@ const onboardRouter = express.Router()
 
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
