@@ -237,12 +237,151 @@ const saveUrlResume = async (req, res) => {
     const { url } = req.body;
     const host = new URL(url).hostname;
 
-    // Skip direct file download for Google Drive links
+    // Special handling for Google Drive links
     if (host.includes('google.com') || host.includes('drive.google.com')) {
+      // Transform view URL to download URL
+      const fileId = url.match(/\/file\/d\/([^\/]+)/)?.[1];
+      const downloadUrl = fileId 
+        ? `https://drive.google.com/uc?export=download&id=${fileId}`
+        : url;
+
+      try {
+        const response = await axios.get(downloadUrl, {
+          responseType: 'arraybuffer',
+          maxRedirects: 5,
+          timeout: 15000
+        });
+
+        const fileBuffer = Buffer.from(response.data, 'binary');
+        
+        // Validate file size (max 10MB)
+        if (fileBuffer.length > 10 * 1024 * 1024) {
+          return res.status(400).json({ msg: 'File size exceeds 10MB limit' });
+        }
+
+        // Extract filename from headers or URL
+        let fileName = response.headers['content-disposition']
+          ?.match(/filename="?([^"]+)"?/)?.[1] 
+          || url.split('/').pop() 
+          || `google_drive_file_${Date.now()}`;
+
+        // Upload to Cloudinary
+        const result = await uploadToCloudinary(fileBuffer, {
+          folder: 'resumes',
+          public_id: fileName.replace(/\.[^/.]+$/, ""),
+          overwrite: true
+        });
+
+        // Save to database
+        let profile = await InternProfile.findOne({ user: req.user.id });
+        if (!profile) {
+          profile = new InternProfile({
+            user: req.user.id,
+            resumes: []
+          });
+        }
+
+        const newResume = {
+          sourceType: 'cloudinary',
+          url: result.secure_url,
+          fileName,
+          format: result.format,
+          publicId: result.public_id,
+          host,
+          isActive: true,
+          size: result.bytes,
+          resourceType: result.resource_type
+        };
+
+        // Mark other resumes as inactive
+        profile.resumes.forEach(resume => {
+          resume.isActive = false;
+        });
+
+        profile.resumes.push(newResume);
+        await profile.save();
+
+        return res.json({
+          resume: newResume,
+          msg: 'Google Drive file uploaded successfully'
+        });
+
+      } catch (driveError) {
+        console.log('Google Drive direct download failed, saving as link');
+        // Fall through to direct link saving
+      }
+    }
+
+    // For non-Google Drive URLs or failed Google Drive downloads
+    try {
+      const response = await axios.get(url, {
+        responseType: 'arraybuffer',
+        timeout: 10000
+      });
+      
+      const fileBuffer = Buffer.from(response.data, 'binary');
+
+      // Validate file size (max 10MB)
+      if (fileBuffer.length > 10 * 1024 * 1024) {
+        return res.status(400).json({ msg: 'File size exceeds 10MB limit' });
+      }
+
+      // Extract filename
+      const urlPath = new URL(url).pathname;
+      let fileName = urlPath.split('/').pop() || 'resume';
+      fileName = fileName.split('?')[0];
+      if (!fileName || fileName.lastIndexOf('.') <= 0) {
+        fileName = `file_from_${host}`;
+      }
+
+      // Upload to Cloudinary
+      const result = await uploadToCloudinary(fileBuffer, {
+        folder: 'resumes',
+        public_id: fileName.replace(/\.[^/.]+$/, ""),
+        overwrite: true
+      });
+
+      // Save to database
+      let profile = await InternProfile.findOne({ user: req.user.id });
+      if (!profile) {
+        profile = new InternProfile({
+          user: req.user.id,
+          resumes: []
+        });
+      }
+
       const newResume = {
-        sourceType: 'url', // Changed from cloudinary to url
+        sourceType: 'cloudinary',
+        url: result.secure_url,
+        fileName,
+        format: result.format,
+        publicId: result.public_id,
+        host,
+        isActive: true,
+        size: result.bytes,
+        resourceType: result.resource_type
+      };
+
+      // Mark other resumes as inactive
+      profile.resumes.forEach(resume => {
+        resume.isActive = false;
+      });
+
+      profile.resumes.push(newResume);
+      await profile.save();
+
+      return res.json({
+        resume: newResume,
+        msg: 'File uploaded to Cloudinary successfully'
+      });
+
+    } catch (downloadError) {
+      console.log('Direct download failed, saving as link');
+      // Save as direct link if download fails
+      const newResume = {
+        sourceType: 'url',
         url,
-        fileName: `google_drive_resume_${Date.now()}`,
+        fileName: `direct_link_${Date.now()}`,
         format: 'link',
         host,
         isActive: true
@@ -256,7 +395,6 @@ const saveUrlResume = async (req, res) => {
         });
       }
 
-      // Mark other resumes as inactive
       profile.resumes.forEach(resume => {
         resume.isActive = false;
       });
@@ -266,79 +404,23 @@ const saveUrlResume = async (req, res) => {
 
       return res.json({
         resume: newResume,
-        msg: 'Google Drive link saved successfully'
+        msg: 'URL saved as direct link'
       });
     }
-
-    // For non-Google Drive URLs, proceed with download and validation
-    const response = await axios.get(url, { responseType: 'arraybuffer' });
-    const fileBuffer = Buffer.from(response.data, 'binary');
-
-    // Validate file size (max 10MB)
-    if (fileBuffer.length > 10 * 1024 * 1024) {
-      return res.status(400).json({ msg: 'File size exceeds 10MB limit' });
-    }
-
-    // Extract filename
-    const urlPath = new URL(url).pathname;
-    let fileName = urlPath.split('/').pop() || 'resume';
-    fileName = fileName.split('?')[0];
-    if (!fileName || fileName.lastIndexOf('.') <= 0) {
-      fileName = `resume_from_${host}`;
-    }
-
-    // Upload to Cloudinary
-    const result = await uploadToCloudinary(fileBuffer, {
-      folder: 'resumes',
-      public_id: fileName.replace(/\.[^/.]+$/, ""),
-      overwrite: true
-    });
-
-    // Save to database
-    let profile = await InternProfile.findOne({ user: req.user.id });
-    if (!profile) {
-      profile = new InternProfile({
-        user: req.user.id,
-        resumes: []
-      });
-    }
-
-    const newResume = {
-      sourceType: 'cloudinary',
-      url: result.secure_url,
-      fileName,
-      format: result.format,
-      publicId: result.public_id,
-      host,
-      isActive: true,
-      size: result.bytes,
-      resourceType: result.resource_type
-    };
-
-    // Mark other resumes as inactive
-    profile.resumes.forEach(resume => {
-      resume.isActive = false;
-    });
-
-    profile.resumes.push(newResume);
-    await profile.save();
-
-    res.json({
-      resume: newResume,
-      msg: 'Resume uploaded to Cloudinary successfully'
-    });
 
   } catch (err) {
     console.error(err.message);
     if (err instanceof TypeError && err.message.includes('Invalid URL')) {
       return res.status(400).json({ msg: 'Invalid URL format' });
     }
-    if (err.response?.status === 404) {
-      return res.status(400).json({ msg: 'File not found at the provided URL' });
-    }
-    res.status(500).send('Server Error');
+    res.status(500).json({ 
+      msg: 'Server Error',
+      error: err.message 
+    });
   }
 };
+
+
 
 
 
