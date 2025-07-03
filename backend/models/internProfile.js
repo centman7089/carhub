@@ -2,22 +2,15 @@
 import mongoose from "mongoose";
 
 const ResumeSchema = new mongoose.Schema({
-  url: {
-    type: String,
-    required: true
-  },
-  public_id: {
-    type: String,
-    required: true
-  },
-  format: {
-    type: String,
-    required: true
-  },
-  fileName: {
-    type: String,
-   
-  },
+  sourceType: { type: String, required: true },
+  url: { type: String, required: true },
+  fileName: { type: String, required: true },
+  format: { type: String }, // Made optional
+  publicId: { type: String }, // Made optional
+  host: { type: String },
+  isActive: { type: Boolean, default: false },
+  size: { type: Number },
+  resourceType: { type: String },
   uploadDate: {
     type: Date,
     default: Date.now
