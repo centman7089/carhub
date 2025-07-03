@@ -352,7 +352,10 @@ const CompleteOnboarding = async ( req, res ) =>
       profile,
       msg: 'Onboarding completed successfully'
     });
-  } catch (err) {
+  } catch ( err )
+  {
+    console.log(err);
+    
     console.error(err.message);
     res.status(500).send('Server Error');
   }

@@ -16,7 +16,7 @@ const ResumeSchema = new mongoose.Schema({
   },
   fileName: {
     type: String,
-    required: true
+   
   },
   uploadDate: {
     type: Date,

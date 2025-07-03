@@ -105,13 +105,13 @@ const userSchema = mongoose.Schema(
 			fileType: String,
 			uploadedAt: Date
 		  },
-		resumes: [ { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' } ], // Array of resume references
-		filePath: String,
-		lastLogin: {
+		 resumes: [ { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' } ], // Array of resume references
+		 filePath: String,
+		 lastLogin: {
 			type: Date,
 			default: Date.now,
-		},
-		profile: {
+		 },
+		  profile: {
 			type: mongoose.Schema.Types.ObjectId,
 			ref: 'InternProfile'
 		  },
@@ -123,8 +123,8 @@ const userSchema = mongoose.Schema(
 		  emailCodeExpires: Date,
 		  resetCode: String,
 		  resetCodeExpires: Date,
-		verificationToken: String,
-		onboardingCompleted: {
+		  vverificationToken: String,
+		  onboardingCompleted: {
 			type: Boolean,
 			default: false
 		  },
