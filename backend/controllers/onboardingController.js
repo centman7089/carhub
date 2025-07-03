@@ -242,58 +242,67 @@ const deleteResume =  async (req, res) => {
 // @access  Private (Job Seeker)
 
   
-  const saveUrlResume =
-  async ( req, res ) =>
-  {
-    check('url', 'Valid URL is required').isURL(),
-    check('fileName', 'File name is required').not().isEmpty()
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
-    try {
-      const { url, fileName } = req.body;
-      const host = new URL(url).hostname;
-
-      let profile = await InternProfile.findOne({ user: req.user.id });
-      
-      if (!profile) {
-        profile = new InternProfile({
-          user: req.user.id,
-          resumes: []
-        });
-      }
-
-      const newResume = {
-        sourceType: 'url',
-        url,
-        fileName,
-        format: 'link',
-        host,
-        isActive: true
-      };
-
-      // Mark all other resumes as inactive
-      if (profile.resumes && profile.resumes.length > 0) {
-        profile.resumes.forEach(resume => {
-          resume.isActive = false;
-        });
-      }
-
-      profile.resumes.push(newResume);
-      await profile.save();
-
-      res.json({
-        resume: newResume,
-        msg: 'URL resume saved successfully'
-      });
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
-    }
+const saveUrlResume = async (req, res) => {
+  // Validation
+  check('url', 'Valid URL is required').isURL();
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
   }
 
+  try {
+    const { url } = req.body;
+    const host = new URL(url).hostname;
+    
+    // Extract filename from URL
+    const urlPath = new URL(url).pathname;
+    let fileName = urlPath.split('/').pop() || 'resume'; // Get last part of path or default to 'resume'
+    
+    // Remove query parameters if any
+    fileName = fileName.split('?')[0];
+    
+    // If empty or just extension, provide a default name
+    if (!fileName || fileName.lastIndexOf('.') <= 0) {
+      fileName = `resume_from_${host}`;
+    }
+
+    let profile = await InternProfile.findOne({ user: req.user.id });
+    
+    if (!profile) {
+      profile = new InternProfile({
+        user: req.user.id,
+        resumes: []
+      });
+    }
+
+    const newResume = {
+      sourceType: 'url',
+      url,
+      fileName, // Using the extracted filename
+      format: 'link',
+      host,
+      isActive: true
+    };
+
+    // Mark all other resumes as inactive
+    if (profile.resumes && profile.resumes.length > 0) {
+      profile.resumes.forEach(resume => {
+        resume.isActive = false;
+      });
+    }
+
+    profile.resumes.push(newResume);
+    await profile.save();
+
+    res.json({
+      resume: newResume,
+      msg: 'URL resume saved successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+};
 
 
 
@@ -361,9 +370,69 @@ const CompleteOnboarding = async ( req, res ) =>
   }
 }
 
+const updateUrlResume = async (req, res) => {
+  // Validation
+  check('url', 'Valid URL is required').isURL();
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const { url } = req.body;
+    const { resumeId } = req.params; // Get resumeId from URL parameter
+    const host = new URL(url).hostname;
+
+    // Extract filename from URL
+    const urlPath = new URL(url).pathname;
+    let fileName = urlPath.split('/').pop() || 'resume';
+    fileName = fileName.split('?')[0];
+    if (!fileName || fileName.lastIndexOf('.') <= 0) {
+      fileName = `resume_from_${host}`;
+    }
+
+    // Find the profile
+    const profile = await InternProfile.findOne({ user: req.user.id });
+    if (!profile) {
+      return res.status(404).json({ msg: 'Profile not found' });
+    }
+
+    // Find the resume to update
+    const resumeIndex = profile.resumes.findIndex(
+      resume => resume._id.toString() === resumeId
+    );
+
+    if (resumeIndex === -1) {
+      return res.status(404).json({ msg: 'Resume not found' });
+    }
+
+    // Update the resume
+    profile.resumes[resumeIndex] = {
+      ...profile.resumes[resumeIndex].toObject(),
+      url,
+      fileName,
+      host,
+      updatedAt: new Date()
+    };
+
+    await profile.save();
+
+    res.json({
+      resume: profile.resumes[resumeIndex],
+      msg: 'Resume updated successfully'
+    });
+  } catch (err) {
+    console.error(err.message);
+    if (err instanceof TypeError && err.message.includes('Invalid URL')) {
+      return res.status(400).json({ msg: 'Invalid URL format' });
+    }
+    res.status(500).send('Server Error');
+  }
+};
+
 
 export
 {
   getAllCourse, getCourseSkill,setActiveResume, deleteResume,
-  uploadResumeCloud,CompleteOnboarding,saveUrlResume
+  uploadResumeCloud,CompleteOnboarding,saveUrlResume,updateUrlResume
 }

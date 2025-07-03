@@ -85,9 +85,12 @@ onboardRouter.get( "/course", getAllCourse )
 onboardRouter.get( '/skills/:courseId', getCourseSkill  )
 onboardRouter.post('/save-url-resume', protectRoute, saveUrlResume )
 onboardRouter.post('/upload-resume', protectRoute, upload.single('resume') ,uploadResumeCloud )
-onboardRouter.post( '/set-active-resume/:resumeId', protectRoute, setActiveResume)
-onboardRouter.post( '/delete-resume/:resumeId', protectRoute, deleteResume)
+onboardRouter.post( '/set-active-resume/:resumeId', protectRoute, setActiveResume )
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
+onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
+onboardRouter.post( '/delete-resume/:resumeId', protectRoute, deleteResume )
+onboardRouter.patch('/update-resume/:resumeId', protectRoute, updateUrlResume);
+
 
 
 export default onboardRouter
