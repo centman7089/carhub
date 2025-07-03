@@ -1,44 +1,39 @@
-// @ts-nocheck
-const cloudinary = require('cloudinary').v2;
-const { CloudinaryStorage } = require('multer-storage-cloudinary');
+import { v2 as cloudinary } from 'cloudinary';
+import dotenv from 'dotenv';
 
-// Configure Cloudinary
+// Load environment variables
+dotenv.config();
+
+// Cloudinary Configuration
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  cloud_name: process.env.CLOUDINARY_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true // Ensures HTTPS URLs
 });
 
-// Create storage engine for Cloudinary
-const resumeStorage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'intern/resumes',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
-    resource_type: 'auto',
-    transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // For images only
-  }
-});
-
-module.exports = {
-  cloudinary,
-  resumeStorage
+// Utility functions
+const uploadToCloudinary = async (fileBuffer, options = {}) => {
+  return new Promise((resolve, reject) => {
+    cloudinary.uploader.upload_stream(
+      {
+        resource_type: 'auto',
+        ...options
+      },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result);
+      }
+    ).end(fileBuffer);
+  });
 };
 
-// // Configure Cloudinary
-// cloudinary.config({
-//   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-//   api_key: process.env.CLOUDINARY_API_KEY,
-//   api_secret: process.env.CLOUDINARY_API_SECRET
-// });
+const deleteFromCloudinary = async (publicId, options = {}) => {
+  return cloudinary.uploader.destroy(publicId, options);
+};
 
-// // Set up Cloudinary storage engine
-// const storage = new CloudinaryStorage({
-//   cloudinary: cloudinary,
-//   params: {
-//     folder: 'jobseeker-resumes',
-//     allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
-//     resource_type: 'auto',
-//     transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // For images
-//   }
-// });
+export {
+  cloudinary,
+  uploadToCloudinary,
+  deleteFromCloudinary
+};
