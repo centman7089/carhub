@@ -1,7 +1,7 @@
 // @ts-nocheck
 import express from "express";
 import protectRoute from "../middlewares/protectRoute.js";
-import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResume, CompleteOnboarding, uploadResumeCloud } from "../controllers/onboardingController.js";
+import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResume, CompleteOnboarding, uploadResumeCloud, updateUrlResume } from "../controllers/onboardingController.js";
 // const { resumeStorage } = require( '../db/config/cloudinary.js' );
 // import { resumeStorage } from "../db/config/cloudinary.js";
 import multer from "multer";
