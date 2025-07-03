@@ -237,23 +237,42 @@ const saveUrlResume = async (req, res) => {
     const { url } = req.body;
     const host = new URL(url).hostname;
 
-    // Download the file
+    // Skip direct file download for Google Drive links
+    if (host.includes('google.com') || host.includes('drive.google.com')) {
+      const newResume = {
+        sourceType: 'url', // Changed from cloudinary to url
+        url,
+        fileName: `google_drive_resume_${Date.now()}`,
+        format: 'link',
+        host,
+        isActive: true
+      };
+
+      let profile = await InternProfile.findOne({ user: req.user.id });
+      if (!profile) {
+        profile = new InternProfile({
+          user: req.user.id,
+          resumes: []
+        });
+      }
+
+      // Mark other resumes as inactive
+      profile.resumes.forEach(resume => {
+        resume.isActive = false;
+      });
+
+      profile.resumes.push(newResume);
+      await profile.save();
+
+      return res.json({
+        resume: newResume,
+        msg: 'Google Drive link saved successfully'
+      });
+    }
+
+    // For non-Google Drive URLs, proceed with download and validation
     const response = await axios.get(url, { responseType: 'arraybuffer' });
     const fileBuffer = Buffer.from(response.data, 'binary');
-
-    // Validate file type
-    const contentType = response.headers['content-type'];
-    const validTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/jpeg',
-      'image/png'
-    ];
-
-    if (!validTypes.includes(contentType)) {
-      return res.status(400).json({ msg: 'Only PDF, DOC, DOCX, JPEG, or PNG files are allowed' });
-    }
 
     // Validate file size (max 10MB)
     if (fileBuffer.length > 10 * 1024 * 1024) {
@@ -270,7 +289,7 @@ const saveUrlResume = async (req, res) => {
 
     // Upload to Cloudinary
     const result = await uploadToCloudinary(fileBuffer, {
-      folder: 'intern-resumes',
+      folder: 'resumes',
       public_id: fileName.replace(/\.[^/.]+$/, ""),
       overwrite: true
     });
@@ -320,6 +339,7 @@ const saveUrlResume = async (req, res) => {
     res.status(500).send('Server Error');
   }
 };
+
 
 
 
