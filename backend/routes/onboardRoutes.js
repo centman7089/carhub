@@ -1,7 +1,7 @@
 // @ts-nocheck
 import express from "express";
 import protectRoute from "../middlewares/protectRoute.js";
-import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResume, CompleteOnboarding, uploadResumeCloud, updateUrlResume } from "../controllers/onboardingController.js";
+import { getCourseSkill, getAllCourse,setActiveResume, deleteResume, saveUrlResume, CompleteOnboarding, uploadResumeCloud, updateUrlResume, validateUrlResume } from "../controllers/onboardingController.js";
 // const { resumeStorage } = require( '../db/config/cloudinary.js' );
 // import { resumeStorage } from "../db/config/cloudinary.js";
 import multer from "multer";
@@ -42,7 +42,7 @@ const upload = multer({ storage });
 //@route GET /api/auth/google
 onboardRouter.get( "/course", getAllCourse )
 onboardRouter.get( '/skills/:courseId', getCourseSkill  )
-onboardRouter.post('/save-url-resume', protectRoute, saveUrlResume )
+onboardRouter.post('/save-url-resume', protectRoute,validateUrlResume, saveUrlResume )
 onboardRouter.post('/upload-resume', protectRoute, upload.single('resume') ,uploadResumeCloud )
 onboardRouter.post( '/set-active-resume/:resumeId', protectRoute, setActiveResume )
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
