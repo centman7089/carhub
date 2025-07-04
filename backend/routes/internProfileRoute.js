@@ -5,7 +5,7 @@ import {
 } from "../controllers/userController.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import { addCustomSkill, getSkillsByCourse, removeSkill, updateCourses, updatePhoto, updateProfile, updateSkills, updateUser } from "../controllers/internProfileController.js";
-import { photoUpload, resumeUpload } from "../middlewares/upload.js";
+import {  photoUpload,resumeUpload } from "../middlewares/upload.js";
 import upload from "../utils/upload.js";
 
 

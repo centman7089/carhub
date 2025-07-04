@@ -11,14 +11,6 @@ import axios from 'axios';
 import { Readable } from 'stream';
 import { log } from "console";
 
-// Supported file types and size limit
-const VALID_MIME_TYPES = [
-  'application/pdf',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'image/jpeg',
-  'image/png'
-];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -77,58 +69,28 @@ const getCourseSkill =  async (req, res) => {
 
 const uploadResumeCloud = async (req, res) => {
   try {
-    // 1. Validate file exists
+    // Check if file was uploaded
     if (!req.file) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
         message: 'No file uploaded',
-        details: 'Please select a file to upload'
+        details: 'Please select a resume file to upload'
       });
     }
 
-    // 2. Validate file type
-    if (!VALID_MIME_TYPES.includes(req.file.mimetype)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid file type',
-        details: `Allowed types: ${VALID_MIME_TYPES.join(', ')}`,
-        receivedType: req.file.mimetype
-      });
-    }
-
-    // 3. Validate file size
-    if (req.file.size > MAX_FILE_SIZE) {
-      return res.status(400).json({
-        success: false,
-        message: 'File too large',
-        details: `Maximum size: ${MAX_FILE_SIZE/1024/1024}MB`,
-        receivedSize: `${(req.file.size/1024/1024).toFixed(2)}MB`
-      });
-    }
-
-    // 4. Upload to Cloudinary
-    const uploadOptions = {
-      folder: 'jobseekers-resumes',
-      public_id: req.file.originalname.replace(/\.[^/.]+$/, ""),
-      resource_type: 'auto',
-      overwrite: false
-    };
-
-    const result = await uploadToCloudinary(req.file.buffer, uploadOptions);
-
-    // 5. Prepare resume data
+    // Prepare resume data from Cloudinary response
     const resumeData = {
-      url: result.secure_url,
-      public_id: result.public_id,
-      format: result.format,
+      url: req.file.path,
+      public_id: req.file.filename,
+      format: req.file.format,
       fileName: req.file.originalname,
       isActive: true,
-      size: result.bytes,
-      resourceType: result.resource_type,
+      size: req.file.size,
+      resourceType: req.file.resource_type,
       uploadedAt: new Date()
     };
 
-    // 6. Update database
+    // Update database
     const updateOperations = [
       // Deactivate all other resumes
       InternProfile.updateMany(
@@ -145,16 +107,16 @@ const uploadResumeCloud = async (req, res) => {
 
     const [, updatedProfile] = await Promise.all(updateOperations);
 
-    // 7. Return success response
-    res.status(201).json({
+    // Success response
+    return res.status(201).json({
       success: true,
       message: 'Resume uploaded successfully',
       resume: {
-        id: result.public_id,
-        url: result.secure_url,
+        id: req.file.filename,
+        url: req.file.path,
         fileName: req.file.originalname,
-        format: result.format,
-        size: result.bytes,
+        format: req.file.format,
+        size: req.file.size,
         isActive: true
       },
       user: {
@@ -166,17 +128,24 @@ const uploadResumeCloud = async (req, res) => {
   } catch (error) {
     console.error('Upload error:', error);
     
-    // Handle Cloudinary-specific errors
-    if (error.message.includes('File size too large')) {
+    // Handle different error cases
+    if (error.message.includes('Invalid file type')) {
       return res.status(400).json({
         success: false,
-        message: 'File too large for Cloudinary',
+        message: 'Invalid file type',
         details: error.message
       });
     }
 
-    // Generic error response
-    res.status(500).json({
+    if (error.message.includes('File too large')) {
+      return res.status(400).json({
+        success: false,
+        message: 'File too large',
+        details: 'Maximum file size is 10MB'
+      });
+    }
+
+    return res.status(500).json({
       success: false,
       message: 'Failed to upload resume',
       error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'

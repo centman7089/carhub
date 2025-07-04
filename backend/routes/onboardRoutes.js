@@ -11,6 +11,7 @@ import
     CloudinaryStorage
   
  } from "multer-storage-cloudinary";
+import { resumeUpload } from "../middlewares/upload.js";
 
 
 
@@ -18,32 +19,14 @@ const onboardRouter = express.Router()
 
 
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
 
-// Set up Cloudinary storage engine
-const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'jobseeker-resumes',
-    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf', 'doc', 'docx'],
-    resource_type: 'auto',
-    transformation: [{ width: 1000, height: 1000, crop: 'limit' }] // For images
-  }
-});
-
-const upload = multer({ storage });
 
 
 //@route GET /api/auth/google
 onboardRouter.get( "/course", getAllCourse )
 onboardRouter.get( '/skills/:courseId', getCourseSkill  )
 onboardRouter.post('/save-url-resume', protectRoute,validateUrlResume, saveUrlResume )
-onboardRouter.post('/upload-resume', protectRoute,uploadResumeCloud )
+onboardRouter.post('/upload-resume', protectRoute,resumeUpload.single('resume'),uploadResumeCloud )
 onboardRouter.post( '/set-active-resume/:resumeId', protectRoute, setActiveResume )
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
