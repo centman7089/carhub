@@ -43,7 +43,7 @@ const upload = multer({ storage });
 onboardRouter.get( "/course", getAllCourse )
 onboardRouter.get( '/skills/:courseId', getCourseSkill  )
 onboardRouter.post('/save-url-resume', protectRoute,validateUrlResume, saveUrlResume )
-onboardRouter.post('/upload-resume', protectRoute, upload.single('resume') ,uploadResumeCloud )
+onboardRouter.post('/upload-resume', protectRoute,uploadResumeCloud )
 onboardRouter.post( '/set-active-resume/:resumeId', protectRoute, setActiveResume )
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)

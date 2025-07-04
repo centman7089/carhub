@@ -13,7 +13,7 @@ cloudinary.config({
 });
 
 // Utility functions
-const uploadToCloudinary = async (fileBuffer, options = {}) => {
+const uploadToCloudinary = async (buffer, options = {}) => {
   return new Promise((resolve, reject) => {
     cloudinary.uploader.upload_stream(
       {
@@ -24,7 +24,7 @@ const uploadToCloudinary = async (fileBuffer, options = {}) => {
         if (error) reject(error);
         else resolve(result);
       }
-    ).end(fileBuffer);
+    ).end(buffer);
   });
 };
 

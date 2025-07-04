@@ -11,6 +11,15 @@ import axios from 'axios';
 import { Readable } from 'stream';
 import { log } from "console";
 
+// Supported file types and size limit
+const VALID_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'image/jpeg',
+  'image/png'
+];
+
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 const validateUrlResume = [
@@ -68,88 +77,109 @@ const getCourseSkill =  async (req, res) => {
 
 const uploadResumeCloud = async (req, res) => {
   try {
+    // 1. Validate file exists
     if (!req.file) {
       return res.status(400).json({ 
         success: false,
-        message: 'No file uploaded' 
+        message: 'No file uploaded',
+        details: 'Please select a file to upload'
       });
     }
 
-    // Validate file type
-    const validMimeTypes = [
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'image/jpeg',
-      'image/png'
+    // 2. Validate file type
+    if (!VALID_MIME_TYPES.includes(req.file.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid file type',
+        details: `Allowed types: ${VALID_MIME_TYPES.join(', ')}`,
+        receivedType: req.file.mimetype
+      });
+    }
+
+    // 3. Validate file size
+    if (req.file.size > MAX_FILE_SIZE) {
+      return res.status(400).json({
+        success: false,
+        message: 'File too large',
+        details: `Maximum size: ${MAX_FILE_SIZE/1024/1024}MB`,
+        receivedSize: `${(req.file.size/1024/1024).toFixed(2)}MB`
+      });
+    }
+
+    // 4. Upload to Cloudinary
+    const uploadOptions = {
+      folder: 'jobseekers-resumes',
+      public_id: req.file.originalname.replace(/\.[^/.]+$/, ""),
+      resource_type: 'auto',
+      overwrite: false
+    };
+
+    const result = await uploadToCloudinary(req.file.buffer, uploadOptions);
+
+    // 5. Prepare resume data
+    const resumeData = {
+      url: result.secure_url,
+      public_id: result.public_id,
+      format: result.format,
+      fileName: req.file.originalname,
+      isActive: true,
+      size: result.bytes,
+      resourceType: result.resource_type,
+      uploadedAt: new Date()
+    };
+
+    // 6. Update database
+    const updateOperations = [
+      // Deactivate all other resumes
+      InternProfile.updateMany(
+        { user: req.user.id, 'resumes.isActive': true },
+        { $set: { 'resumes.$[].isActive': false } }
+      ),
+      // Add new resume
+      InternProfile.findOneAndUpdate(
+        { user: req.user.id },
+        { $push: { resumes: resumeData } },
+        { new: true, upsert: true }
+      )
     ];
 
-    if (!validMimeTypes.includes(req.file.mimetype)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid file type. Only PDF, DOC, DOCX, JPEG, or PNG files are allowed'
-      });
-    }
+    const [, updatedProfile] = await Promise.all(updateOperations);
 
-    // Validate file size (max 10MB)
-    if (req.file.size > 10 * 1024 * 1024) {
-      return res.status(400).json({
-        success: false,
-        message: 'File size exceeds 10MB limit'
-      });
-    }
-
-    // Upload to Cloudinary using our config utility
-    const result = await uploadToCloudinary(req.file.buffer, {
-      folder: 'intern-resumes',
-      public_id: req.file.originalname.replace(/\.[^/.]+$/, ""),
-      resource_type: 'auto'
-    });
-
-    // Mark all other resumes as inactive
-    await InternProfile.updateMany(
-      { user: req.user.id, 'resumes.isActive': true },
-      { $set: { 'resumes.$[].isActive': false } }
-    );
-
-    // Save to database
-    const profile = await InternProfile.findOneAndUpdate(
-      { user: req.user.id },
-      { 
-        $push: { 
-          resumes: {
-            url: result.secure_url,
-            public_id: result.public_id,
-            format: result.format,
-            fileName: req.file.originalname,
-            isActive: true,
-            size: result.bytes,
-            resourceType: result.resource_type
-          }
-        } 
-      },
-      { new: true, upsert: true }
-    );
-
+    // 7. Return success response
     res.status(201).json({
       success: true,
-      message: 'Resume uploaded to Cloudinary successfully',
+      message: 'Resume uploaded successfully',
       resume: {
-        url: result.secure_url,
-        public_id: result.public_id,
         id: result.public_id,
+        url: result.secure_url,
         fileName: req.file.originalname,
         format: result.format,
-        size: result.bytes
+        size: result.bytes,
+        isActive: true
+      },
+      user: {
+        id: req.user.id,
+        totalResumes: updatedProfile.resumes.length
       }
     });
 
-  } catch (err) {
-    console.error('Upload error:', err);
+  } catch (error) {
+    console.error('Upload error:', error);
+    
+    // Handle Cloudinary-specific errors
+    if (error.message.includes('File size too large')) {
+      return res.status(400).json({
+        success: false,
+        message: 'File too large for Cloudinary',
+        details: error.message
+      });
+    }
+
+    // Generic error response
     res.status(500).json({
       success: false,
-      message: 'Server Error',
-      error: err.message
+      message: 'Failed to upload resume',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
     });
   }
 };
@@ -291,8 +321,8 @@ const saveUrlResume = async (req, res) => {
     filename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
 
     // Upload to Cloudinary
-    const uploadResult = await uploadFromBuffer(buffer, {
-      folder: 'resumes',
+    const uploadResult = await uploadToCloudinary(buffer, {
+      folder: 'jobseekers-resumes',
       public_id: filename.replace(/\.[^/.]+$/, ''),
       resource_type: 'auto'
     });
@@ -312,8 +342,8 @@ const saveUrlResume = async (req, res) => {
     };
 
     // Update database
-    let profile = await InternProfile.findOne({ user: req.user.id }) || 
-                 new InternProfile({ user: req.user.id, resumes: [] });
+    let profile = await InternProfile.findOne({ user: req.user?.id }) || 
+                 new InternProfile({ user: req.user?.id, resumes: [] });
 
     // Deactivate other resumes
     profile.resumes.forEach(r => r.isActive = false);
@@ -346,12 +376,6 @@ const saveUrlResume = async (req, res) => {
     });
   }
 };
-
-
-
-
-
-
 
 
 const CompleteOnboarding = async ( req, res ) =>
