@@ -9,6 +9,7 @@ import Skill from "../models/Skill.js";
 import { cloudinary,uploadToCloudinary } from "../db/config.js"
 import axios from 'axios';
 import { Readable } from 'stream';
+import { log } from "console";
 
 
 
@@ -332,7 +333,10 @@ const saveUrlResume = async (req, res) => {
       });
     }
 
-  } catch (err) {
+  } catch ( err )
+  {
+    console.log(err);
+    
     console.error(err.message);
     if (err instanceof TypeError && err.message.includes('Invalid URL')) {
       return res.status(400).json({ msg: 'Invalid URL format' });
