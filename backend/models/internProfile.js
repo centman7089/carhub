@@ -2,7 +2,12 @@
 import mongoose from "mongoose";
 
 const ResumeSchema = new mongoose.Schema({
-  sourceType: { type: String, required: true },
+  sourceType: { 
+    type: String, 
+    required: true,
+    enum: ['cloudinary', 'url'], // Only allow these values
+    default: 'url' // Default to 'url' if not specified
+  },
   url: { type: String, required: true },
   fileName: { type: String, required: true },
   format: { type: String }, // Made optional
