@@ -1,51 +1,36 @@
 // @ts-nocheck
+import fs from "fs/promises";
 import Post from "../models/postModel.js";
 import User from "../models/userModel.js";
 import { v2 as cloudinary } from "cloudinary";
 
-const createPost = async ( req, res ) =>
-{
-	
-	try
-	{
-		
-		const {  text } = req.body;
-		let postedBy = req.user._id
-		let { img } = req.body;
-
-		
-		if (!postedBy || !text) {
-			return res.status(400).json({ error: "Postedby and text fields are required" });
-		}
-
-		const user = await User.findById(postedBy);
-		if (!user) {
-			return res.status(404).json({ error: "User not found" });
-		}
-
-		if (user._id.toString() !== req.user._id.toString()) {
-			return res.status(401).json({ error: "Unauthorized to create post" });
-		}
-
-		const maxLength = 500;
-		if (text.length > maxLength) {
-			return res.status(400).json({ error: `Text must be less than ${maxLength} characters` });
-		}
-
-		if (img) {
-			const uploadedResponse = await cloudinary.uploader.upload(img);
-			img = uploadedResponse.secure_url;
-		}
-
-		const newPost = new Post({ postedBy, text, img });
-		await newPost.save();
-
-		res.status(201).json(newPost);
+const createPost = async (req, res) => {
+	try {
+	  const { text } = req.body;
+	  const postedBy = req.user?._id;
+  
+	  if (!text) return res.status(400).json({ error: "Text field is required" });
+  
+	  /* ── 1. optional image upload ───────────────────────────────────── */
+	  let imgUrl = "";
+	  if (req.file) {
+		const uploadRes = await cloudinary.uploader.upload(req.file.path, {
+		  folder: "posts",
+		});
+		imgUrl = uploadRes.secure_url;
+  
+		// remove temp file so the server doesn’t fill up
+		await fs.unlink(req.file.path);
+	  }
+  
+	  /* ── 2. create & return the post ───────────────────────────────── */
+	  const newPost = await Post.create({ postedBy, text, img: imgUrl });
+	  res.status(201).json(newPost);
 	} catch (err) {
-		res.status(500).json({ error: err.message });
-		console.log(err);
+	  console.error(err);
+	  res.status(500).json({ error: err.message });
 	}
-};
+  };
 
 //To get a particular post
 const getPost = async (req, res) => {

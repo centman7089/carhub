@@ -10,13 +10,14 @@ import {
 	updatePost,
 } from "../controllers/postController.js";
 import protectRoute from "../middlewares/protectRoute.js";
+import { uploadSingleImage } from "../middlewares/imgUpload.js";
 
 const router = express.Router();
 
 router.get("/feed", protectRoute, getFeedPosts);
-router.get("/:id", getPost);
+router.get("/:id",protectRoute, getPost);
 router.get("/user/:userId", getUserPosts);
-router.post("/create", protectRoute, createPost);
+router.post("/create", protectRoute, uploadSingleImage, createPost);
 router.delete( "/:id", protectRoute, deletePost );
 router.put("/posts/:id", protectRoute, updatePost);
 router.put("/like/:id", protectRoute, likeUnlikePost);
