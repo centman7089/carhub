@@ -382,7 +382,10 @@ const saveUrlResume = async (req, res) => {
       message: 'Resume uploaded successfully'
     });
 
-  } catch (error) {
+  } catch ( error )
+  {
+    console.log(error);
+    
     console.error('Upload error:', error.message);
     
     if (error.response?.status === 404) {
@@ -405,22 +408,36 @@ const saveUrlResume = async (req, res) => {
 
 
 const CompleteOnboarding = async (req, res) => {
-  // Validation for required fields
-  await check('selectedCourses', 'At least one course is required').isArray({ min: 1 }).run(req);
-  await check('selectedSkills', 'At least one skill is required').isArray({ min: 1 }).run(req);
-  await check('technicalLevel', 'Technical level is required').isIn(['beginner', 'intermediate', 'advanced', 'expert']).run(req);
-  await check( 'educationLevel', 'Education level is required' ).isIn( [ 'high_school', 'associate', 'bachelor', 'master', 'phd' ] ).run( req );
-  await check('workType', 'workType is required').isIn(['remote', 'hybrid']).run(req);
-  await check('headline', 'Professional headline is required').notEmpty().run(req);
-  await check('location', 'Location is required').notEmpty().run(req);
-  
-  // Require either resumeUrl or resumeFile (but not both)
+  /* ────── 1. VALIDATION ────── */
+  await check('selectedCourses', 'At least one course is required')
+    .customSanitizer(v => (Array.isArray(v) ? v : [v]))
+    .isArray({ min: 1 })
+    .run(req);
+
+  await check('selectedSkills', 'At least one skill is required')
+    .customSanitizer(v => (Array.isArray(v) ? v : [v]))
+    .isArray({ min: 1 })
+    .run(req);
+
+  await check('technicalLevel', 'Technical level is required')
+    .isIn(['beginner', 'intermediate', 'advanced', 'expert'])
+    .run(req);
+
+  await check('educationLevel', 'Education level is required')
+    .isIn(['high_school', 'associate', 'bachelor', 'master', 'phd'])
+    .run(req);
+
+  await check('workType', 'workType is required')
+    .isIn(['remote', 'hybrid'])
+    .run(req);
+
+  // require either resumeUrl OR resumeFile
   await check('resumeUrl', 'Resume URL is required if no file is uploaded')
     .if(check('resumeFile').not().exists())
     .notEmpty()
     .isURL()
     .run(req);
-  
+
   await check('resumeFile', 'Resume file reference is required if no URL is provided')
     .if(check('resumeUrl').not().exists())
     .notEmpty()
@@ -432,15 +449,14 @@ const CompleteOnboarding = async (req, res) => {
     return res.status(400).json({ errors: errors.array() });
   }
 
+  /* ────── 2. CORE LOGIC ────── */
   try {
     const {
       selectedCourses,
       selectedSkills,
       technicalLevel,
       educationLevel,
-      headline,
       workType,
-      location,
       resumeUrl,
       resumeFile
     } = req.body;
@@ -448,80 +464,69 @@ const CompleteOnboarding = async (req, res) => {
     // Check if user already completed onboarding
     const user = await User.findById(req.user.id);
     if (user.onboardingCompleted) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Onboarding already completed' 
+        message: 'Onboarding already completed'
       });
     }
 
-    // Start transaction
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    /* ---- Process resume ---- */
+    let resumeData;
+    if (resumeUrl) {
+      resumeData = await processResumeUrl(resumeUrl, req.user.id);
+    } else if (resumeFile) {
+      resumeData = await processResumeFile(resumeFile, req.user.id);
+    }
 
-    try {
-      let resumeData;
-      
-      // Process resume (URL or File)
-      if (resumeUrl) {
-        resumeData = await processResumeUrl(resumeUrl, req.user.id);
-      } else if (resumeFile) {
-        resumeData = await processResumeFile(resumeFile, req.user.id);
-      }
-
-      // Update profile with resume and other data
-      const updatedProfile = await InternProfile.findOneAndUpdate(
-        { user: req.user.id },
-        {
-          $set: {
-            selectedCourses,
-            selectedSkills,
-            technicalLevel,
-            educationLevel,
-            workType,
-            headline,
-            location,
-            onboardingCompleted: true,
-            'resumes.$[].isActive': false // Deactivate other resumes
-          },
-          $push: { resumes: resumeData } // Add new active resume
+    // Deactivate any existing active resumes & push the new one
+    const updatedProfile = await InternProfile.findOneAndUpdate(
+      { user: req.user.id },
+      {
+        $set: {
+          selectedCourses,
+          selectedSkills,
+          technicalLevel,
+          educationLevel,
+          workType,
+          onboardingCompleted: true
         },
-        { 
-          new: true,
-          upsert: true,
-          session
-        }
-      ).populate('selectedCourses', 'name')
-       .populate('selectedSkills', 'name');
+        $push: {
+          resumes: { ...resumeData, isActive: true }
+        },
+        $setOnInsert: { user: req.user.id }
+      },
+      { new: true, upsert: true }
+    )
+      .populate('selectedCourses', 'name')
+      .populate('selectedSkills', 'name');
 
-      // Mark user as onboarded
-      user.onboardingCompleted = true;
-      await user.save({ session });
+    // Mark previous resumes inactive in a second step
+    await InternProfile.updateOne(
+      { user: req.user.id },
+      { $set: { 'resumes.$[elem].isActive': false } },
+      {
+        arrayFilters: [{ 'elem.isActive': true, 'elem._id': { $ne: resumeData._id } }]
+      }
+    );
 
-      await session.commitTransaction();
+    /* ---- Update user flag ---- */
+    user.onboardingCompleted = true;
+    await user.save();
 
-      res.json({
-        success: true,
-        message: 'Onboarding completed successfully',
-        profile: {
-          selectedCourses: updatedProfile.selectedCourses,
-          selectedSkills: updatedProfile.selectedSkills,
-          technicalLevel: updatedProfile.technicalLevel,
-          educationLevel: updatedProfile.educationLevel,
-          workType: updatedProfile.workType,
-          headline: updatedProfile.headline,
-          location: updatedProfile.location,
-          resumes: updatedProfile.resumes,
-          activeResume: updatedProfile.resumes.find(r => r.isActive)
-        }
-      });
-
-    } catch (err) {
-      await session.abortTransaction();
-      throw err;
-    } finally {
-      session.endSession();
-    }
-
+    /* ---- Response ---- */
+    res.json({
+      success: true,
+      message: 'Onboarding completed successfully',
+      profile: {
+        selectedCourses: updatedProfile.selectedCourses,
+        selectedSkills: updatedProfile.selectedSkills,
+        technicalLevel: updatedProfile.technicalLevel,
+        educationLevel: updatedProfile.educationLevel,
+        workType: updatedProfile.workType,
+        resumes: updatedProfile.resumes,
+        activeResume: updatedProfile.resumes.find(r => r.isActive)
+      }
+    });
   } catch (err) {
     console.error('Complete onboarding error:', err);
     res.status(500).json({
@@ -638,7 +643,10 @@ const getUserResumes = async (req, res) => {
       }
     });
 
-  } catch (err) {
+  } catch ( err )
+  {
+    console.log(error);
+    
     console.error('Get resumes error:', err);
     res.status(500).json({
       success: false,

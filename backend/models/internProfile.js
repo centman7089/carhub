@@ -25,11 +25,12 @@ const resumeSchema = new mongoose.Schema({
   sourceType: {
     type: String,
     enum: ['cloudinary', 'url'],
-    required: true
+    default() { return this.publicId ? 'cloudinary' : 'url'; }
   },
-  public_id: {
+  publicId: {
     type: String,
-    required: function() { return this.sourceType === 'cloudinary'; }
+    alias: 'public_id',          // <— lets old field names pass
+    required() { return this.sourceType === 'cloudinary'; }
   },
   format: {
     type: String,

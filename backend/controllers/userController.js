@@ -171,10 +171,10 @@ const login = async (req, res) => {
 		});
 	  }
   
-	  if (user.isFrozen) {
-		user.isFrozen = false;
-		await user.save();
-	  }
+	//   if (user.isFrozen) {
+	// 	user.isFrozen = false;
+	// 	await user.save();
+	//   }
   
 	  const token = generateTokenAndSetCookie(user._id, res);
   
@@ -186,7 +186,10 @@ const login = async (req, res) => {
 		isVerified: true,
 		onboardingCompleted: user.onboardingCompleted
 	  });
-	} catch (error) {
+	} catch ( error )
+	{
+		console.log(error);
+		
 	  res.status(500).json({ error: error.message });
 	  console.log("Error in loginUser: ", error.message);
 	}
