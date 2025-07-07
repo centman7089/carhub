@@ -322,7 +322,7 @@ const saveUrlResume = async (req, res) => {
     const response = await axios.get(url, {
       responseType: 'arraybuffer',
       maxRedirects: 5,
-      timeout: 15000,
+      timeout: 30000,
       headers: {
         'User-Agent': 'Mozilla/5.0'
       }
@@ -360,7 +360,7 @@ const saveUrlResume = async (req, res) => {
       fileName: filename,
       format: uploadResult.format || 'unknown',
       publicId: uploadResult.public_id,
-      host: new URL(url).hostname,
+      host: new URL(req.body.url).hostname,   // <— add this
       isActive: true,
       size: uploadResult.bytes,
       resourceType: uploadResult.resource_type,
@@ -411,7 +411,8 @@ const CompleteOnboarding = async (req, res) => {
   await check('technicalLevel', 'Technical level is required').isIn(['beginner', 'intermediate', 'advanced', 'expert']).run(req);
   await check( 'educationLevel', 'Education level is required' ).isIn( [ 'high_school', 'associate', 'bachelor', 'master', 'phd' ] ).run( req );
   await check('workType', 'workType is required').isIn(['remote', 'hybrid']).run(req);
-
+  await check('headline', 'Professional headline is required').notEmpty().run(req);
+  await check('location', 'Location is required').notEmpty().run(req);
   
   // Require either resumeUrl or resumeFile (but not both)
   await check('resumeUrl', 'Resume URL is required if no file is uploaded')
@@ -437,7 +438,9 @@ const CompleteOnboarding = async (req, res) => {
       selectedSkills,
       technicalLevel,
       educationLevel,
+      headline,
       workType,
+      location,
       resumeUrl,
       resumeFile
     } = req.body;
@@ -475,6 +478,8 @@ const CompleteOnboarding = async (req, res) => {
             technicalLevel,
             educationLevel,
             workType,
+            headline,
+            location,
             onboardingCompleted: true,
             'resumes.$[].isActive': false // Deactivate other resumes
           },
@@ -503,6 +508,8 @@ const CompleteOnboarding = async (req, res) => {
           technicalLevel: updatedProfile.technicalLevel,
           educationLevel: updatedProfile.educationLevel,
           workType: updatedProfile.workType,
+          headline: updatedProfile.headline,
+          location: updatedProfile.location,
           resumes: updatedProfile.resumes,
           activeResume: updatedProfile.resumes.find(r => r.isActive)
         }

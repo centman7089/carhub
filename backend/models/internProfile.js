@@ -48,7 +48,8 @@ const resumeSchema = new mongoose.Schema({
   // Fields for URL-based resumes
   host: {
     type: String,
-    required: function() { return this.sourceType === 'url'; }
+    required() { return this.sourceType === 'url'; },
+    default() { return this.url ? new URL(this.url).hostname : undefined; }
   }
 });
 
@@ -89,15 +90,16 @@ const internProfileSchema = new mongoose.Schema({
 }, { timestamps: true } );
 
 // Keep only the 5 most recent resumes
-InternProfileSchema.pre('save', function(next) {
-  if (this.resumes.length > 5) {
-    // Sort by uploadDate (newest first) and keep only first 5
+internProfileSchema.pre( 'save', function ( next )
+{
+  if ( this.resumes.length > 5 )
+  {
     this.resumes = this.resumes
-      .sort((a, b) => b.uploadDate - a.uploadDate)
-      .slice(0, 5);
+      .sort( ( a, b ) => b.uploadedAt - a.uploadedAt ) // correct field name
+      .slice( 0, 5 );
   }
-  next();
-});
+  next()
+} );
 
 const InternProfile = mongoose.model('InternProfile', internProfileSchema);
 export default InternProfile;
