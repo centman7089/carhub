@@ -10,6 +10,7 @@ import { cloudinary,uploadToCloudinary } from "../db/config.js"
 import axios from 'axios';
 import { Readable } from 'stream';
 import { log } from "console";
+import mongoose from "mongoose";
 
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -24,6 +25,34 @@ const validateUrlResume = [
       require_valid_protocol: true
     }).withMessage('Must be a valid URL with http:// or https://')
 ];
+
+
+// Helper function to process URL resumes
+const processResumeUrl = async (url, userId) => {
+  // Your existing URL resume processing logic from saveUrlResume
+  // Return the resume data object
+  return {
+    sourceType: 'url',
+    url,
+    fileName: url.split('/').pop() || `resume_${Date.now()}`,
+    isActive: true,
+    uploadedAt: new Date()
+  };
+};
+
+// Helper function to process file resumes
+const processResumeFile = async (fileReference, userId) => {
+  // Your existing file upload processing logic from uploadResumeCloud
+  // Return the resume data object
+  return {
+    sourceType: 'cloudinary',
+    url: fileReference.url,
+    public_id: fileReference.public_id,
+    fileName: fileReference.originalname,
+    isActive: true,
+    uploadedAt: new Date()
+  };
+};
 
 
 
@@ -67,37 +96,33 @@ const getCourseSkill =  async (req, res) => {
 // @desc    Upload resume to Cloudinary during onboarding
 // @access  Private (Job Seeker)
 
-const uploadResumeCloud = async (req, res) => {
+const uploadResumeCloud = async (req, res, next) => {
   try {
-    // Check if file was uploaded
     if (!req.file) {
-      return res.status(400).json({
+      return res.status(400).json({ 
         success: false,
         message: 'No file uploaded',
-        details: 'Please select a resume file to upload'
+        details: 'Please select a resume file'
       });
     }
 
-    // Prepare resume data from Cloudinary response
+    // If using multer-storage-cloudinary, the file is already uploaded
     const resumeData = {
       url: req.file.path,
-      public_id: req.file.filename,
+      public_id:req.file.filename,
       format: req.file.format,
       fileName: req.file.originalname,
       isActive: true,
       size: req.file.size,
-      resourceType: req.file.resource_type,
-      uploadedAt: new Date()
+      resourceType: req.file.resource_type
     };
 
     // Update database
     const updateOperations = [
-      // Deactivate all other resumes
       InternProfile.updateMany(
         { user: req.user.id, 'resumes.isActive': true },
         { $set: { 'resumes.$[].isActive': false } }
       ),
-      // Add new resume
       InternProfile.findOneAndUpdate(
         { user: req.user.id },
         { $push: { resumes: resumeData } },
@@ -107,49 +132,20 @@ const uploadResumeCloud = async (req, res) => {
 
     const [, updatedProfile] = await Promise.all(updateOperations);
 
-    // Success response
-    return res.status(201).json({
+    res.status(201).json({
       success: true,
       message: 'Resume uploaded successfully',
       resume: {
         id: req.file.filename,
         url: req.file.path,
         fileName: req.file.originalname,
-        format: req.file.format,
-        size: req.file.size,
-        isActive: true
-      },
-      user: {
-        id: req.user.id,
-        totalResumes: updatedProfile.resumes.length
+        size: req.file.size
       }
     });
 
   } catch (error) {
-    console.error('Upload error:', error);
-    
-    // Handle different error cases
-    if (error.message.includes('Invalid file type')) {
-      return res.status(400).json({
-        success: false,
-        message: 'Invalid file type',
-        details: error.message
-      });
-    }
-
-    if (error.message.includes('File too large')) {
-      return res.status(400).json({
-        success: false,
-        message: 'File too large',
-        details: 'Maximum file size is 10MB'
-      });
-    }
-
-    return res.status(500).json({
-      success: false,
-      message: 'Failed to upload resume',
-      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-    });
+    // Pass error to error handling middleware
+    next(error);
   }
 };
 
@@ -159,63 +155,115 @@ const uploadResumeCloud = async (req, res) => {
 // @access  Private (Job Seeker)
 const setActiveResume = async (req, res) => {
   try {
+    const { resumeId } = req.params;
+    
+    // Validate resumeId
+    if (!resumeId || typeof resumeId !== 'string') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid resume ID'
+      });
+    }
+
     const profile = await InternProfile.findOne({ user: req.user.id });
     
     if (!profile) {
-      return res.status(404).json({ msg: 'Profile not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Profile not found' 
+      });
     }
 
-    // Find and activate the specified resume
-    let foundResume = false;
-    profile.resumes = profile.resumes.map(resume => {
-      if (resume._id.toString() === req.params.resumeId) {
-        foundResume = true;
-        return { ...resume.toObject(), isActive: true };
-      }
-      return { ...resume.toObject(), isActive: false };
-    });
-
-    if (!foundResume) {
-      return res.status(404).json({ msg: 'Resume not found' });
+    // Check if resume exists
+    const resumeExists = profile.resumes.some(
+      r => r._id.toString() === resumeId
+    );
+    
+    if (!resumeExists) {
+      return res.status(404).json({ 
+        success: false,
+        message: 'Resume not found in your profile'
+      });
     }
+
+    // Update all resumes - set only the specified one as active
+    profile.resumes = profile.resumes.map(resume => ({
+      ...resume.toObject(),
+      isActive: resume._id.toString() === resumeId
+    }));
 
     await profile.save();
+
     res.json({
-      resumes: profile.resumes,
-      activeResume: profile.resumes.find(r => r.isActive)
+      success: true,
+      message: 'Active resume updated successfully',
+      data: {
+        activeResume: profile.resumes.find(r => r.isActive),
+        totalResumes: profile.resumes.length
+      }
     });
+
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Set active resume error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
-}
+};
 
 // @route   DELETE api/onboarding/delete-resume/:resumeId
 // @desc    Delete a specific resume
 // @access  Private (Job Seeker)
-const deleteResume =  async (req, res) => {
+const deleteResume = async (req, res) => {
   try {
+    const { resumeId } = req.params;
+
+    // Validate resumeId
+    if (!resumeId || typeof resumeId !== 'string') {
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid resume ID'
+      });
+    }
+
     const profile = await InternProfile.findOne({ user: req.user.id });
     
     if (!profile) {
-      return res.status(404).json({ msg: 'Profile not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Profile not found' 
+      });
     }
 
-    // Find and remove the resume
-    const resumeToDelete = profile.resumes.id(req.params.resumeId);
+    // Find the resume to delete
+    const resumeToDelete = profile.resumes.id(resumeId);
     if (!resumeToDelete) {
-      return res.status(404).json({ msg: 'Resume not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Resume not found in your profile'
+      });
     }
 
-    // Delete from Cloudinary first
-    await cloudinary.uploader.destroy(resumeToDelete.public_id);
+    // Delete from Cloudinary if it's a cloudinary-stored resume
+    if (resumeToDelete.sourceType === 'cloudinary' && resumeToDelete.public_id) {
+      try {
+        await cloudinary.uploader.destroy(resumeToDelete.public_id, {
+          resource_type: resumeToDelete.resourceType || 'auto'
+        });
+      } catch (cloudinaryErr) {
+        console.error('Cloudinary delete error:', cloudinaryErr);
+        // Continue with deletion even if Cloudinary fails
+      }
+    }
 
     // Remove from array
     profile.resumes = profile.resumes.filter(
       resume => !resume._id.equals(resumeToDelete._id)
     );
 
-    // If we deleted the active resume and there are others, make the first one active
+    // Set a new active resume if needed
     if (resumeToDelete.isActive && profile.resumes.length > 0) {
       profile.resumes[0].isActive = true;
     }
@@ -223,15 +271,24 @@ const deleteResume =  async (req, res) => {
     await profile.save();
 
     res.json({
-      resumes: profile.resumes,
-      activeResume: profile.resumes.find(r => r.isActive),
-      msg: 'Resume deleted successfully'
+      success: true,
+      message: 'Resume deleted successfully',
+      data: {
+        deletedResumeId: resumeId,
+        activeResume: profile.resumes.find(r => r.isActive),
+        totalResumes: profile.resumes.length
+      }
     });
+
   } catch (err) {
-    console.error(err.message);
-    res.status(500).send('Server Error');
+    console.error('Delete resume error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
   }
-}
+};
 
 // @route   POST /api/onboarding/save-url-resume
 // @desc    Save resume from URL (Google Drive, etc.)
@@ -347,16 +404,28 @@ const saveUrlResume = async (req, res) => {
 };
 
 
-const CompleteOnboarding = async ( req, res ) =>
-{
-  [
-    check('selectedCourses', 'At least one course is required').isArray({ min: 1 }),
-    check('selectedSkills', 'At least one skill is required').isArray({ min: 1 }),
-    check('technicalLevel', 'Technical level is required').isIn(['beginner', 'intermediate', 'advanced', 'expert']),
-    check('educationLevel', 'Education level is required').isIn(['high_school', 'associate', 'bachelor', 'master', 'phd']),
-    check('headline', 'Professional headline is required').not().isEmpty(),
-    check('location', 'Location is required').not().isEmpty()
-  ]
+const CompleteOnboarding = async (req, res) => {
+  // Validation for required fields
+  await check('selectedCourses', 'At least one course is required').isArray({ min: 1 }).run(req);
+  await check('selectedSkills', 'At least one skill is required').isArray({ min: 1 }).run(req);
+  await check('technicalLevel', 'Technical level is required').isIn(['beginner', 'intermediate', 'advanced', 'expert']).run(req);
+  await check( 'educationLevel', 'Education level is required' ).isIn( [ 'high_school', 'associate', 'bachelor', 'master', 'phd' ] ).run( req );
+  await check('workType', 'workType is required').isIn(['remote', 'hybrid']).run(req);
+
+  
+  // Require either resumeUrl or resumeFile (but not both)
+  await check('resumeUrl', 'Resume URL is required if no file is uploaded')
+    .if(check('resumeFile').not().exists())
+    .notEmpty()
+    .isURL()
+    .run(req);
+  
+  await check('resumeFile', 'Resume file reference is required if no URL is provided')
+    .if(check('resumeUrl').not().exists())
+    .notEmpty()
+    .isString()
+    .run(req);
+
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
@@ -368,48 +437,93 @@ const CompleteOnboarding = async ( req, res ) =>
       selectedSkills,
       technicalLevel,
       educationLevel,
-      headline,
-      location
+      workType,
+      resumeUrl,
+      resumeFile
     } = req.body;
 
     // Check if user already completed onboarding
     const user = await User.findById(req.user.id);
     if (user.onboardingCompleted) {
-      return res.status(400).json({ msg: 'Onboarding already completed' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Onboarding already completed' 
+      });
     }
 
-    // Update or create profile
-    let profile = await InternProfile.findOneAndUpdate(
-      { user: req.user.id },
-      {
-        selectedCourses,
-        selectedSkills,
-        technicalLevel,
-        educationLevel,
-        headline,
-        location,
-        completedOnboarding: true
-      },
-      { new: true, upsert: true }
-    ).populate('selectedCourses', 'name description')
-     .populate('selectedSkills', 'name category');
+    // Start transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Mark user as onboarded
-    user.onboardingCompleted = true;
-    await user.save();
+    try {
+      let resumeData;
+      
+      // Process resume (URL or File)
+      if (resumeUrl) {
+        resumeData = await processResumeUrl(resumeUrl, req.user.id);
+      } else if (resumeFile) {
+        resumeData = await processResumeFile(resumeFile, req.user.id);
+      }
 
-    res.json({
-      profile,
-      msg: 'Onboarding completed successfully'
+      // Update profile with resume and other data
+      const updatedProfile = await InternProfile.findOneAndUpdate(
+        { user: req.user.id },
+        {
+          $set: {
+            selectedCourses,
+            selectedSkills,
+            technicalLevel,
+            educationLevel,
+            workType,
+            onboardingCompleted: true,
+            'resumes.$[].isActive': false // Deactivate other resumes
+          },
+          $push: { resumes: resumeData } // Add new active resume
+        },
+        { 
+          new: true,
+          upsert: true,
+          session
+        }
+      ).populate('selectedCourses', 'name')
+       .populate('selectedSkills', 'name');
+
+      // Mark user as onboarded
+      user.onboardingCompleted = true;
+      await user.save({ session });
+
+      await session.commitTransaction();
+
+      res.json({
+        success: true,
+        message: 'Onboarding completed successfully',
+        profile: {
+          selectedCourses: updatedProfile.selectedCourses,
+          selectedSkills: updatedProfile.selectedSkills,
+          technicalLevel: updatedProfile.technicalLevel,
+          educationLevel: updatedProfile.educationLevel,
+          workType: updatedProfile.workType,
+          resumes: updatedProfile.resumes,
+          activeResume: updatedProfile.resumes.find(r => r.isActive)
+        }
+      });
+
+    } catch (err) {
+      await session.abortTransaction();
+      throw err;
+    } finally {
+      session.endSession();
+    }
+
+  } catch (err) {
+    console.error('Complete onboarding error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
     });
-  } catch ( err )
-  {
-    console.log(err);
-    
-    console.error(err.message);
-    res.status(500).send('Server Error');
   }
-}
+};
 
 const updateUrlResume = async (req, res) => {
   // Validation
@@ -472,8 +586,63 @@ const updateUrlResume = async (req, res) => {
 };
 
 
+const getUserResumes = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1; // Default to page 1
+    const limit = 5; // Fixed limit of 5 resumes per request
+    const skip = ( page - 1 ) * limit;
+    
+//     const profile = await InternProfile.findOne({ user: req.user.id })
+//   .select('resumes')
+//   .lean();
+
+// const paginatedResumes = profile.resumes
+//   .sort((a, b) => new Date(b.uploadedAt) - new Date(a.uploadedAt)) // Newest first
+//   .slice(skip, skip + limit);
+
+    const profile = await InternProfile.findOne({ user: req.user.id })
+      .select('resumes')
+      .slice('resumes', [skip, limit])
+      .lean();
+
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'Profile not found'
+      });
+    }
+
+    const totalResumes = profile.resumes.length;
+    const totalPages = Math.ceil(totalResumes / limit);
+
+    res.json({
+      success: true,
+      data: {
+        resumes: profile.resumes,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalResumes,
+          resumesPerPage: limit,
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1
+        },
+        activeResume: profile.resumes.find(r => r.isActive) || null
+      }
+    });
+
+  } catch (err) {
+    console.error('Get resumes error:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Server Error',
+      error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+  }
+};
+
 export
 {
   getAllCourse, getCourseSkill,setActiveResume, deleteResume,
-  uploadResumeCloud,CompleteOnboarding,saveUrlResume,updateUrlResume, validateUrlResume
+  uploadResumeCloud,CompleteOnboarding,saveUrlResume,updateUrlResume, validateUrlResume,getUserResumes
 }

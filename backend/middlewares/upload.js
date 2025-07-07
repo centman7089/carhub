@@ -27,19 +27,28 @@ const allowedImageTypes = [
 ];
 
 // Resume Storage Configuration
+// Helper function to sanitize filenames
+const sanitizeFilename = (filename) => {
+  return filename
+    .replace(/\.[^/.]+$/, "") // Remove extension
+    .replace(/[^\w-]/g, '_')  // Replace special chars with underscore
+    .trim()                   // Remove leading/trailing spaces
+    .replace(/\s+/g, '_')     // Replace internal spaces with underscore
+    .substring(0, 100);       // Limit length
+};
+
+// Resume Storage Configuration
 const resumeStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
-    if (!allowedResumeTypes.includes(file.mimetype)) {
-      throw new Error('Invalid file type. Only PDF, DOC, DOCX, JPEG, or PNG files are allowed');
-    }
-
+    const cleanName = sanitizeFilename(file.originalname);
+    const timestamp = Date.now();
+    
     return {
-      folder: 'intern-uploads/resumes',
-      public_id: `${Date.now()}-${path.parse(file.originalname).name}`,
+      folder: 'jobseekers-resumes',
+      public_id: `${timestamp}-${cleanName}`,
       resource_type: 'auto',
       allowed_formats: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
-      format: async () => path.extname(file.originalname).substring(1),
       transformation: [{ quality: 'auto:best' }]
     };
   }

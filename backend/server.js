@@ -27,6 +27,7 @@ import "./db/passport.js";
 import jobRouter from "./routes/jobRoutes.js";
 import internRouter from "./routes/internRoute.js";
 import onboardRouter from "./routes/onboardRoutes.js";
+import errorHandler from "./middlewares/errorHandler.js";
 
 
 dotenv.config();
@@ -113,7 +114,10 @@ app.get( '/', ( req, res ) =>
 } )
 
 app.use( '/uploads', express.static( path.join( __dirname, 'uploads' ) ) );
-app.use("/api-docs",swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+app.use( "/api-docs", swaggerUi.serve, swaggerUi.setup( swaggerDocument ) );
+
+// Error handling (must be last middleware)
+app.use(errorHandler);
 
 http://localhost:5000 => backend,frontend
 

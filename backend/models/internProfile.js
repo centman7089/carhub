@@ -1,50 +1,65 @@
 // @ts-nocheck
-import mongoose from "mongoose";
+// models/InternProfile.js
+import mongoose from 'mongoose';
 
-const ResumeSchema = new mongoose.Schema({
-  sourceType: { 
-    type: String, 
-    required: true,
-    enum: ['cloudinary', 'url'], // Only allow these values
-    default: 'url' // Default to 'url' if not specified
+const resumeSchema = new mongoose.Schema({
+  // Required fields for all resumes
+  fileName: {
+    type: String,
+    required: true
   },
-  url: { type: String, required: true },
-  fileName: { type: String, required: true },
-  format: { type: String }, // Made optional
-  publicId: { type: String }, // Made optional
-  host: { type: String },
-  isActive: { type: Boolean, default: false },
-  size: { type: Number },
-  resourceType: { type: String },
-  uploadDate: {
-    type: Date,
-    default: Date.now
+  url: {
+    type: String,
+    required: true
   },
   isActive: {
     type: Boolean,
     default: false
+  },
+  uploadedAt: {
+    type: Date,
+    default: Date.now
+  },
+
+  // Fields for Cloudinary uploads
+  sourceType: {
+    type: String,
+    enum: ['cloudinary', 'url'],
+    required: true
+  },
+  public_id: {
+    type: String,
+    required: function() { return this.sourceType === 'cloudinary'; }
+  },
+  format: {
+    type: String,
+    required: function() { return this.sourceType === 'cloudinary'; }
+  },
+  size: {
+    type: Number,
+    required: function() { return this.sourceType === 'cloudinary'; }
+  },
+  resourceType: {
+    type: String,
+    enum: ['image', 'pdf', 'raw'],
+    default: 'pdf'
+  },
+
+  // Fields for URL-based resumes
+  host: {
+    type: String,
+    required: function() { return this.sourceType === 'url'; }
   }
 });
 
-
-const InternProfileSchema = new mongoose.Schema({
+const internProfileSchema = new mongoose.Schema({
   user: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
-    required: true
+    required: true,
+    unique: true
   },
-  headline: {
-    type: String,
-    trim: true
-  },
-  location: {
-    type: String,
-    trim: true
-  },
-  about: {
-    type: String,
-    trim: true
-  },
+  resumes: [resumeSchema], // Array of resumes
   selectedCourses: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
@@ -61,74 +76,17 @@ const InternProfileSchema = new mongoose.Schema({
     type: String,
     enum: ['high_school', 'associate', 'bachelor', 'master', 'phd']
   },
-  experience: [{
-    title: {
-      type: String,
-      required: true
-    },
-    company: {
-      type: String,
-      required: true
-    },
-    location: {
-      type: String
-    },
-    from: {
-      type: Date,
-      required: true
-    },
-    to: {
-      type: Date
-    },
-    current: {
-      type: Boolean,
-      default: false
-    },
-    description: {
-      type: String
-    }
-  }],
-  education: [{
-    school: {
-      type: String,
-      required: true
-    },
-    degree: {
-      type: String,
-      required: true
-    },
-    fieldOfStudy: {
-      type: String,
-      required: true
-    },
-    from: {
-      type: Date,
-      required: true
-    },
-    to: {
-      type: Date
-    },
-    current: {
-      type: Boolean,
-      default: false
-    },
-    description: {
-      type: String
-    }
-  }],
-  resumeUrl: String,
-  resumeFile: String,
-  completedOnboarding: {
+  workType: {
+    type: String,
+    enum: ['remote', 'hybrid']
+  },
+  headline: String,
+  location: String,
+  onboardingCompleted: {
     type: Boolean,
     default: false
-  },
-  resume: {
-    url: String,
-    public_id: String,
-    format: String
-  },
-  resumes: [ResumeSchema]
-});
+  }
+}, { timestamps: true } );
 
 // Keep only the 5 most recent resumes
 InternProfileSchema.pre('save', function(next) {
@@ -141,7 +99,15 @@ InternProfileSchema.pre('save', function(next) {
   next();
 });
 
-const InternProfile = mongoose.model( 'InternProfile', InternProfileSchema );
+const InternProfile = mongoose.model('InternProfile', internProfileSchema);
+export default InternProfile;
 
 
-export default InternProfile
+
+
+
+
+
+
+
+
