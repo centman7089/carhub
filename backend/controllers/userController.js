@@ -130,7 +130,10 @@ const register = async ( req, res ) =>
 		} else {
 			res.status(400).json({ error: "Invalid user data" });
 		}
-	} catch (err) {
+	} catch ( err )
+	{
+		console.log(err);
+		
 		res.status(500).json({ error: err.message });
 		console.log( "Error in signupUser: ", err.message );
 		res.status(500).json({ msg: err.message });
@@ -142,13 +145,19 @@ const register = async ( req, res ) =>
 const login = async (req, res) => {
 	try {
 	  const { email, password } = req.body;
-	  const user = await User.findOne({ email });
+	  const user = await User?.findOne({ email });
 	  
-	  if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+		if ( !user )
+		{
+			return res.status(400).json({ msg: "Invalid credentials" });
+	  }
   
 	  const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
   
-	  if (!isPasswordCorrect) return res.status(400).json({ error: "Invalid email or password" });
+		if ( !isPasswordCorrect )
+		{
+			return res.status(400).json({ error: "Invalid email or password" });
+	  }
   
 	  // If user is not verified
 	  if (!user.isVerified) {

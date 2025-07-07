@@ -34,11 +34,11 @@ const resumeSchema = new mongoose.Schema({
   },
   format: {
     type: String,
-    required: function() { return this.sourceType === 'cloudinary'; }
+    // required: function() { return this.sourceType === 'cloudinary' }
   },
   size: {
     type: Number,
-    required: function() { return this.sourceType === 'cloudinary'; }
+    // required: function() { return this.sourceType === 'cloudinary' }
   },
   resourceType: {
     type: String,
