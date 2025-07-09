@@ -95,9 +95,17 @@ const getCourseSkill =  async (req, res) => {
 // @route   POST api/onboarding/upload-resume
 // @desc    Upload resume to Cloudinary during onboarding
 // @access  Private (Job Seeker)
-
 const uploadResumeCloud = async (req, res, next) => {
   try {
+    // 1. Check if user is authenticated
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized - please log in'
+      });
+    }
+
+    // 2. Check if file exists
     if (!req.file) {
       return res.status(400).json({ 
         success: false,
@@ -106,7 +114,7 @@ const uploadResumeCloud = async (req, res, next) => {
       });
     }
 
-    // Extract the relevant file information from Cloudinary response
+    // 3. Prepare resume data
     const resumeData = {
       public_id: req.file.public_id,
       url: req.file.path,
@@ -118,29 +126,27 @@ const uploadResumeCloud = async (req, res, next) => {
       uploadedAt: new Date()
     };
 
-    // Find the user's profile
-    const profile = await InternProfile.findOne({ user: req.user.id });
-
+    // 4. Find or create profile
+    let profile = await InternProfile.findOne({ user: req.user._id });
+    
     if (!profile) {
-      return res.status(404).json({
-        success: false,
-        message: 'User profile not found'
-      });
+      profile = await InternProfile.create({ user: req.user._id });
     }
 
-    // Deactivate all other resumes
+    // 5. Deactivate other resumes
     await InternProfile.updateOne(
-      { user: req.user.id, 'resumes.isActive': true },
+      { user: req.user._id, 'resumes.isActive': true },
       { $set: { 'resumes.$[].isActive': false } }
     );
 
-    // Add the new resume
+    // 6. Add new resume
     const updatedProfile = await InternProfile.findOneAndUpdate(
-      { user: req.user.id },
+      { user: req.user._id },
       { $push: { resumes: resumeData } },
       { new: true }
     );
 
+    // 7. Return success response
     res.status(201).json({
       success: true,
       message: 'Resume uploaded successfully',
@@ -156,7 +162,21 @@ const uploadResumeCloud = async (req, res, next) => {
 
   } catch (error) {
     console.error('Error uploading resume:', error);
-    next(error);
+    
+    // Special handling for Multer/Cloudinary errors
+    if (error.name === 'MulterError') {
+      return res.status(400).json({
+        success: false,
+        message: 'File upload error',
+        details: error.message
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
