@@ -106,45 +106,56 @@ const uploadResumeCloud = async (req, res, next) => {
       });
     }
 
-    // If using multer-storage-cloudinary, the file is already uploaded
+    // Extract the relevant file information from Cloudinary response
     const resumeData = {
+      public_id: req.file.public_id,
       url: req.file.path,
-      public_id:req.file.filename,
       format: req.file.format,
       fileName: req.file.originalname,
       isActive: true,
       size: req.file.size,
-      resourceType: req.file.resource_type
+      resourceType: req.file.resource_type,
+      uploadedAt: new Date()
     };
 
-    // Update database
-    const updateOperations = [
-      InternProfile.updateMany(
-        { user: req.user.id, 'resumes.isActive': true },
-        { $set: { 'resumes.$[].isActive': false } }
-      ),
-      InternProfile.findOneAndUpdate(
-        { user: req.user.id },
-        { $push: { resumes: resumeData } },
-        { new: true, upsert: true }
-      )
-    ];
+    // Find the user's profile
+    const profile = await InternProfile.findOne({ user: req.user.id });
 
-    const [, updatedProfile] = await Promise.all(updateOperations);
+    if (!profile) {
+      return res.status(404).json({
+        success: false,
+        message: 'User profile not found'
+      });
+    }
+
+    // Deactivate all other resumes
+    await InternProfile.updateOne(
+      { user: req.user.id, 'resumes.isActive': true },
+      { $set: { 'resumes.$[].isActive': false } }
+    );
+
+    // Add the new resume
+    const updatedProfile = await InternProfile.findOneAndUpdate(
+      { user: req.user.id },
+      { $push: { resumes: resumeData } },
+      { new: true }
+    );
 
     res.status(201).json({
       success: true,
       message: 'Resume uploaded successfully',
       resume: {
-        id: req.file.filename,
+        id: req.file.public_id,
         url: req.file.path,
         fileName: req.file.originalname,
-        size: req.file.size
-      }
+        size: req.file.size,
+        public_id: req.file.public_id
+      },
+      profile: updatedProfile
     });
 
   } catch (error) {
-    // Pass error to error handling middleware
+    console.error('Error uploading resume:', error);
     next(error);
   }
 };
