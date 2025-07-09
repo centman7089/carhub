@@ -73,15 +73,15 @@ const register = async ( req, res ) =>
 		if (userExists) {
 			return res.status(400).json({ error: "User already exists" });
 		}
-		const salt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash(password, salt);
+		
+
 		const code = generateCode();
 
 		const user = await User.create({
 			firstName,
 			lastName,
 			email,
-			password: hashedPassword,
+			password,
 			phone,
 			country,
 			state,
@@ -89,7 +89,7 @@ const register = async ( req, res ) =>
 			address,
 			emailCode: code,
 			emailCodeExpires: Date.now() + 10 * 60 * 1000 ,// 10 mins
-			passwordHistory: [ { password: hashedPassword, changedAt: new Date() } ],
+			passwordHistory: [ { password: password, changedAt: new Date() } ],
 			isVerified: false
 		} );
 
@@ -135,7 +135,7 @@ const register = async ( req, res ) =>
 		console.log(err);
 		
 		res.status(500).json({ error: err.message });
-		console.log( "Error in signupUser: ", err.message );
+		console.log( "Error in registering User: ", err.message );
 		res.status(500).json({ msg: err.message });
 	}
 }
@@ -152,12 +152,11 @@ const login = async (req, res) => {
 			return res.status(400).json({ msg: "Invalid credentials" });
 	  }
   
-	  const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
-  
-		if ( !isPasswordCorrect )
-		{
-			return res.status(400).json({ error: "Invalid email or password" });
-	  }
+	  const isPasswordCorrect = await user.correctPassword(password); // Use the schema method
+        
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ error: "Invalid password" }); // More specific
+        }
   
 	  // If user is not verified
 	  if (!user.isVerified) {
