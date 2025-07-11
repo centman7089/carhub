@@ -23,8 +23,8 @@ const onboardRouter = express.Router()
 
 
 //@route GET /api/auth/google
-onboardRouter.get( "/course", protectRoute,getAllCourse )
-onboardRouter.get( '/skills/:courseId', protectRoute,getCourseSkill  )
+onboardRouter.get( "/course",getAllCourse )
+onboardRouter.get( '/skills/:courseId',getCourseSkill  )
 onboardRouter.post('/save-url-resume', protectRoute,validateUrlResume, saveUrlResume )
 onboardRouter.post('/upload-resume', protectRoute,resumeUpload.single('resume'),uploadResumeCloud )
 onboardRouter.post('/complete', protectRoute, CompleteOnboarding)
