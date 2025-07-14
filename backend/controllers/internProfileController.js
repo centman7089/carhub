@@ -1,9 +1,11 @@
+// @ts-nocheck
 
 import bcrypt from "bcryptjs";
 import CourseSkillMap from "../models/courseSkills.js";
 import Post from "../models/postModel.js";
-import User from "../models/userModel.js";
 import { v2 as cloudinary } from "cloudinary";
+import InternProfile from "../models/InternProfile.js";
+import User from "../models/userModel.js";
 
 
 const createIntern = async (req, res) => {
@@ -196,12 +198,44 @@ const updatePhoto = async (req, res) => {
       return res.status(500).json({ message: "An error occurred while processing your request." });
   }
 };
+
+// controllers/intern.controller.js
+
+
+const getAllInterns = async (req, res) => {
+  try {
+    const profiles = await InternProfile.find({ user: { $ne: null } })
+      .populate('user', 'firstName lastName profilePhoto')
+      .populate('selectedCourses', 'name')
+      .populate('selectedSkills', 'name');
+
+    // Format the data for frontend use
+    const interns = profiles
+      .filter(profile => profile.user) // Ensure the user is not null
+      .map(profile => ({
+        firstName: profile.user.firstName,
+        lastName: profile.user.lastName,
+        profilePhoto: profile.user.profilePhoto || null,
+        location: profile.location || '',
+        headline: profile.headline || '',
+        courses: profile.selectedCourses.map(course => course.name),
+        skills: profile.selectedSkills.map(skill => skill.name),
+        userId: profile.user._id
+      }));
+
+    res.status(200).json({ success: true, interns });
+  } catch (error) {
+    console.error("Error fetching interns:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
   
 export
 {
   createIntern, getInterns, getSkillsByCourse, updateCourses,
   updateProfile, updateSkills, addCustomSkill, removeSkill,
-  updateUser, updatePhoto
+  updateUser, updatePhoto,getAllInterns
 }
   
   

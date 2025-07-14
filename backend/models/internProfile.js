@@ -103,7 +103,8 @@ internProfileSchema.pre( 'save', function ( next )
   next()
 } );
 
-const InternProfile = mongoose.model('InternProfile', internProfileSchema);
+const InternProfile = mongoose.models.InternProfile || mongoose.model('InternProfile', internProfileSchema);
+
 export default InternProfile;
 
 
