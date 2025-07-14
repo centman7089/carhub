@@ -285,7 +285,8 @@ const addEducation =  async ( req, res ) =>
         selectedSkills: profile.selectedSkills?.map(skill => skill.name) || [],
         educationLevel: profile.educationLevel || null,
         technicalLevel: profile.technicalLevel || null,
-        workType: profile.workType || null
+        workType: profile.workType || null,
+        about: profile.about || null
       };
   
       res.status(200).json(response);

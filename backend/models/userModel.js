@@ -34,32 +34,21 @@ const userSchema = mongoose.Schema(
 			type: String,
 			required: true,
 			
-		  },
-		  state: {
+		},
+		state: {
 			type: String,
 			required: true,
 		
-		  },
-		  city: {
+		},
+		city: {
 			type: String,
 			required: true,
-			
-		  },
+		},
 		  address: {
 			type: String,
 			required: true,
-		
-		},
-		  
+		},  
 		profilePic: {
-			type: String,
-			default: "",
-		},
-		resume: {
-			type: String,
-			default: "",
-		},
-		photo: {
 			type: String,
 			default: "",
 		},
@@ -96,16 +85,16 @@ const userSchema = mongoose.Schema(
 		  enum: ['local', 'google'],
 		  default: 'local',
 		},
-		course: [String],
-		skills: [ String ],
-		resume: {
-			originalUrl: String,
-			cloudinaryUrl: String,
-			publicId: String,
-			fileType: String,
-			uploadedAt: Date
-		  },
-		 resumes: [ { type: mongoose.Schema.Types.ObjectId, ref: 'Resume' } ], // Array of resume references
+		// course: [String],
+		// skills: [ String ],
+		// resume: {
+		// 	originalUrl: String,
+		// 	cloudinaryUrl: String,
+		// 	publicId: String,
+		// 	fileType: String,
+		// 	uploadedAt: Date
+		//   },
+		 resumes: [ { type: mongoose.Schema.Types.ObjectId, ref: 'ResumeSchema' } ], // Array of resume references
 		 filePath: String,
 		 lastLogin: {
 			type: Date,

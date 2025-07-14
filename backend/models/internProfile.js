@@ -72,18 +72,19 @@ const internProfileSchema = new mongoose.Schema({
   }],
   technicalLevel: {
     type: String,
-    enum: ['Beginner', 'Intermediate', 'Advanced', 'Expert']
+    enum: ['beginner', 'intermediate', 'advanced', 'expert']
   },
   educationLevel: {
     type: String,
-    enum: ['High School', 'Bachelor', 'Master', 'Phd']
+    enum: ['high school', 'bachelor', 'master', 'phd']
   },
   workType: {
     type: String,
-    enum: ['Remote', 'Hybrid', 'Onsite', 'Open to any']
+    enum: ['remote', 'hybrid', 'onsite', 'open to any']
   },
   headline: String,
   location: String,
+  about: String,
   onboardingCompleted: {
     type: Boolean,
     default: false
