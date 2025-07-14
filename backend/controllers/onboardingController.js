@@ -477,8 +477,11 @@ const CompleteOnboarding = async (req, res) => {
 
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status( 400 ).json( { errors: errors.array() } );
   }
+
+  const capitalize = (str) =>
+    str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
 
   /* ────── 2. CORE LOGIC ────── */
   try {
@@ -491,6 +494,15 @@ const CompleteOnboarding = async (req, res) => {
       resumeUrl,
       resumeFile
     } = req.body;
+
+
+  // Capitalize values for enum fields
+const formattedTechnicalLevel = capitalize(technicalLevel);
+const formattedEducationLevel = capitalize(educationLevel);
+const formattedWorkType = workType
+  .split(' ')
+  .map(capitalize)
+  .join(' ');
 
     // Check if user already completed onboarding
     const user = await User.findById(req.user.id);
@@ -516,9 +528,9 @@ const CompleteOnboarding = async (req, res) => {
         $set: {
           selectedCourses,
           selectedSkills,
-          technicalLevel,
-          educationLevel,
-          workType,
+          technicalLevel: formattedTechnicalLevel,
+          educationLevel: formattedEducationLevel,
+          workType: formattedWorkType,
           onboardingCompleted: true
         },
         $push: {

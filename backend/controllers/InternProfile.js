@@ -4,6 +4,7 @@ import Course from "../models/Course.js";
 import InternProfile from "../models/internProfile.js";
 import { check, validationResult } from "express-validator";
 import User from "../models/userModel.js";
+import mongoose from "mongoose";
 
     
 // @route   GET api/profile/me
@@ -85,58 +86,58 @@ const updateProfile = async ( req, res ) =>
   // @route   POST api/profile/resume
 // @desc    Upload resume
 // @access  Private
-const resume = async (req, res) => {
-  upload(req, res, async (err) => {
-    if (err) {
-      return res.status(400).json({ msg: err });
-    }
+// const resume = async (req, res) => {
+//   upload(req, res, async (err) => {
+//     if (err) {
+//       return res.status(400).json({ msg: err });
+//     }
 
-    try {
-      const profile = await InternProfile.findOne({ user: req.user.id });
+//     try {
+//       const profile = await InternProfile.findOne({ user: req.user.id });
       
-      if (!profile) {
-        return res.status(404).json({ msg: 'Profile not found' });
-      }
+//       if (!profile) {
+//         return res.status(404).json({ msg: 'Profile not found' });
+//       }
 
-      profile.resumeFile = req.file.path;
-      await profile.save();
+//       profile.resumeFile = req.file.path;
+//       await profile.save();
 
-      res.json(profile);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
-    }
-  });
-}
+//       res.json(profile);
+//     } catch (err) {
+//       console.error(err.message);
+//       res.status(500).send('Server Error');
+//     }
+//   });
+// }
 
 // @route   POST api/profile/resume-url
 // @desc    Add resume URL
 // @access  Private
 
-const resumeUrl =  async ( req, res ) =>
-  {
-    check('url', 'Valid URL is required').isURL()
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+// const resumeUrl =  async ( req, res ) =>
+//   {
+//     check('url', 'Valid URL is required').isURL()
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res.status(400).json({ errors: errors.array() });
+//     }
 
-    try {
-      const profile = await InternProfile.findOne({ user: req.user.id });
+//     try {
+//       const profile = await InternProfile.findOne({ user: req.user.id });
       
-      if (!profile) {
-        return res.status(404).json({ msg: 'Profile not found' });
-      }
+//       if (!profile) {
+//         return res.status(404).json({ msg: 'Profile not found' });
+//       }
 
-      profile.resumeUrl = req.body.url;
-      await profile.save();
+//       profile.resumeUrl = req.body.url;
+//       await profile.save();
 
-      res.json(profile);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
-    }
-}
+//       res.json(profile);
+//     } catch (err) {
+//       console.error(err.message);
+//       res.status(500).send('Server Error');
+//     }
+// }
 
 // @route   PUT api/profile/experience
 // @desc    Add profile experience
@@ -236,13 +237,77 @@ const addEducation =  async ( req, res ) =>
     }
   }
 
+  const getUserProfile = async (req, res) => {
+    try {
+      const { id } = req.params;
+  
+      let user;
+  
+      if (mongoose.Types.ObjectId.isValid(id)) {
+        user = await User.findById(id)
+          .select("firstName lastName email phone state city address profile")
+          .populate({
+            path: "profile",
+            model: "InternProfile",
+            select: "selectedCourses selectedSkills educationLevel technicalLevel workType",
+            populate: [
+              {
+                path: "selectedCourses",
+                model: "Course",
+                select: "name"
+              },
+              {
+                path: "selectedSkills",
+                model: "Skill",
+                select: "name"
+              }
+            ]
+          });
+      } else {
+        return res.status(400).json({ error: "Invalid user ID format" });
+      }
+  
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+  
+      // Restructure the data before sending
+      const profile = user.profile || {};
+      const response = {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone,
+        state: user.state,
+        city: user.city,
+        address: user.address,
+        selectedCourses: profile.selectedCourses?.map(course => course.name) || [],
+        selectedSkills: profile.selectedSkills?.map(skill => skill.name) || [],
+        educationLevel: profile.educationLevel || null,
+        technicalLevel: profile.technicalLevel || null,
+        workType: profile.workType || null
+      };
+  
+      res.status(200).json(response);
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      res.status(500).json({ error: "Server error" });
+    }
+  };
+  
+  export default getUserProfile;
+  
+  
+
+
 
 export
 {
   getProfile,
   updateProfile,
-  resume,
-  resumeUrl,
+  // resume,
+  // resumeUrl,
   addEducation,
-  addExperience
+  addExperience,
+  getUserProfile
 }
