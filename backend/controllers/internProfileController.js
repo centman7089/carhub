@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import CourseSkillMap from "../models/courseSkills.js";
 import Post from "../models/postModel.js";
 import { v2 as cloudinary } from "cloudinary";
-import InternProfile from "../models/InternProfile.js";
+import InternProfile from "../models/internProfile.js";
 import User from "../models/userModel.js";
 
 
