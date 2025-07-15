@@ -89,7 +89,7 @@ const register = async ( req, res ) =>
 			address,
 			emailCode: code,
 			emailCodeExpires: Date.now() + 10 * 60 * 1000 ,// 10 mins
-			passwordHistory: [ { password: password, changedAt: new Date() } ],
+			passwordHistory: [ { password, changedAt: new Date() } ],
 			isVerified: false
 		} );
 
