@@ -451,15 +451,15 @@ const CompleteOnboarding = async (req, res) => {
     .run(req);
 
   await check('technicalLevel', 'Technical level is required')
-    .isIn(['Beginner', 'Intermediate', 'Advanced', 'Expert'])
+    .isIn(['beginner', 'intermediate', 'advanced', 'expert'])
     .run(req);
 
   await check('educationLevel', 'Education level is required')
-    .isIn(['High School', 'Bachelor', 'Master', 'Phd'])
+    .isIn(['high school', 'bachelor', 'master', 'phd'])
     .run(req);
 
   await check('workType', 'workType is required')
-    .isIn(['Remote', 'Hybrid', 'Onsite', 'Open to any'])
+    .isIn(['remote', 'hybrid', 'onsite', 'open to any'])
     .run(req);
 
   // require either resumeUrl OR resumeFile
