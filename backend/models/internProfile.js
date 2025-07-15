@@ -82,9 +82,14 @@ const internProfileSchema = new mongoose.Schema({
     type: String,
     enum: ['remote', 'hybrid', 'onsite', 'open to any']
   },
+  profilePic: {
+    type: String,
+    default: "https://res.cloudinary.com/dq5puvtne/image/upload/v1740648447/next_crib_avatar_jled2z.jpg"
+  },
   headline: String,
   location: String,
   about: String,
+  bio: String,
   onboardingCompleted: {
     type: Boolean,
     default: false

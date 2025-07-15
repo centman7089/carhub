@@ -50,8 +50,8 @@ const userSchema = mongoose.Schema(
 		},  
 		profilePic: {
 			type: String,
-			default: "",
-		},
+			default: "https://res.cloudinary.com/dq5puvtne/image/upload/v1740648447/next_crib_avatar_jled2z.jpg"
+		  },
 		followers: {
 			type: [String],
 			default: [],

@@ -2,6 +2,7 @@
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import { CloudinaryStorage } from 'multer-storage-cloudinary';
 
 /* ── make sure ./tmp exists ─────────────────────────────────────────── */
 const tmpDir = path.join(process.cwd(), "tmp");   // e.g. C:\Users\...\tech\tmp
@@ -24,4 +25,10 @@ export const uploadSingleImage = multer({
   storage,
   limits: { fileSize: 3 * 1024 * 1024 },
   fileFilter: imageFilter,
-}).single("img");
+} ).single( "img" );
+
+export const uploadPhoto = multer({
+  storage,
+  limits: { fileSize: 3 * 1024 * 1024 },
+  fileFilter: imageFilter,
+}).single("photo");

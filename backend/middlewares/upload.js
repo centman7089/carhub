@@ -105,6 +105,19 @@ const photoUpload = multer({
       cb(new Error('Invalid image type'), false);
     }
   }
+} );
+
+
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'intern_profile',
+    allowed_formats: ['jpg', 'jpeg', 'png'],
+    transformation: [{ width: 400, height: 400, crop: 'fill', gravity: 'face' }],
+  },
 });
 
-export { resumeUpload, photoUpload };
+const uploadPhoto = multer({ storage });
+
+
+export { resumeUpload, photoUpload, uploadPhoto };
