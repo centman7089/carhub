@@ -1,6 +1,6 @@
 // @ts-nocheck
 import express from "express";
-import { addEducation, addExperience, getProfile, getUserProfile, updateInternProfilePhoto } from "../controllers/InternProfile.js";
+import { addEducation, addExperience, getProfile, getUserProfile, updateInternProfilePhoto, updateProfile } from "../controllers/InternProfile.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import { resumeUpload, uploadPhoto } from "../middlewares/upload.js";
 
@@ -13,7 +13,8 @@ internRouter.get( '/me',protectRoute, getProfile )
 internRouter.patch( '/experience', addExperience)
 internRouter.patch( '/education', addEducation )
 internRouter.get( "/profile/:id", getUserProfile );
-internRouter.put( "/photo", protectRoute, uploadPhoto.single('photo'), updateInternProfilePhoto );
+internRouter.put( "/photo", protectRoute, uploadPhoto.single( 'photo' ), updateInternProfilePhoto );
+internRouter.put('/profile', protectRoute, updateProfile);
 
 
 

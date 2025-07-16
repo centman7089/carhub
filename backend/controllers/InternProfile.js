@@ -7,6 +7,7 @@ import User from "../models/userModel.js";
 import mongoose from "mongoose";
 import Post from "../models/postModel.js";
 import { v2 as cloudinary } from "cloudinary";
+import { getSkillIdsByNames } from "../utils/skillsHelper.js"; // Import helper
 
     
 // @route   GET api/profile/me
@@ -16,74 +17,127 @@ const getProfile = async (req, res) => {
   try {
     const profile = await InternProfile.findOne({ user: req.user.id })
       .populate('selectedCourses', 'name description')
-      .populate('selectedSkills', 'name category');
+      .populate('selectedSkills', 'name category')
+      .populate('user', 'firstName lastName email phone state city address');
 
     if (!profile) {
       return res.status(400).json({ msg: 'There is no profile for this user' });
     }
 
-    res.json(profile);
+    // Merge user and profile data
+    const fullProfile = {
+      firstName: profile.user.firstName,
+      lastName: profile.user.lastName,
+      email: profile.user.email,
+      phone: profile.user.phone,
+      state: profile.user.state,
+      city: profile.user.city,
+      address: profile.user.address,
+      selectedCourses: profile.selectedCourses.map(course => course.name),
+      selectedSkills: profile.selectedSkills.map(skill => skill.name),
+      educationLevel: profile.educationLevel,
+      technicalLevel: profile.technicalLevel,
+      workType: profile.workType,
+      about: profile.about,
+    };
+
+    res.json(fullProfile);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
   }
-}
+};
 
 // @route   POST api/profile
 // @desc    Create or update user profile
 // @access  Private
-const updateProfile = async ( req, res ) =>
-{
-      [
-      check('headline', 'Headline is required').not().isEmpty(),
-      check('location', 'Location is required').not().isEmpty()
-    ]
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-
+const updateProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
     const {
+      firstName,
+      lastName,
+      phone,
+      country,
+      state,
+      city,
+      address,
       headline,
       location,
       about,
-      skills
+      bio,
+      technicalLevel,
+      educationLevel,
+      workType,
+      selectedSkills // skill names
     } = req.body;
 
-    // Build profile object
-    const profileFields = {
-      user: req.user.id,
-      headline,
-      location,
-      about,
-      skills: Array.isArray(skills)
-        ? skills
-        : skills.split(',').map(skill => skill.trim())
-    };
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    try {
-      let profile = await InternProfile.findOne({ user: req.user.id });
+    const profile = await InternProfile.findOne({ user: userId });
+    if (!profile) return res.status(404).json({ message: "Intern profile not found" });
 
-      if (profile) {
-        // Update
-        profile = await InternProfile.findOneAndUpdate(
-          { user: req.user.id },
-          { $set: profileFields },
-          { new: true }
-        );
+    const updatedUserFields = {};
+    const updatedProfileFields = {};
 
-        return res.json(profile);
-      }
+    // Update user fields if provided
+    if (firstName) updatedUserFields.firstName = firstName;
+    if (lastName) updatedUserFields.lastName = lastName;
+    if (phone) updatedUserFields.phone = phone;
+    if (country) updatedUserFields.country = country;
+    if (state) updatedUserFields.state = state;
+    if (city) updatedUserFields.city = city;
+    if (address) updatedUserFields.address = address;
 
-      // Create
-      profile = new InternProfile(profileFields);
-      await profile.save();
-      res.json(profile);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
+    // Update profile fields if provided
+    if (headline) updatedProfileFields.headline = headline;
+    if (about) updatedProfileFields.about = about;
+    if (bio) updatedProfileFields.bio = bio;
+    if (location) updatedProfileFields.location = location;
+    if (technicalLevel) updatedProfileFields.technicalLevel = technicalLevel;
+    if (educationLevel) updatedProfileFields.educationLevel = educationLevel;
+    if (workType) updatedProfileFields.workType = workType;
+
+    if (Array.isArray(selectedSkills)) {
+      const skillIds = await getSkillIdsByNames(selectedSkills);
+    
+      // Merge new and existing skills
+      const existingSkills = profile.selectedSkills.map(id => id.toString());
+      const uniqueNewSkills = skillIds.filter(id => !existingSkills.includes(id.toString()));
+      profile.selectedSkills = [...uniqueNewSkills, ...profile.selectedSkills];
+    
+      updatedProfileFields.selectedSkills = profile.selectedSkills;
     }
+    
+
+    // Apply updates
+    if (Object.keys(updatedUserFields).length > 0) {
+      Object.assign(user, updatedUserFields);
+      await user.save();
+    }
+
+    if (Object.keys(updatedProfileFields).length > 0) {
+      Object.assign(profile, updatedProfileFields);
+      await profile.save();
+    }
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      updatedFields: {
+        ...(Object.keys(updatedUserFields).length && { user: updatedUserFields }),
+        ...(Object.keys(updatedProfileFields).length && { profile: updatedProfileFields }),
+      }
+    });
+
+  } catch (err) {
+    console.error("Error updating profile:", err);
+    res.status(400).json({ error: err.message });
   }
+};
+
+
+
 
   // @route   POST api/profile/resume
 // @desc    Upload resume
@@ -244,51 +298,40 @@ const addEducation =  async ( req, res ) =>
       const { id } = req.params;
   
       let user;
-  
       if (mongoose.Types.ObjectId.isValid(id)) {
         user = await User.findById(id)
-          .select("firstName lastName email phone state city address profile")
+          .select("firstName lastName email phone country state city address")
           .populate({
             path: "profile",
             model: "InternProfile",
-            select: "selectedCourses selectedSkills educationLevel technicalLevel workType",
             populate: [
-              {
-                path: "selectedCourses",
-                model: "Course",
-                select: "name"
-              },
-              {
-                path: "selectedSkills",
-                model: "Skill",
-                select: "name"
-              }
+              { path: "selectedCourses", model: "Course", select: "name" },
+              { path: "selectedSkills", model: "Skill", select: "name category" }
             ]
           });
       } else {
-        return res.status(400).json({ error: "Invalid user ID format" });
+        return res.status(400).json({ error: "Invalid user ID" });
       }
   
-      if (!user) {
-        return res.status(404).json({ error: "User not found" });
+      if (!user || !user.profile) {
+        return res.status(404).json({ error: "User or profile not found" });
       }
   
-      // Restructure the data before sending
-      const profile = user.profile || {};
       const response = {
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         phone: user.phone,
+        country: user.country,
         state: user.state,
         city: user.city,
         address: user.address,
-        selectedCourses: profile.selectedCourses?.map(course => course.name) || [],
-        selectedSkills: profile.selectedSkills?.map(skill => skill.name) || [],
-        educationLevel: profile.educationLevel || null,
-        technicalLevel: profile.technicalLevel || null,
-        workType: profile.workType || null,
-        about: profile.about || null
+        selectedCourses: user.profile.selectedCourses.map(course => course.name),
+        selectedSkills: user.profile.selectedSkills.map(skill => skill.name),
+        educationLevel: user.profile.educationLevel,
+        technicalLevel: user.profile.technicalLevel,
+        workType: user.profile.workType,
+        about: user.profile.about,
       };
   
       res.status(200).json(response);
@@ -296,86 +339,132 @@ const addEducation =  async ( req, res ) =>
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: "Server error" });
     }
-};
+  };
   
 
-const updateInternProfilePhoto = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const profile = await InternProfile.findOne({ user: userId }).populate([
-      { path: 'selectedCourses', select: 'name' },
-      { path: 'selectedSkills', select: 'name' },
-    ]);
-
-    if (!profile) {
-      return res.status(404).json({ message: 'Intern profile not found' });
-    }
-
-    let finalProfilePic;
-
-    if (!req.file) {
-      // Generate default avatar with initials
-      const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
-      finalProfilePic = `https://ui-avatars.com/api/?name=${initials}&background=random`;
-    } else {
-      // Get the Cloudinary uploaded URL
-      const secureUrl = req.file.path; // multer-storage-cloudinary sets this
-
-      // Optionally apply transformations via URL
-      finalProfilePic = secureUrl.replace('/upload/', '/upload/w_400,h_400,c_fill,g_face/');
-
-      // Delete old photo if not default
-      if (profile.profilePic && !profile.profilePic.includes('ui-avatars.com')) {
-        const match = profile.profilePic.match(/\/intern_profile\/(.+)\.(jpg|jpeg|png)/);
-        if (match) {
-          const publicId = `intern_profile/${match[1]}`;
-          await cloudinary.uploader.destroy(publicId);
+  const updateInternProfilePhoto = async (req, res) => {
+    try {
+      const userId = req.user.id;
+  
+      const user = await User.findById(userId);
+      if (!user) return res.status(404).json({ message: 'User not found' });
+  
+      const profile = await InternProfile.findOne({ user: userId });
+      if (!profile) {
+        return res.status(404).json({ message: 'Intern profile not found' });
+      }
+  
+      let finalProfilePic;
+  
+      if (!req.file) {
+        // Generate initials-based avatar
+        const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
+        finalProfilePic = `https://ui-avatars.com/api/?name=${initials}&background=random`;
+      } else {
+        const secureUrl = req.file.path;
+        finalProfilePic = secureUrl.replace('/upload/', '/upload/w_400,h_400,c_fill,g_face/');
+  
+        // Delete old Cloudinary image if custom
+        if (profile.profilePic && !profile.profilePic.includes('ui-avatars.com')) {
+          const match = profile.profilePic.match(/\/intern_profile\/(.+)\.(jpg|jpeg|png)/);
+          if (match) {
+            const publicId = `intern_profile/${match[1]}`;
+            await cloudinary.uploader.destroy(publicId);
+          }
         }
       }
+  
+      // Update user and intern profile
+      user.profilePic = finalProfilePic;
+      await user.save();
+  
+      profile.profilePic = finalProfilePic;
+      await profile.save();
+  
+      // Update all posts by user
+      await Post.updateMany({ postedBy: userId }, { $set: { profilePic: finalProfilePic } });
+  
+      return res.status(200).json({
+        message: 'Profile photo updated successfully',
+        profilePic: finalProfilePic
+      });
+  
+    } catch (err) {
+      console.error('Photo update error:', err);
+      res.status(500).json({ message: 'Server error while updating profile photo' });
     }
-
-    // Update both User and InternProfile models
-    user.profilePic = finalProfilePic;
-    await user.save();
-
-    profile.profilePic = finalProfilePic;
-    await profile.save();
-
-    // Update all posts made by this user with new profilePic
-    await Post.updateMany(
-      { postedBy: userId },
-      { $set: { profilePic: finalProfilePic } }
-    );
-
-    return res.status(200).json({
-      message: 'Profile photo updated successfully',
-      profile
-    });
-
-  } catch (err) {
-    console.error('Photo update error:', err);
-    res.status(500).json({ message: 'Server error while updating profile photo' });
-  }
-};
+  };
+  
 
 
   
-  export default getUserProfile;
-  
-  
 
+  
+  
+// const updatePhoto = async (req, res) => {
+//   try {
+//     const userId = req.user._id;
+
+//     // Check if file is uploaded
+//     if (!req.file) {
+//       return res.status(400).json({ message: "Please upload an image" });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     const profile = await InternProfile.findOne({ user: userId });
+//     if (!profile) return res.status(404).json({ message: "Intern profile not found" });
+
+//     // Resize image using Cloudinary transformation
+//     const transformedUrl = req.file.path.replace(
+//       '/upload/',
+//       '/upload/w_400,h_400,c_fill,g_face/'
+//     );
+
+//     // Delete old Cloudinary image (if not default or avatar)
+//     const previousPhoto = user.profilePic || '';
+//     if (
+//       previousPhoto &&
+//       !previousPhoto.includes('ui-avatars.com') &&
+//       !previousPhoto.includes('next_crib_avatar') // your default avatar check
+//     ) {
+//       const match = previousPhoto.match(/\/intern_profile\/(.+?)\.(jpg|jpeg|png)/);
+//       if (match) {
+//         const publicId = `intern_profile/${match[1]}`;
+//         await cloudinary.uploader.destroy(publicId);
+//       }
+//     }
+
+//     // Update profilePic in User and InternProfile
+//     user.profilePic = transformedUrl;
+//     await user.save();
+
+//     profile.profilePic = transformedUrl;
+//     await profile.save();
+
+//     // Update all posts with new profile photo
+//     await Post.updateMany(
+//       { postedBy: userId },
+//       { $set: { profilePic: transformedUrl } }
+//     );
+
+//     res.status(200).json({
+//       message: "Profile photo updated successfully",
+//       profilePic: transformedUrl
+//     });
+
+//   } catch (err) {
+//     console.error("Photo update error:", err);
+//     res.status(500).json({ message: "Server error while updating profile photo" });
+//   }
+// };
 
 
 export
 {
   getProfile,
   updateProfile,
-  // resume,
-  // resumeUrl,
   addEducation,
   addExperience,
   getUserProfile,

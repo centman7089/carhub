@@ -108,6 +108,12 @@ const photoUpload = multer({
 } );
 
 
+// ✅ Define file filter for images only
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith('image/')) cb(null, true);
+  else cb(new Error('Only image files are allowed!'), false);
+};
+
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -117,7 +123,7 @@ const storage = new CloudinaryStorage({
   },
 });
 
-const uploadPhoto = multer({ storage });
+const uploadPhoto = multer({ storage, fileFilter });
 
 
 export { resumeUpload, photoUpload, uploadPhoto };
