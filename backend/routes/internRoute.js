@@ -13,9 +13,9 @@ internRouter.get( '/me', protectRoute, getProfile )
 internRouter.get('/', getAllInterns)
 internRouter.patch( '/experience', addExperience)
 internRouter.patch( '/education', addEducation )
-internRouter.get( "/profile/:id", getUserProfile );
 internRouter.put( "/photo", protectRoute, uploadPhoto.single( 'photo' ), updateInternProfilePhoto );
-internRouter.put('/profile', protectRoute, updateProfile);
+internRouter.put( '/update-profile', protectRoute, updateProfile );
+internRouter.get( "/:id", getUserProfile );
 
 
 
