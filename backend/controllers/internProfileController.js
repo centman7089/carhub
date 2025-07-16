@@ -205,7 +205,7 @@ const updatePhoto = async (req, res) => {
 const getAllInterns = async (req, res) => {
   try {
     const profiles = await InternProfile.find({ user: { $ne: null } })
-      .populate('user', 'firstName lastName profilePhoto')
+      .populate('user', 'firstName lastName profilePic')
       .populate('selectedCourses', 'name')
       .populate('selectedSkills', 'name');
 
@@ -215,7 +215,7 @@ const getAllInterns = async (req, res) => {
       .map(profile => ({
         firstName: profile.user.firstName,
         lastName: profile.user.lastName,
-        profilePhoto: profile.user.profilePhoto || null,
+        profilePic: profile.user.profilePic || null,
         location: profile.location || '',
         headline: profile.headline || '',
         courses: profile.selectedCourses.map(course => course.name),
