@@ -34,44 +34,40 @@
 // };
 
 import InternProfile from "../models/internProfile.js";
+import Course from "../models/Course.js"
 // GET /api/courses/intern-count
-const getInternCountByCourse = async (req, res) => {
+const getInternsByCourse = async (req, res) => {
   try {
-    const result = await InternProfile.aggregate([
-      { $unwind: "$selectedCourses" },
-      {
-        $lookup: {
-          from: "courses",
-          localField: "selectedCourses",
-          foreignField: "_id",
-          as: "courseInfo"
-        }
-      },
-      { $unwind: "$courseInfo" },
-      {
-        $group: {
-          _id: "$courseInfo.name",
-          internCount: { $addToSet: "$user" } // ensures unique interns
-        }
-      },
-      {
-        $project: {
-          course: "$_id",
-          internCount: { $size: "$internCount" },
-          _id: 0
-        }
-      },
-      {
-        $sort: { internCount: -1 } // optional: sort descending by count
-      }
-    ]);
+    const { courseId } = req.params;
 
-    res.json(result);
-  } catch (error) {
-    console.error("Error fetching course intern count:", error);
-    res.status(500).json({ error: "Server Error" });
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+
+    const interns = await InternProfile.find({ selectedCourses: courseId })
+      .populate("user", "firstName lastName profilePic email")
+      .select("headline location user");
+
+    const formattedInterns = interns.map(profile => ({
+      fullName: `${profile.user.firstName} ${profile.user.lastName}`,
+      profilePic: profile.user.profilePic,
+      email: profile.user.email,
+      headline: profile.headline,
+      location: profile.location,
+      internId: profile.user._id
+    }));
+
+    res.status(200).json({
+      course: course.name,
+      courseId,
+      count: formattedInterns.length,
+      interns: formattedInterns
+    });
+  } catch (err) {
+    console.error("Error fetching interns by course:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
-export {getInternCountByCourse}
+
+export {getInternsByCourse}
 // export {getSkillsByCourse, addCourseSkills, getAllCourses}

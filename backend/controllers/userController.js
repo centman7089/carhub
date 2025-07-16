@@ -411,29 +411,7 @@ const verifyPasswordResetCode = async (req, res) => {
 
   
   // Reset Password
-//   const resetPassword = async (req, res) => {
-// 	try {
-// 	  const { email, code, newPassword, confirmPassword } = req.body;
-// 	  const user = await User.findOne({ email });
-  
-// 	  if (!user || user.resetCode !== code || Date.now() > user.resetCodeExpires)
-// 		return res.status(400).json({ msg: "Invalid or expired code" });
-  
-// 	  if (newPassword !== confirmPassword)
-// 		return res.status(400).json({ msg: "Passwords do not match" });
-  
-// 	  const hashed = await bcrypt.hash(newPassword, 10);
-// 	  user.password = hashed;
-// 	  user.resetCode = null;
-// 	  user.resetCodeExpires = null;
-// 	  await user.save();
-  
-// 	  res.json({ msg: "Password has been reset" });
-// 	} catch (err) {
-// 	  res.status(500).json({ msg: err.message });
-// 	}
-//   };
-  
+
 
   // Forgot Password
 

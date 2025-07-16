@@ -1,11 +1,38 @@
 // @ts-nocheck
-import Employer from "../models/employerModel.js";
+import Employer from "../models/employerModel.js"
 import bcrypt from "bcryptjs";
 import generateTokenAndSetCookie from "../utils/helpers/generateTokenAndSetCookie.js";
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 import generateCode from "../utils/generateCode.js";
 import sendEmail from "../utils/sendEmails.js";
+import jwt from "jsonwebtoken"
+import crypto from "crypto"
+import { v4 as uuidv4 } from "uuid";
+import path from "path";
+import axios from "axios";
+// const fs = require( 'fs' ).promises; // Import the promises version of fs
+import fs from 'fs';
+import { promises as fsp } from 'fs'; // for promise-based operations
+
+
+
+// In-memory session store (use Redis in production)
+const resetSessions = new Map()
+
+// Generate session token
+const generateSessionToken = () => {
+  return crypto.randomBytes(32).toString("hex")
+}
+// or alternatively:
+// import fs from 'fs/promises';
+
+cloudinary.config({
+	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+	api_key: process.env.CLOUDINARY_API_KEY,
+	api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 
 const getEmployerProfile = async (req, res) => {
 	// We will fetch user profile either with username or userId
@@ -13,57 +40,61 @@ const getEmployerProfile = async (req, res) => {
 	const { query } = req.params;
 
 	try {
-		let employee;
+		let user;
 
 		// query is userId
 		if (mongoose.Types.ObjectId.isValid(query)) {
-			employee = await Employer.findOne({ _id: query }).select("-password").select("-updatedAt");
+			user = await User.findOne({ _id: query }).select("-password").select("-updatedAt");
 		} else {
-			// query is email
-			employee = await employee.Employerr({ email: query }).select("-password").select("-updatedAt");
+			// query is username
+			user = await User.findOne({ username: query }).select("-password").select("-updatedAt");
 		}
 
-		if (!employee) return res.status(404).json({ error: "Employer not found" });
+		if (!user) return res.status(404).json({ error: "User not found" });
 
-		res.status(200).json(employee);
+		res.status(200).json(user);
 	} catch (err) {
 		res.status(500).json({ error: err.message });
-		console.log("Error in getEmployerProfile: ", err.message);
+		console.log("Error in getUserProfile: ", err.message);
 	}
 };
 
 const register = async ( req, res ) =>
 {
 	try {
-		const {companyName, email,password,logo, description } = req.body;
-		const userExists = await Employer.findOne({ email });
-		  if (!companyName || !email) {
-			return res.status(404).json({message: "Company Name and Email are required"});
+		const {companyName, email, password, logo,description} = req.body;
+		const userExists = await User.findOne({ email });
+		  if ( !companyName || !email || !password || !logo || !description) {
+			return res.status(404).json({message: "All fields are required"});
 		  }
 	
 
 		if (userExists) {
-			return res.status(400).json({ error: "User already exists" });
+			return res.status(400).json({ error: "Employer already exists" });
 		}
-		const salt = await bcrypt.genSalt(10);
-		const hashedPassword = await bcrypt.hash(password, salt);
+		
+
 		const code = generateCode();
 
 		const user = await Employer.create({
 			companyName,
 			email,
-			password: hashedPassword,
+			password,
 			logo,
 			description,
 			emailCode: code,
 			emailCodeExpires: Date.now() + 10 * 60 * 1000 ,// 10 mins
-			passwordHistory: [ { password: hashedPassword, changedAt: new Date() } ],
+			passwordHistory: [ { password, changedAt: new Date() } ],
 			isVerified: false
 		} );
+
+		
+		  await user.save();
 		
 	    // @ts-ignore
 	    await sendEmail(email, "Verify your email", `Your verification code is: ${code}`);
     
+
 
 		if (user) {
 			generateTokenAndSetCookie(user._id, res);
@@ -80,9 +111,12 @@ const register = async ( req, res ) =>
 		} else {
 			res.status(400).json({ error: "Invalid user data" });
 		}
-	} catch (err) {
+	} catch ( err )
+	{
+		console.log(err);
+		
 		res.status(500).json({ error: err.message });
-		console.log( "Error in signupUser: ", err.message );
+		console.log( "Error in registering Employer: ", err.message );
 		res.status(500).json({ msg: err.message });
 	}
 }
@@ -91,55 +125,86 @@ const register = async ( req, res ) =>
 
 const login = async (req, res) => {
 	try {
-		const { email, password } = req.body;
-		const user = await Employer.findOne( { email} );
-		if ( !user || !user.isVerified )
+	  const { email, password } = req.body;
+	  const user = await Employer?.findOne({ email });
+	  
+		if ( !user )
 		{
-			return res.status(400).json({ msg: "Invalid credentials or unverified email" });
-		}
-		const isPasswordCorrect = await bcrypt.compare(password, user?.password || "");
-
-		if ( !isPasswordCorrect )
-		{
-			return res.status(400).json({ error: "Invalid email or password" });
-		}
-
-		if (user.isFrozen) {
-			user.isFrozen = false;
-			await user.save();
-		}
-
-		const token = generateTokenAndSetCookie(user._id, res);
-
-		res.status( 200 ).json( {
-			token,
-			_id: user._id,
-			email: user.email,
-			msg: "Login Successful" 
+			return res.status(400).json({ msg: "Invalid credentials" });
+	  }
+  
+	  const isPasswordCorrect = await user.correctPassword(password); // Use the schema method
+        
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ error: "Invalid password" }); // More specific
+        }
+  
+	  // If user is not verified
+	  if (!user.isVerified) {
+		// Generate new verification code
+		const code = generateCode();
+		user.emailCode = code;
+		user.emailCodeExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+		await user.save();
+  
+		// Send verification email
+		await sendEmail(
+		  email,
+		  "New Verification Code",
+		  `Your new verification code is: ${code}`
+		);
+  
+		return res.status(403).json({ 
+		  msg: "Account not verified. A new verification code has been sent to your email.",
+		  isVerified: false 
 		});
-	} catch (error) {
-		res.status(500).json({ error: error.message });
-		console.log("Error in loginUser: ", error.message);
+	  }
+  
+	//   if (user.isFrozen) {
+	// 	user.isFrozen = false;
+	// 	await user.save();
+	//   }
+  
+	  const token = generateTokenAndSetCookie(user._id, res);
+  
+	  res.status(200).json({
+		token,
+		_id: user._id,
+		email: user.email,
+		msg: "Login Successful",
+		isVerified: true
+	  });
+	} catch ( error )
+	{
+		console.log(error);
+		
+	  res.status(500).json({ error: error.message });
+	  console.log("Error in loginEmployer: ", error.message);
 	}
+};
 
+const logoutUser = (req, res) => {
+	try {
+		res.cookie("jwt", "", { maxAge: 1 });
+		res.status(200).json({ message: "User logged out successfully" });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+		console.log("Error in signupEmployee: ", err.message);
+	}
 };
 
 
-
 const updateUser = async (req, res) => {
-	const { companyName,email, description} = req.body;
+	const { companyName, email, description } = req.body;
 	let { logo } = req.body;
 
 	const userId = req.user._id;
 	try {
 		let user = await Employer.findById(userId);
-		if ( !user )
-		{
-			return res.status(400).json({ error: "User not found" });
-		}
+		if (!user) return res.status(400).json({ error: "User not found" });
 
-		// if (req.params.id !== userId.toString())
-		// 	return res.status(400).json({ error: "You cannot update other user's profile" });
+		if (req.params.id !== userId.toString())
+			return res.status(400).json({ error: "You cannot update other user's profile" });
 
 		if (password) {
 			const salt = await bcrypt.genSalt(10);
@@ -158,23 +223,12 @@ const updateUser = async (req, res) => {
 
 		user.companyName = companyName || user.companyName;
 		user.email = email || user.email;
-		user.logo = logo || user.logo;
 		user.description = description || user.description;
-		
+		user.logo = logo || user.logo;
 
 		user = await user.save();
 
-		// Find all posts that this user replied and update username and userProfilePic fields
-		await Post.updateMany(
-			{ "replies.userId": userId },
-			{
-				$set: {
-					"replies.$[reply].username": user.username,
-					"replies.$[reply].userProfilePic": user.profilePic,
-				},
-			},
-			{ arrayFilters: [{ "reply.userId": userId }] }
-		);
+		
 
 		// password should be null in response
 		user.password = null;
@@ -185,8 +239,6 @@ const updateUser = async (req, res) => {
 		console.log("Error in updateUser: ", err.message);
 	}
 };
-
-
 
 
 
@@ -210,6 +262,26 @@ const verifyEmail = async (req, res) => {
 	} catch (err) {
 	  res.status(500).json({ msg: err.message });
 	}
+};
+const verifyPasswordResetCode = async (req, res) => {
+	try {
+	  const { email, code } = req.body;
+	  const user = await Employer.findOne({ email });
+  
+	//   if (!user || user.isVerified) return res.status(400).json({ msg: "Invalid request" });
+  
+	  if (user.resetCode !== code || Date.now() > user.reseCodeExpires)
+		return res.status(400).json({ msg: "Code expired or incorrect" });
+  
+	  user.isVerified = true;
+	  user.resetCode = null;
+	  user.resetCodeExpires = null;
+	  await user.save();
+  
+	  res.json({ msg: "code verified successfully" });
+	} catch (err) {
+	  res.status(500).json({ msg: err.msg });
+	}
   };
   
   // Resend Verification Code
@@ -218,10 +290,7 @@ const verifyEmail = async (req, res) => {
 	  const { email } = req.body;
 	  const user = await Employer.findOne({ email });
   
-		if ( !user || user.isVerified )
-		{
-			return res.status(400).json({ msg: "User not found or already verified" });
-	  }
+	  if (!user || user.isVerified) return res.status(400).json({ msg: "User not found or already verified" });
   
 	  const code = generateCode();
 	  user.emailCode = code;
@@ -234,64 +303,18 @@ const verifyEmail = async (req, res) => {
 	  res.status(500).json({ msg: err.message });
 	}
   };
-
   // Forgot Password
-const forgotPassword = async (req, res) => {
-	try {
-	  const { email } = req.body;
-	  const user = await Employer.findOne({ email });
-  
-		if ( !user )
-		{
-			return res.status(400).json({ msg: "Email not found" });
-	  }
-  
-	  const code = generateCode();
-	  user.resetCode = code;
-	  user.resetCodeExpires = Date.now() + 10 * 60 * 1000;
-	  await user.save();
-  
-	  await sendEmail(email, "Password Reset Code", `Your reset code is: ${code}`);
-	  res.json({ msg: "Password reset code sent" });
-	} catch (err) {
-	  res.status(500).json({ msg: err.message });
-	}
-  };
+
   
   // Reset Password
-  const resetPassword = async (req, res) => {
-	try {
-	  const { email, code, newPassword, confirmPassword } = req.body;
-	  const user = await Employer.findOne({ email });
-  
-		if ( !user || user.resetCode !== code || Date.now() > user.resetCodeExpires )
-		{
-			return res.status(400).json({ msg: "Invalid or expired code" });
-	  }
-	
-  
-		if ( newPassword !== confirmPassword )
-		{
-			return res.status(400).json({ msg: "Passwords do not match" });
-	  }
-		
-  
-	  const hashed = await bcrypt.hash(newPassword, 10);
-	  user.password = hashed;
-	  user.resetCode = null;
-	  user.resetCodeExpires = null;
-	  await user.save();
-  
-	  res.json({ msg: "Password has been reset" });
-	} catch (err) {
-	  res.status(500).json({ msg: err.message });
-	}
-  };
-  
+
+
+  // Forgot Password
+
   // Change Password (Requires token)
   const changePassword = async (req, res) => {
 	try {
-	  const userId = req.user._id;
+	  const userId = req.user.id;
 	  const { currentPassword, newPassword, confirmNewPassword } = req.body;
   
 	  if (newPassword !== confirmNewPassword) {
@@ -299,23 +322,14 @@ const forgotPassword = async (req, res) => {
 	  }
   
 	  const user = await Employer.findById(userId);
-		if ( !user )
-		{
-			return res.status(404).json({ msg: "User not found" });
-	  }
+	  if (!user) return res.status(404).json({ msg: "User not found" });
   
 	  const isMatch = await bcrypt.compare(currentPassword, user.password);
-		if ( !isMatch )
-		{
-			return res.status(400).json({ msg: "Current password is incorrect" });
-	  }
+	  if (!isMatch) return res.status(400).json({ msg: "Current password is incorrect" });
   
 	  // Check if newPassword is same as current password
 	  const isSame = await bcrypt.compare(newPassword, user.password);
-		if ( isSame )
-		{
-			return res.status(400).json({ msg: "New password cannot be the same as the old password" });
-	  }
+	  if (isSame) return res.status(400).json({ msg: "New password cannot be the same as the old password" });
   
 	  // Check password history
 	  for (let entry of user.passwordHistory || []) {
@@ -349,26 +363,97 @@ const forgotPassword = async (req, res) => {
 	}
   };
 
-  const logoutUser = (req, res) => {
+
+
+const forgotPassword = async (req, res) => {
 	try {
-		res.cookie("jwt", "", { maxAge: 1 });
-		res.status(200).json({ message: "User logged out successfully" });
+	  const { email } = req.body;
+	  const user = await Employer.findOne({ email });
+  
+		if ( !user )
+		{
+			return res.status(400).json({ msg: "Email not found" });
+	  }
+  
+		const code = user.setPasswordResetCode();
+		await user.save({validateBeforeSave: false})
+	  await sendEmail(email, "Password Reset Code", `Your reset code is: ${code}`);
+	  res.json({ msg: "Password reset code sent" });
 	} catch (err) {
-		res.status(500).json({ error: err.message });
-		console.log("Error in signupUser: ", err.message);
+	  res.status(500).json({ msg: err.message });
+	}
+  };
+  
+
+  const verifyResetCode = async (req, res) => {
+	try {
+	  const { email, code} = req.body;
+	  const user = await Employer.findOne({ email });
+  
+	  if (!user || !user.validateResetCode(code)) {
+		return res.status(400).json({ message: "Invalid/expired OTP" });
+	  }
+  
+	  // Generate short-lived JWT (15 mins expiry)
+	  const token = jwt.sign(
+		{ userId: user._id, purpose: "password_reset" },
+		process.env.JWT_SECRET,
+		{ expiresIn: "15m" }
+	  );
+  
+	  res.json({ success: true, token, message: "OTP verified" });
+	} catch (error) {
+	  res.status(500).json({ message: "Server error" });
+	}
+  };
+// Step 3 – change the password with the JWT
+const resetPassword = async (req, res) => {
+	try {
+	  const { token, newPassword, confirmPassword } = req.body;
+  
+	  if (newPassword !== confirmPassword) {
+		return res.status(400).json({ message: "Passwords do not match" });
+	  }
+  
+	  // Verify JWT
+	  const decoded = jwt.verify(token, process.env.JWT_SECRET);
+	  if (decoded.purpose !== "password_reset") {
+		return res.status(400).json({ message: "Invalid token" });
+	  }
+  
+	  const user = await Employer.findById(decoded.userId);
+	  if (!user) {
+		return res.status(404).json({ message: "User not found" });
+	  }
+  
+	  // Update password & clear OTP
+	  user.password = newPassword;
+	  user.otp = undefined;
+	  user.otpExpires = undefined;
+	  await user.save();
+  
+	  res.json({ success: true, message: "Password updated" });
+	} catch (error) {
+	  if (error.name === "TokenExpiredError") {
+		return res.status(400).json({ message: "Token expired" });
+	  }
+	  res.status(500).json({ message: "Server error" });
 	}
 };
+  
 
-export
-{
-	getEmployerProfile,
+   
+export {
 	register,
 	login,
 	logoutUser,
 	updateUser,
+	getEmployerProfile,
 	verifyEmail,
 	resendCode,
+	verifyResetCode,
 	forgotPassword,
 	resetPassword,
 	changePassword
+	
 };
