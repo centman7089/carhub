@@ -15,9 +15,9 @@ internRouter.patch( '/experience', addExperience)
 internRouter.patch( '/education', addEducation )
 internRouter.put( "/photo", protectRoute, uploadPhoto.single( 'photo' ), updateInternProfilePhoto );
 internRouter.patch( '/update/:id', protectRoute, updateProfile );
-internRouter.get( "/grouped-by-course", getInternsGroupedByCourse );
-internRouter.get( '/by-course/:courseId', getInternsByCourse );
-internRouter.get( "/:id", getUserProfile );
+internRouter.get( "/grouped-by-course", protectRoute, getInternsGroupedByCourse );
+internRouter.get( '/by-course/:courseId',protectRoute, getInternsByCourse );
+internRouter.get( "/:id",protectRoute, getUserProfile );
 
 
 
