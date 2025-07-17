@@ -425,6 +425,102 @@ const addEducation =  async ( req, res ) =>
   };
   
 
+  const getInternsGroupedByCourse = async (req, res) => {
+    try {
+      const data = await InternProfile.aggregate([
+        { $unwind: "$selectedCourses" },
+  
+        {
+          $lookup: {
+            from: "courses",
+            localField: "selectedCourses",
+            foreignField: "_id",
+            as: "courseInfo"
+          }
+        },
+        { $unwind: "$courseInfo" },
+  
+        {
+          $lookup: {
+            from: "users",
+            localField: "user",
+            foreignField: "_id",
+            as: "userInfo"
+          }
+        },
+        { $unwind: "$userInfo" },
+  
+        {
+          $group: {
+            _id: "$courseInfo.name",
+            interns: {
+              $push: {
+                firstName: "$userInfo.firstName",
+                lastName: "$userInfo.lastName",
+                fullName: { $concat: ["$userInfo.firstName", " ", "$userInfo.lastName"] },
+                profilePic: "$userInfo.profilePic",
+                headline: "$headline",
+                location: "$location",
+                internId: "$userInfo._id"
+              }
+            }
+          }
+        },
+  
+        {
+          $project: {
+            course: "$_id",
+            internCount: { $size: "$interns" },
+            interns: 1,
+            _id: 0
+          }
+        },
+        { $sort: { internCount: -1 } }
+      ]);
+  
+      res.json(data);
+    } catch (error) {
+      console.error("Error fetching interns by course:", error);
+      res.status(500).json({ error: "Server Error" });
+    }
+};
+  
+const getInternsByCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+
+    const course = await Course.findById(courseId);
+    if (!course) return res.status(404).json({ message: "Course not found" });
+
+    const interns = await InternProfile.find({ selectedCourses: courseId })
+      .populate("user", "firstName lastName profilePic email")
+      .select("headline location user");
+
+    const formattedInterns = interns.map(profile => ({
+      fullName: `${profile.user.firstName} ${profile.user.lastName}`,
+      profilePic: profile.user.profilePic,
+      email: profile.user.email,
+      headline: profile.headline,
+      location: profile.location,
+      internId: profile.user._id
+    }));
+
+    res.status(200).json({
+      course: course.name,
+      courseId,
+      count: formattedInterns.length,
+      interns: formattedInterns
+    });
+  } catch (err) {
+    console.error("Error fetching interns by course:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+  
+
+
+
   
   
 // const updatePhoto = async (req, res) => {
@@ -495,5 +591,7 @@ export
   addExperience,
   getUserProfile,
   updateInternProfilePhoto,
-  getAllInterns
+  getAllInterns,
+  getInternsGroupedByCourse,
+  getInternsByCourse
 }
