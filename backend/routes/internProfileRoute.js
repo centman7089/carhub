@@ -4,7 +4,7 @@ import {
    
 } from "../controllers/userController.js";
 import protectRoute from "../middlewares/protectRoute.js";
-import { addCustomSkill, getAllInterns, getSkillsByCourse, removeSkill, updateCourses, updatePhoto, updateProfile, updateSkills, updateUser } from "../controllers/internProfileController.js";
+import { addCustomSkill, getAllInterns, getSkillsByCourse, removeSkill, updateCourses, updateInternProfile, updatePhoto, updateSkills, updateUser } from "../controllers/internProfileController.js";
 import {  photoUpload,resumeUpload } from "../middlewares/upload.js";
 import upload from "../utils/upload.js";
 
@@ -33,7 +33,7 @@ internProfileRouter.post(
       });
     });
   },
-  updateProfile
+  updateInternProfile
 );
 
 

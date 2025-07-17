@@ -69,13 +69,76 @@ const removeSkill = async (req, res) => {
   res.json({ success: true, skills: user.skills });
 };
 
-const updateProfile = async (req, res) => {
-  const { firstName,lastName,  resume, photo } = req.body;
-  const updateData = { firstName, lastName , resume, photo  };
-  if (req.files['resume']) updateData.resume = req.files['resume'][0].path;
-  if (req.files['photo']) updateData.photo = req.files['photo'][0].path;
-  const updated = await User.findByIdAndUpdate(req.user._id, updateData, { new: true });
-  res.json(updated);
+const updateInternProfile = async (req, res) => {
+  const { id } = req.params; // Profile ID
+  const userId = req.user._id.toString(); // Authenticated user ID
+
+  try {
+    // Find intern profile by ID
+    const internProfile = await InternProfile.findById(id);
+    if (!internProfile) {
+      return res.status(404).json({ message: 'Intern profile not found' });
+    }
+
+    // Ensure user is owner
+    if (internProfile.user.toString() !== userId) {
+      return res.status(403).json({ message: 'Unauthorized' });
+    }
+
+    // Update intern profile fields
+    const {
+      headline,
+      location,
+      technicalLevel,
+      educationLevel,
+      selectedSkills,
+      selectedCourse,
+    } = req.body;
+
+    if (headline !== undefined) internProfile.headline = headline;
+    if (location !== undefined) internProfile.location = location;
+    if (technicalLevel !== undefined) internProfile.technicalLevel = technicalLevel;
+    if (educationLevel !== undefined) internProfile.educationLevel = educationLevel;
+    if (selectedSkills !== undefined) internProfile.selectedSkills = selectedSkills;
+    if (selectedCourse !== undefined) internProfile.selectedCourse = selectedCourse;
+
+    // Upload new files (resume, photo)
+    if (req.files?.['resume']) {
+      internProfile.resume = req.files['resume'][0].path;
+    }
+
+    if (req.files?.['photo']) {
+      internProfile.photo = req.files['photo'][0].path;
+    }
+
+    // Update related User details (firstName, lastName, city)
+    const { firstName, lastName, city } = req.body;
+    const user = await User.findById(userId);
+
+    if (user) {
+      if (firstName) user.firstName = firstName;
+      if (lastName) user.lastName = lastName;
+      if (city) user.city = city;
+      await user.save();
+    }
+
+    // Save updated intern profile
+    const updatedProfile = await internProfile.save();
+
+    res.status(200).json({
+      message: 'Profile and user updated successfully',
+      profile: updatedProfile,
+      user: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        city: user.city,
+      }
+    });
+
+  } catch (error) {
+    console.error('Update error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 };
 
 const updateUser = async (req, res) => {
@@ -91,10 +154,10 @@ const updateUser = async (req, res) => {
 		let user = await User.findById(userId);
 		if (!user) return res.status(400).json({ error: "User not found" });
 
-    // if ( req.params.id !== userId.toString() )
-    // {
-    //   return res.status(400).json({ error: "You cannot update other user's profile" });
-    // }
+    if ( req.params.id !== userId.toString() )
+    {
+      return res.status(400).json({ error: "You cannot update other user's profile" });
+    }
 			
 
 		if (password) {
@@ -234,7 +297,7 @@ const getAllInterns = async (req, res) => {
 export
 {
   createIntern, getInterns, getSkillsByCourse, updateCourses,
-  updateProfile, updateSkills, addCustomSkill, removeSkill,
+  updateInternProfile, updateSkills, addCustomSkill, removeSkill,
   updateUser, updatePhoto,getAllInterns
 }
   

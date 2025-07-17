@@ -53,7 +53,13 @@ const getProfile = async (req, res) => {
 // @access  Private
 const updateProfile = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const authUserId = req.user._id.toString(); // Authenticated user's ID
+    const paramId = req.params.id; // ID from the URL
+
+    if (authUserId !== paramId) {
+      return res.status(403).json({ message: "Unauthorized to update this profile" });
+    }
+
     const {
       firstName,
       lastName,
@@ -69,13 +75,13 @@ const updateProfile = async (req, res) => {
       technicalLevel,
       educationLevel,
       workType,
-      selectedSkills // skill names
+      selectedSkills // Array of skill names
     } = req.body;
 
-    const user = await User.findById(userId);
+    const user = await User.findById(paramId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    const profile = await InternProfile.findOne({ user: userId });
+    const profile = await InternProfile.findOne({ user: paramId });
     if (!profile) return res.status(404).json({ message: "Intern profile not found" });
 
     const updatedUserFields = {};
@@ -99,17 +105,14 @@ const updateProfile = async (req, res) => {
     if (educationLevel) updatedProfileFields.educationLevel = educationLevel;
     if (workType) updatedProfileFields.workType = workType;
 
+    // Handle selected skills
     if (Array.isArray(selectedSkills)) {
       const skillIds = await getSkillIdsByNames(selectedSkills);
-    
-      // Merge new and existing skills
       const existingSkills = profile.selectedSkills.map(id => id.toString());
       const uniqueNewSkills = skillIds.filter(id => !existingSkills.includes(id.toString()));
       profile.selectedSkills = [...uniqueNewSkills, ...profile.selectedSkills];
-    
       updatedProfileFields.selectedSkills = profile.selectedSkills;
     }
-    
 
     // Apply updates
     if (Object.keys(updatedUserFields).length > 0) {
@@ -135,6 +138,7 @@ const updateProfile = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
 
 
 
