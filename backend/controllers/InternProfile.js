@@ -452,7 +452,10 @@ const addEducation =  async ( req, res ) =>
   
         {
           $group: {
-            _id: "$courseInfo.name",
+            _id: {
+              courseId: "$courseInfo._id",
+              courseName: "$courseInfo.name"
+            },
             interns: {
               $push: {
                 firstName: "$userInfo.firstName",
@@ -469,21 +472,24 @@ const addEducation =  async ( req, res ) =>
   
         {
           $project: {
-            course: "$_id",
+            course: "$_id.courseName",
+            courseId: "$_id.courseId",
             internCount: { $size: "$interns" },
             interns: 1,
             _id: 0
           }
         },
+  
         { $sort: { internCount: -1 } }
       ]);
   
-      res.json(data);
+      res.status(200).json(data);
     } catch (error) {
-      console.error("Error fetching interns by course:", error);
+      console.error("Error fetching interns grouped by course:", error);
       res.status(500).json({ error: "Server Error" });
     }
-};
+  };
+  
   
 const getInternsByCourse = async (req, res) => {
   try {
@@ -493,13 +499,16 @@ const getInternsByCourse = async (req, res) => {
     if (!course) return res.status(404).json({ message: "Course not found" });
 
     const interns = await InternProfile.find({ selectedCourses: courseId })
-      .populate("user", "firstName lastName profilePic email")
-      .select("headline location user");
+      .populate("user", "firstName lastName city profilePic email")
+      .select("headline location bio user");
 
     const formattedInterns = interns.map(profile => ({
-      fullName: `${profile.user.firstName} ${profile.user.lastName}`,
+      fullName: `${ profile.user.firstName } ${ profile.user.lastName }`,
+      city: profile.user.city,
       profilePic: profile.user.profilePic,
       email: profile.user.email,
+      headline: profile.headline,
+      bio: profile.bio,
       headline: profile.headline,
       location: profile.location,
       internId: profile.user._id
