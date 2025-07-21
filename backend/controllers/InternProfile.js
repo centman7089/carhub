@@ -305,7 +305,7 @@ const updateProfile = async (req, res) => {
       let user;
       if (mongoose.Types.ObjectId.isValid(id)) {
         user = await User.findById(id)
-          .select("firstName lastName email phone country state city address")
+          .select("firstName lastName email phone country state city address headline")
           .populate({
             path: "profile",
             model: "InternProfile",
@@ -323,20 +323,21 @@ const updateProfile = async (req, res) => {
       }
   
       const response = {
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        country: user.country,
-        state: user.state,
-        city: user.city,
-        address: user.address,
-        selectedCourses: user.profile.selectedCourses.map(course => course.name),
-        selectedSkills: user.profile.selectedSkills.map(skill => skill.name),
-        educationLevel: user.profile.educationLevel,
-        technicalLevel: user.profile.technicalLevel,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        country: user.country || '',
+        state: user.state || '',
+        city: user.city || '',
+        address: user.address || '',
+        selectedCourses: user.profile.selectedCourses.map(course => course.name)  || '',
+        selectedSkills: user.profile.selectedSkills.map(skill => skill.name) || '',
+        educationLevel: user.profile.educationLevel || '',
+        technicalLevel: user.profile.technicalLevel || '',
+        headline: user.profile.headline || '',
         workType: user.profile.workType,
-        about: user.profile.about,
+        about: user.profile.about || '',
       };
   
       res.status(200).json(response);
@@ -344,7 +345,7 @@ const updateProfile = async (req, res) => {
       console.error("Error fetching user profile:", error);
       res.status(500).json({ error: "Server error" });
     }
-  };
+};
   
 
   const updateInternProfilePhoto = async (req, res) => {
