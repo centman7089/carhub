@@ -1,43 +1,54 @@
-import mongoose, { Schema } from "mongoose";
+import mongoose from 'mongoose';
 
+const jobSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true
+  },
+  description: String,
 
-const jobSchema = new mongoose.Schema( {
-    employer: {
-        type: Schema.Types.ObjectId,
-        ref: "User",
-        required: true
-    },
-    title: {
-        type: String,
-        trim: true,
-        required: true
-    },
-    company: {
-        type: String,
-        trim: true,
-        required: true
-    },
-    location: {
-        type: String,
-        trim: true,
-        required: true
-    },
-    description: {
-        type: String,
-        trim: true,
-        required: true
-    },
-    requirements: {
-        type: String,
-        required: true
-    },
-    responsibilities: {
-        type: String,
-        required: true
-    },
-    
-} );
+  employer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Employer',
+    required: true
+  },
 
-const Job = mongoose.model( "Job", jobSchema )
+  location: String,
+  workType: {
+    type: String,
+    enum: ['Remote', 'Onsite', 'Hybrid']
+  },
 
-export default Job
+  requiredSkills: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Skill'
+  }],
+
+  technicalLevel: {
+    type: String,
+    enum: ['Beginner', 'Intermediate', 'Advanced']
+  },
+
+  educationLevel: {
+    type: String,
+    enum: ['High School', 'Diploma', 'Undergraduate', 'Graduate']
+  },
+
+  matchedInterns: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'InternProfile'
+  }],
+
+  status: {
+    type: String,
+    enum: ['Open', 'Closed'],
+    default: 'Open'
+  },
+
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+export default mongoose.model('Job', jobSchema);

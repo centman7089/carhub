@@ -10,9 +10,9 @@ import { resumeUpload, uploadPhoto } from "../middlewares/upload.js";
 const internRouter = express.Router()
 
 internRouter.get( '/me', protectRoute, getProfile )
-internRouter.get('/', getAllInterns)
-internRouter.patch( '/experience', addExperience)
-internRouter.patch( '/education', addEducation )
+internRouter.get('/get-all-interns', getAllInterns)
+internRouter.post( '/experience', protectRoute, addExperience)
+internRouter.post( '/education', protectRoute,addEducation )
 internRouter.put( "/photo", protectRoute, uploadPhoto.single( 'photo' ), updateInternProfilePhoto );
 internRouter.patch( '/update/:id', protectRoute, updateProfile );
 internRouter.get( "/grouped-by-course", protectRoute, getInternsGroupedByCourse );

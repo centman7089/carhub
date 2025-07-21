@@ -4,7 +4,7 @@ import {
    
 } from "../controllers/userController.js";
 import protectRoute from "../middlewares/protectRoute.js";
-import { addCustomSkill, getAllInterns, getSkillsByCourse, removeSkill, updateCourses, updateInternProfile, updatePhoto, updateSkills, updateUser } from "../controllers/internProfileController.js";
+import { addCustomSkill, getSkillsByCourse, removeSkill, updateCourses, updateInternProfile, updatePhoto, updateSkills, updateUser } from "../controllers/internProfileController.js";
 import {  photoUpload,resumeUpload } from "../middlewares/upload.js";
 import upload from "../utils/upload.js";
 
@@ -12,7 +12,7 @@ import upload from "../utils/upload.js";
 
 const internProfileRouter = express.Router();
 
-internProfileRouter.get("/", getAllInterns);
+// internProfileRouter.get("/", getAllInterns);
 internProfileRouter.get('/me', protectRoute, );
 internProfileRouter.get('/skills', protectRoute, getSkillsByCourse);
 internProfileRouter.post('/update-skills', protectRoute, updateSkills);

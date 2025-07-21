@@ -6,6 +6,7 @@ import { check, validationResult} from "express-validator"
 // const Job = require('../models/Job');
 import InternProfile from "../models/internProfile.js";
 import Job from "../models/jobModel.js";
+import { matchInternsToJob } from '../utils/matchInterns.js';
 
 // @route   GET api/jobs
 // @desc    Get all jobs
@@ -71,6 +72,46 @@ const applyJobs = async (req, res) => {
     res.status(500).send('Server Error');
   }
 }
+
+
+
+export const createJob = async (req, res) => {
+  try {
+    const employerId = req.user._id; // authenticated employer
+    const {
+      title,
+      description,
+      location,
+      workType,
+      requiredSkills,
+      technicalLevel,
+      educationLevel
+    } = req.body;
+
+    const newJob = await Job.create({
+      title,
+      description,
+      location,
+      workType,
+      requiredSkills,
+      technicalLevel,
+      educationLevel,
+      employer: employerId
+    });
+
+    const matchedInterns = await matchInternsToJob(newJob._id);
+
+    res.status(201).json({
+      message: "Job created and interns matched successfully",
+      job: newJob,
+      matchedInterns
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
 export
 {
     allJobs,

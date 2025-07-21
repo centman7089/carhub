@@ -203,99 +203,100 @@ const updateProfile = async (req, res) => {
 // @desc    Add profile experience
 // @access  Private
 
-const addExperience =  async ( req, res ) =>
-  {
-    check('title', 'Title is required').not().isEmpty(),
-    check('company', 'Company is required').not().isEmpty(),
-    check('from', 'From date is required').not().isEmpty()
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+// const addExperience =  async ( req, res ) =>
+//   {
+//     check('title', 'Title is required').not().isEmpty(),
+//     check('company', 'Company is required').not().isEmpty(),
+//     check('from', 'From date is required').not().isEmpty()
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res.status(400).json({ errors: errors.array() });
+//     }
 
-    const {
-      title,
-      company,
-      location,
-      from,
-      to,
-      current,
-      description
-    } = req.body;
+//     const {
+//       title,
+//       company,
+//       location,
+//       from,
+//       to,
+//       current,
+//       description
+//     } = req.body;
 
-    const newExp = {
-      title,
-      company,
-      location,
-      from,
-      to,
-      current,
-      description
-    };
+//     const newExp = {
+//       title,
+//       company,
+//       location,
+//       from,
+//       to,
+//       current,
+//       description
+//     };
 
-    try {
-      const profile = await InternProfile.findOne({ user: req.user?._id });
+//     try {
+//       const profile = await InternProfile.findOne({ user: req.user?._id });
 
-      profile.experience.unshift(newExp);
-      await profile.save();
+//       profile.experience.unshift(newExp);
+//       await profile.save();
 
-      res.json(profile);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
-    }
-  }
+//       res.json(profile);
+//     } catch (err) {
+//       console.error(err.message);
+//       res.status(500).send('Server Error');
+//     }
+//   }
 
 
 // @route   PUT api/profile/education
 // @desc    Add profile education
 // @access  Private
+//
+// const addEducation =  async ( req, res ) =>
+//   {
+//     [
+//       check('school', 'School is required').not().isEmpty(),
+//       check('degree', 'Degree is required').not().isEmpty(),
+//       check('fieldOfStudy', 'Field of study is required').not().isEmpty(),
+//       check('from', 'From date is required').not().isEmpty()
+//     ]
+//     const errors = validationResult(req);
+//     if (!errors.isEmpty()) {
+//       return res.status(400).json({ errors: errors.array() });
+//     }
 
-const addEducation =  async ( req, res ) =>
-  {
-    [
-      check('school', 'School is required').not().isEmpty(),
-      check('degree', 'Degree is required').not().isEmpty(),
-      check('fieldOfStudy', 'Field of study is required').not().isEmpty(),
-      check('from', 'From date is required').not().isEmpty()
-    ]
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+//     const {
+//       school,
+//       degree,
+//       fieldOfStudy,
+//       from,
+//       to,
+//       current,
+//       description
+//     } = req.body;
 
-    const {
-      school,
-      degree,
-      fieldOfStudy,
-      from,
-      to,
-      current,
-      description
-    } = req.body;
+//     const newEdu = {
+//       school,
+//       degree,
+//       fieldOfStudy,
+//       from,
+//       to,
+//       current,
+//       description
+//     };
 
-    const newEdu = {
-      school,
-      degree,
-      fieldOfStudy,
-      from,
-      to,
-      current,
-      description
-    };
+//     try {
+//       const profile = await InternProfile.findOne({ user: req.user.id });
 
-    try {
-      const profile = await InternProfile.findOne({ user: req.user.id });
+//       profile.education.unshift(newEdu);
+//       await profile.save();
 
-      profile.education.unshift(newEdu);
-      await profile.save();
-
-      res.json(profile);
-    } catch (err) {
-      console.error(err.message);
-      res.status(500).send('Server Error');
-    }
-  }
+//       res.json(profile);
+//     } catch (err) {
+//       console.error(err.message);
+//       res.status(500).send('Server Error');
+//     }
+// }
+ 
 
   const getUserProfile = async (req, res) => {
     try {
@@ -407,9 +408,8 @@ const addEducation =  async ( req, res ) =>
         .populate('selectedCourses', 'name')
         .populate('selectedSkills', 'name');
   
-      // Format the data for frontend use
       const interns = profiles
-        .filter(profile => profile.user) // Ensure the user is not null
+        .filter(profile => profile.user)
         .map(profile => ({
           firstName: profile.user.firstName,
           lastName: profile.user.lastName,
@@ -418,6 +418,9 @@ const addEducation =  async ( req, res ) =>
           headline: profile.headline || '',
           courses: profile.selectedCourses.map(course => course.name),
           skills: profile.selectedSkills.map(skill => skill.name),
+          workType: profile.workType || '',
+          educationLevel: profile.educationLevel || '',
+          technicalLevel: profile.technicalLevel || '',
           userId: profile.user._id
         }));
   
@@ -427,6 +430,8 @@ const addEducation =  async ( req, res ) =>
       res.status(500).json({ success: false, message: "Server error" });
     }
   };
+  
+    
   
 
   const getInternsGroupedByCourse = async (req, res) => {
@@ -454,6 +459,26 @@ const addEducation =  async ( req, res ) =>
         },
         { $unwind: "$userInfo" },
   
+        // Populate all selectedCourses (not just the unwound one)
+        {
+          $lookup: {
+            from: "courses",
+            localField: "selectedCourses",
+            foreignField: "_id",
+            as: "selectedCoursesInfo"
+          }
+        },
+  
+        // Populate all selectedSkills
+        {
+          $lookup: {
+            from: "skills",
+            localField: "selectedSkills",
+            foreignField: "_id",
+            as: "selectedSkillsInfo"
+          }
+        },
+  
         {
           $group: {
             _id: {
@@ -468,7 +493,12 @@ const addEducation =  async ( req, res ) =>
                 profilePic: "$userInfo.profilePic",
                 headline: "$headline",
                 location: "$location",
-                internId: "$userInfo._id"
+                internId: "$userInfo._id",
+                selectedCourses: "$selectedCoursesInfo.name",
+                selectedSkills: "$selectedSkillsInfo.name",
+                workType: "$workType",
+                educationLevel: "$educationLevel",
+                technicalLevel: "$technicalLevel"
               }
             }
           }
@@ -493,6 +523,7 @@ const addEducation =  async ( req, res ) =>
       res.status(500).json({ error: "Server Error" });
     }
   };
+  
   
   
 const getInternsByCourse = async (req, res) => {
@@ -595,6 +626,137 @@ const getInternsByCourse = async (req, res) => {
 //   }
 // };
 
+// @route   POST api/profile/experience
+// @desc    Add experience to profile
+// @access  Private
+const addExperience = async (req, res) => {
+  [
+    check('title', 'title is required').not().isEmpty(),
+    check('company', 'company is required').not().isEmpty(),
+    // check('location', 'Location study is required').not().isEmpty(),
+    check('from', 'From date is required').not().isEmpty(),
+   
+  ]
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  InternProfile
+    .findOne({user: req.user._id})
+    .then(profile => {
+      const newExp = {
+        title: req.body.title,
+        company: req.body.company,
+        location: req.body.location,
+        from: req.body.from,
+        to: req.body.to,
+        current: req.body.current,
+        description: req.body.description
+      }
+
+      // Add to exp array
+      profile
+        .experience
+        .unshift(newExp);
+
+      profile
+        .save()
+        .then(profile => res.json(profile));
+    })
+};
+
+// @route   POST api/profile/education
+// @desc    Add education to profile
+// @access  Private
+const addEducation = async (req, res) => {
+  [
+    check('school', 'school is required').not().isEmpty(),
+    check('from', 'From date is required').not().isEmpty(),
+   
+  ]
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  InternProfile
+    .findOne({user: req.user._id})
+    .then(profile => {
+      const newEdu = {
+        school: req.body.school,
+        degree: req.body.degree,
+        fieldofstudy: req.body.fieldofstudy,
+        from: req.body.from,
+        to: req.body.to,
+        current: req.body.current,
+        description: req.body.description
+      }
+
+      // Add to exp array
+      profile
+        .education
+        .unshift(newEdu);
+
+      profile
+        .save()
+        .then(profile => res.json(profile));
+    })
+};
+
+// @route   DELETE api/profile/experience/:exp_id
+// @desc    Delete experience from profile
+// @access  Private
+const deleteExperience = async (req, res) => {
+
+  InternProfile
+    .findOne({user: req.user._id})
+    .then(profile => {
+      // Get remove index
+      const removeIndex = profile
+        .experience
+        .map(item => item.id)
+        .indexOf(req.params.exp_id);
+
+      // Splice out of array
+      profile
+        .experience
+        .splice(removeIndex, 1);
+
+      // save
+      profile
+        .save()
+        .then(profile => res.json(profile));
+    })
+    .catch(err => res.status(404).json(err));
+};
+
+// @route   DELETE api/profile/education/:edu_id
+// @desc    Delete education from profile
+// @access  Private
+const deleteEducation = async (req, res) => {
+
+  InternProfile
+    .findOne({user: req.user._id})
+    .then(profile => {
+      // Get remove index
+      const removeIndex = profile
+        .education
+        .map(item => item.id)
+        .indexOf(req.params.edu_id);
+
+      // Splice out of array
+      profile
+        .education
+        .splice(removeIndex, 1);
+
+      // save
+      profile
+        .save()
+        .then(profile => res.json(profile));
+    })
+    .catch(err => res.status(404).json(err));
+};
 
 export
 {
