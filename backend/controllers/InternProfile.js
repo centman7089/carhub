@@ -404,7 +404,7 @@ const updateProfile = async (req, res) => {
   const getAllInterns = async (req, res) => {
     try {
       const profiles = await InternProfile.find({ user: { $ne: null } })
-        .populate('user', 'firstName lastName profilePic')
+        .populate('user', 'firstName lastName city profilePic')
         .populate('selectedCourses', 'name')
         .populate('selectedSkills', 'name');
   
@@ -413,6 +413,7 @@ const updateProfile = async (req, res) => {
         .map(profile => ({
           firstName: profile.user.firstName,
           lastName: profile.user.lastName,
+          city: profile.user.city,
           profilePic: profile.user.profilePic || null,
           location: profile.location || '',
           headline: profile.headline || '',
@@ -459,7 +460,6 @@ const updateProfile = async (req, res) => {
         },
         { $unwind: "$userInfo" },
   
-        // Populate all selectedCourses (not just the unwound one)
         {
           $lookup: {
             from: "courses",
@@ -469,7 +469,6 @@ const updateProfile = async (req, res) => {
           }
         },
   
-        // Populate all selectedSkills
         {
           $lookup: {
             from: "skills",
@@ -489,16 +488,19 @@ const updateProfile = async (req, res) => {
               $push: {
                 firstName: "$userInfo.firstName",
                 lastName: "$userInfo.lastName",
-                fullName: { $concat: ["$userInfo.firstName", " ", "$userInfo.lastName"] },
+                fullName: {
+                  $concat: ["$userInfo.firstName", " ", "$userInfo.lastName"]
+                },
+                city: { $ifNull: ["$userInfo.city", ""] },
                 profilePic: "$userInfo.profilePic",
-                headline: "$headline",
-                location: "$location",
+                headline: { $ifNull: ["$headline", ""] },
+                location: { $ifNull: ["$location", ""] },
                 internId: "$userInfo._id",
                 selectedCourses: "$selectedCoursesInfo.name",
                 selectedSkills: "$selectedSkillsInfo.name",
-                workType: "$workType",
-                educationLevel: "$educationLevel",
-                technicalLevel: "$technicalLevel"
+                workType: { $ifNull: ["$workType", ""] },
+                educationLevel: { $ifNull: ["$educationLevel", ""] },
+                technicalLevel: { $ifNull: ["$technicalLevel", ""] }
               }
             }
           }
@@ -523,6 +525,7 @@ const updateProfile = async (req, res) => {
       res.status(500).json({ error: "Server Error" });
     }
   };
+  
   
   
   
