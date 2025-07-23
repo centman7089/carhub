@@ -338,6 +338,7 @@ const updateProfile = async (req, res) => {
         headline: user.profile.headline || '',
         workType: user.profile.workType,
         about: user.profile.about || '',
+        profilePic: user.profile.profilePic || ''
       };
   
       res.status(200).json(response);
