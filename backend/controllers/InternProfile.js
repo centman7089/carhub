@@ -349,17 +349,68 @@ const updateProfile = async (req, res) => {
 };
   
 
+  // const updateInternProfilePhoto = async (req, res) => {
+  //   try {
+  //     const userId = req.user.id;
+  
+  //     const user = await User.findById(userId);
+  //     if (!user) return res.status(404).json({ message: 'User not found' });
+  
+  //     const profile = await InternProfile.findOne({ user: userId });
+  //     if (!profile) {
+  //       return res.status(404).json({ message: 'Intern profile not found' });
+  //     }
+  
+  //     let finalProfilePic;
+  
+  //     if (!req.file) {
+  //       // Generate initials-based avatar
+  //       const initials = `${user.firstName?.[0] || ''}${user.lastName?.[0] || ''}`.toUpperCase();
+  //       finalProfilePic = `https://ui-avatars.com/api/?name=${initials}&background=random`;
+  //     } else {
+  //       const secureUrl = req.file.path;
+  //       finalProfilePic = secureUrl.replace('/upload/', '/upload/w_400,h_400,c_fill,g_face/');
+  
+  //       // Delete old Cloudinary image if custom
+  //       if (profile.profilePic && !profile.profilePic.includes('ui-avatars.com')) {
+  //         const match = profile.profilePic.match(/\/intern_profile\/(.+)\.(jpg|jpeg|png)/);
+  //         if (match) {
+  //           const publicId = `intern_profile/${match[1]}`;
+  //           await cloudinary.uploader.destroy(publicId);
+  //         }
+  //       }
+  //     }
+  
+  //     // Update user and intern profile
+  //     user.profilePic = finalProfilePic;
+  //     await user.save();
+  
+  //     profile.profilePic = finalProfilePic;
+  //     await profile.save();
+  
+  //     // Update all posts by user
+  //     await Post.updateMany({ postedBy: userId }, { $set: { profilePic: finalProfilePic } });
+  
+  //     return res.status(200).json({
+  //       message: 'Profile photo updated successfully',
+  //       profilePic: finalProfilePic
+  //     });
+  
+  //   } catch (err) {
+  //     console.error('Photo update error:', err);
+  //     res.status(500).json({ message: 'Server error while updating profile photo' });
+  //   }
+  // };
+
   const updateInternProfilePhoto = async (req, res) => {
     try {
-      const userId = req.user.id;
+      const userId = req.params.id;
   
       const user = await User.findById(userId);
       if (!user) return res.status(404).json({ message: 'User not found' });
   
       const profile = await InternProfile.findOne({ user: userId });
-      if (!profile) {
-        return res.status(404).json({ message: 'Intern profile not found' });
-      }
+      if (!profile) return res.status(404).json({ message: 'Intern profile not found' });
   
       let finalProfilePic;
   
@@ -371,9 +422,9 @@ const updateProfile = async (req, res) => {
         const secureUrl = req.file.path;
         finalProfilePic = secureUrl.replace('/upload/', '/upload/w_400,h_400,c_fill,g_face/');
   
-        // Delete old Cloudinary image if custom
+        // Delete old image from Cloudinary if not an avatar
         if (profile.profilePic && !profile.profilePic.includes('ui-avatars.com')) {
-          const match = profile.profilePic.match(/\/intern_profile\/(.+)\.(jpg|jpeg|png)/);
+          const match = profile.profilePic.match(/\/intern_profile\/([^/.]+)/);
           if (match) {
             const publicId = `intern_profile/${match[1]}`;
             await cloudinary.uploader.destroy(publicId);
@@ -381,26 +432,32 @@ const updateProfile = async (req, res) => {
         }
       }
   
-      // Update user and intern profile
+      // Update User & InternProfile
       user.profilePic = finalProfilePic;
       await user.save();
   
       profile.profilePic = finalProfilePic;
       await profile.save();
   
-      // Update all posts by user
-      await Post.updateMany({ postedBy: userId }, { $set: { profilePic: finalProfilePic } });
+      // Update user's posts with new profilePic
+      await Post.updateMany(
+        { postedBy: userId },
+        { $set: { profilePic: finalProfilePic } }
+      );
   
       return res.status(200).json({
         message: 'Profile photo updated successfully',
         profilePic: finalProfilePic
       });
-  
-    } catch (err) {
+    } catch ( err )
+    {
+      console.log(err);
+      
       console.error('Photo update error:', err);
       res.status(500).json({ message: 'Server error while updating profile photo' });
     }
   };
+  
   
 
   const getAllInterns = async (req, res) => {

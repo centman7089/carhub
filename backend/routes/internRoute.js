@@ -13,11 +13,12 @@ internRouter.get( '/me', protectRoute, getProfile )
 internRouter.get('/get-all-interns', getAllInterns)
 internRouter.post( '/experience', protectRoute, addExperience)
 internRouter.post( '/education', protectRoute,addEducation )
-internRouter.put( "/photo", protectRoute, uploadPhoto.single( 'photo' ), updateInternProfilePhoto );
-internRouter.patch( '/update/:id', protectRoute, updateProfile );
+
 internRouter.get( "/grouped-by-course", protectRoute, getInternsGroupedByCourse );
 internRouter.get( '/by-course/:courseId',protectRoute, getInternsByCourse );
 internRouter.get( "/:id",protectRoute, getUserProfile );
+internRouter.patch( "/photo/:id", protectRoute, uploadPhoto.single( 'photo' ), updateInternProfilePhoto );
+internRouter.patch( '/update/:id', protectRoute, updateProfile );
 
 
 
