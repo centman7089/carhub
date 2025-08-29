@@ -1,45 +1,70 @@
 // @ts-nocheck
-import express from 'express';
+import express from "express";
+import passport from "passport"
+// import { issueTokenAndRedirect } from "../db/passport.js"
+import { keys } from "../db/Key.js";
+
 import {
-  register,
-  login,
-  uploadDocuments,
-  acceptTerms,
-  logoutUser,
-  getUserProfile
-} from '../controllers/authController.js';
-import protectRoute from '../middlewares/protectRoute.js';
-import upload from "../utils/upload.js"
+	followUnFollowUser,
+	getUserProfile,
+	
+	logoutUser,
+
+	updateUser,
+	getSuggestedUsers,
+	freezeAccount,
+	changePassword,
+	forgotPassword,
+	login,
+	register,
+	resendCode,
+	resetPassword,
+	verifyEmail,
+	uploadFromUrl,
+	uploadFromLocal,
+	googleAuthSuccess,
+	verifyResetCode,
+	
+} from "../controllers/userController.js";
+import protectRoute from "../middlewares/protectRoute.js";
+import multer from "multer";
+
+function generateToken(user) {
+	return jwt.sign({ id: user._id }, keys.jwtSecret, { expiresIn: "7d" });
+  }
+
 
 
 const userRouter = express.Router();
 
-// Registration with document
-userRouter.post('/register', upload.single('document'), register);
+userRouter.get("/profile/:query",protectRoute, getUserProfile);
 
-// Auth routes
-userRouter.post('/login', login);
-userRouter.get('/me', protectRoute, getUserProfile);
-userRouter.post('/logout', logoutUser);
 
-// Step 2: Upload identity documents (Car Dealers only)
-userRouter.post(
-  '/upload-documents/:userId',
-  upload.fields([
-    { name: 'idCardFront', maxCount: 1 },
-    { name: 'driverLicense', maxCount: 1 },
-    { name: 'insurance', maxCount: 1 },
-    { name: 'bankStatement', maxCount: 1 },
-  ]),
-  uploadDocuments
-);
+userRouter.post("/logout", protectRoute,logoutUser);
 
-// Step 3: Accept terms
-userRouter.post('/accept-terms/:userId', acceptTerms);
 
-// Test route for single doc upload
-userRouter.post('/upload-doc', upload.single('document'), (req, res) => {
-  res.status(200).json({ url: req.file.path });
-});
+
+
+userRouter.post("/register", register);
+userRouter.post("/verify", verifyEmail);
+userRouter.post("/resend-code", resendCode);
+userRouter.post("/verify-reset-code", verifyResetCode);
+userRouter.post("/login", login);
+userRouter.post( "/forgot-password", forgotPassword );
+userRouter.post( "/reset-password", resetPassword );
+userRouter.post( "/change-password", protectRoute, changePassword );
+userRouter.patch("/update/:id", protectRoute, updateUser);
+
+
+
+
+
+
+
+
+
+
+
+
 
 export default userRouter;

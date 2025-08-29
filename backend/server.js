@@ -8,6 +8,7 @@ import http from 'http';
 import { Server } from 'socket.io';
 
 import authRouter from './routes/authRoutes.js';
+// @ts-ignore
 import userRouter from './routes/userRoutes.js';
 // import carRoutes from './routes/carRoutes.js';
 import auctionRoutes from './routes/auctionRoutes.js';
