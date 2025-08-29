@@ -5,14 +5,10 @@ import passport from "passport"
 import { keys } from "../db/Key.js";
 
 import {
-	followUnFollowUser,
-	getUserProfile,
 	
+	getUserProfile,
 	logoutUser,
-
 	updateUser,
-	getSuggestedUsers,
-	freezeAccount,
 	changePassword,
 	forgotPassword,
 	login,
@@ -20,9 +16,6 @@ import {
 	resendCode,
 	resetPassword,
 	verifyEmail,
-	uploadFromUrl,
-	uploadFromLocal,
-	googleAuthSuccess,
 	verifyResetCode,
 	
 } from "../controllers/userController.js";
@@ -38,13 +31,7 @@ function generateToken(user) {
 const userRouter = express.Router();
 
 userRouter.get("/profile/:query",protectRoute, getUserProfile);
-
-
 userRouter.post("/logout", protectRoute,logoutUser);
-
-
-
-
 userRouter.post("/register", register);
 userRouter.post("/verify", verifyEmail);
 userRouter.post("/resend-code", resendCode);
@@ -54,17 +41,6 @@ userRouter.post( "/forgot-password", forgotPassword );
 userRouter.post( "/reset-password", resetPassword );
 userRouter.post( "/change-password", protectRoute, changePassword );
 userRouter.patch("/update/:id", protectRoute, updateUser);
-
-
-
-
-
-
-
-
-
-
-
 
 
 export default userRouter;
