@@ -6,7 +6,7 @@ const connectDB = async () =>
 	
 	try
 	{
-		 const dbUrl = process.env.MONGO_URI || 'mongodb://localhost:27017/CarHub'
+		 const dbUrl = process.env.MONGO_URI || 'mongodb+srv://pageinnovations_db_user:Yj8lP87WkrdhEPtt@carhub.aharkbc.mongodb.net/?retryWrites=true&w=majority&appName=Carhub'
 		const conn = await mongoose.connect(dbUrl, {
 			// To avoid warnings in the console
 			useNewUrlParser: true,
