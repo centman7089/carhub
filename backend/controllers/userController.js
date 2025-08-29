@@ -301,7 +301,11 @@ const verifyPasswordResetCode = async (req, res) => {
   // Change Password (Requires token)
 const changePassword = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = req.user?._id;
+    if (!userId) {
+      return res.status(401).json({ msg: "Unauthorized, no user in request" });
+    }
+
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
 
     if (!currentPassword || !newPassword || !confirmNewPassword) {
@@ -313,7 +317,7 @@ const changePassword = async (req, res) => {
     }
 
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ msg: "user not found" });
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
     // Verify current password
     const isMatch = await bcrypt.compare(currentPassword, user.password);
@@ -338,10 +342,10 @@ const changePassword = async (req, res) => {
       changedAt: new Date(),
     });
     if (user.passwordHistory.length > 5) {
-      user.passwordHistory.shift();
+      user.passwordHistory.shift(); // keep last 5
     }
 
-    // Assign new password in plain text — pre-save will hash it
+    // Assign new password in plain text — pre-save hook will hash it
     user.password = newPassword;
     await user.save();
 
