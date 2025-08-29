@@ -18,6 +18,7 @@ import reportRoutes from './routes/reportRoutes.js';
 import listingRoutes from './routes/listingRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import adminRouter from './routes/adminRoute.js';
 
 dotenv.config();
 connectDB();
@@ -50,6 +51,7 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/vehicles', vehicleRoutes);
 app.use( '/api/notifications', notificationRoutes );
+app.use( '/api/admin', adminRouter );
 app.get( '/', ( req, res ) =>
 {
   res.send('welcom')
