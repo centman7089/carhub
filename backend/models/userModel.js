@@ -19,7 +19,7 @@ const userSchema = mongoose.Schema(
     phone: { type: String, minLength: 6, required: true },
 
     // Location details
-    country: { type: String, required: true },
+    // country: { type: String, required: true },
     state: { type: String, required: true },
     city: { type: String, required: true },
     streetAddress: { type: String, required: true },
@@ -32,7 +32,7 @@ const userSchema = mongoose.Schema(
       default:
         "https://res.cloudinary.com/dq5puvtne/image/upload/v1740648447/next_crib_avatar_jled2z.jpg",
     },
-    accountType: { type: String, enum: [ 'retailer', 'car_dealer' ], required: true },
+    // accountType: { type: String, enum: [ 'retailer', 'car_dealer' ], required: true },
     documentUrl: { type: String }, // for car dealers
     document: {
             url: String,
@@ -47,28 +47,13 @@ const userSchema = mongoose.Schema(
       enum: ['personalInfo', 'identityDocs', 'terms', 'completed'],
       default: 'personalInfo',
     },
-
-    // Identity document uploads (optional for retailers, required for car dealers)
-    // identityDocs: {
-    //   driverLicenseUrl: { type: String },
-    //   autoInsuranceUrl: { type: String },
-    //   bankStatementUrl: { type: String },
-    //   otherGovIdUrl: { type: String }, // NIN, voter ID, etc.
-    // },
-
     // Agreement
        // ✅ Policy acceptance fields
        acceptedTerms: { type: Boolean, required: true, default: false },
       acceptedPrivacy: { type: Boolean, required: true, default: false },
       isApproved: { type: Boolean, default: false },
       onboardingCompleted: { type: Boolean, default: false }, // Full flow completed
-    //     identityDocuments: {
-    //       idCardFront: String,
-    //       driverLicense: String,
-    //       insurance: String,
-    //       bankStatement: String,
-    // },
-        
+
   identityDocuments: {
     idCardFront: { type: String },
     driverLicense: { type: String },
@@ -85,8 +70,8 @@ const userSchema = mongoose.Schema(
     // System Roles
     role: {
       type: String,
-      enum: ['customer', 'admin', 'delivery', 'support'],
-      default: 'customer',
+      enum: ['user', 'admin', 'car_dealer', 'retailer'],
+      default: 'user',
     },
 
     // Auth utilities

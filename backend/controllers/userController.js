@@ -89,7 +89,7 @@ const register = async (req, res) => {
 			streetAddress,
 			zipCode,
 			dateOfBirth,
-			role: "user", // default role
+		 // default role
 			// acceptedTerms,
 			// acceptedPrivacy,
 			emailCode: code,
@@ -112,13 +112,10 @@ const register = async (req, res) => {
 			lastName: newUser.lastName,
 			email: newUser.email,
       phone: newUser.phone,
-      state: user.state,
-			city: user.city,
-			address: user.address,
+      state: newUser.state,
+			city: newUser.city,
+			address: newUser.address,
 			role: newUser.role,
-			// acceptedTerms: newUser.acceptedTerms,
-			// acceptedPrivacy: newUser.acceptedPrivacy,
-			// step: "email_verification",
 			msg: "User registered. Verification code sent to email."
 		});
 	} catch (err) {
