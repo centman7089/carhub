@@ -1,134 +1,76 @@
-// @ts-nocheck
-import path from "path";
-import express from "express";
-import cors from "cors"
+// server.mjs or server.js with "type": "module"
+import express from 'express';
 import dotenv from "dotenv";
 import connectDB from "./db/connectDB.js";
-import cookieParser from "cookie-parser";
-import userRoutes from "./routes/userRoutes.js";
-import postRoutes from "./routes/postRoutes.js";
-import messageRoutes from "./routes/messageRoutes.js";
-import cloudinaryModule from 'cloudinary';
-import { app, server } from "./socket/socket.js";
-import job from "./cron/cron.js";
-import swaggerUi from "swagger-ui-express"
-import swaggerDocument from "./swagger-output.json" with { type: 'json' }
-import bodyParser from "body-parser"
-import MongoStore from 'connect-mongo';
-import passport from "passport";
-import session from "express-session"
-import authRouter from "./routes/authRoutes.js";
-import courseRoute from "./routes/courseRoute.js";
-import internProfileRouter from "./routes/internProfileRoute.js";
-import EmployerRouter from "./routes/employerRoutes.js";
-import uploadRouter from "./routes/upload.js";
-import adminRoute from "./routes/adminRoutes.js";
-import "./db/passport.js";
-import jobRouter from "./routes/jobRoutes.js";
-import internRouter from "./routes/internRoute.js";
-import onboardRouter from "./routes/onboardRoutes.js";
-import errorHandler from "./middlewares/errorHandler.js";
+// import mongoose from 'mongoose';
+import cors from 'cors';
+import http from 'http';
+import { Server } from 'socket.io';
 
+import authRouter from './routes/authRoutes.js';
+import userRouter from './routes/userRoutes.js';
+// import carRoutes from './routes/carRoutes.js';
+import auctionRoutes from './routes/auctionRoutes.js';
+import deliveryRoutes from './routes/deliveryRoutes.js';
+import customerRoutes from './routes/customerRoutes.js';
+import reportRoutes from './routes/reportRoutes.js';
+import listingRoutes from './routes/listingRoutes.js';
+import vehicleRoutes from './routes/vehicleRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 
 dotenv.config();
-
 connectDB();
-job.start();
 
-const PORT = process.env.PORT || 3000;
-const __dirname = path.resolve();
+const app = express();
+const server = http.createServer(app);
 
-const cloudinary = cloudinaryModule.v2;
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+const io = new Server(server, {
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST']
+  }
 });
 
-// Middlewares
-app.use(express.json()); // To parse JSON data in the req.body
-app.use(express.urlencoded({ extended: true })); // To parse form data in the req.body
-app.use( cookieParser() );
+// Middleware
+app.use(cors());
+app.use(express.json());
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
-// Allow both local dev and deployed frontend
-const allowedOrigins = [
-	"http://localhost:3000", // React dev server
-	"https://page-tech.onrender.com", // your deployed frontend (optional)
-	"https://page-tech.onrender.com/", // Swagger UI or others
-  ];
-  
-//   app.use(cors({
-// 	origin: (origin, callback) => {
-// 	  if (!origin || allowedOrigins.includes(origin)) {
-// 		callback(null, true);
-// 	  } else {
-// 		callback(new Error("CORS Not Allowed"));
-// 	  }
-// 	},
-// 	credentials: true,
-//   }));
-
-app.use(cors())
-
-
-
-app.use(session({
-	secret: process.env.SESSION_SECRET,
-	resave: false,
-	saveUninitialized: false,
-	store: MongoStore.create({
-	  mongoUrl: process.env.MONGO_URI,
-	  ttl: 14 * 24 * 60 * 60 // = 14 days
-	})
-  }));
-app.use( passport.initialize() );
-app.use(passport.session())
-
-
-// Serve static files
-app.use( '/uploads', express.static( path.join( __dirname, 'uploads' ) ) );
+// Share io instance globally via app
+app.set('io', io);
 
 // Routes
-app.use("/api/auth/users", userRoutes);
-app.use("/api/admin", adminRoute);
-app.use("/api/posts", postRoutes);
-app.use( "/api/messages", messageRoutes );
-app.use( "/api/auth", authRouter );
-app.use( "/api/employer", EmployerRouter);
-app.use("/api/course", courseRoute)
-app.use( "/api/intern/profile", internProfileRouter )
-
-
-app.use('/api/onboarding', onboardRouter);
-app.use('/api/profile', internRouter);
-app.use('/api/jobs',jobRouter);
-// Routes
-app.use('/api', uploadRouter);
-
-
+app.use('/api/auth', authRouter);
+app.use('/api/user', userRouter);
+// app.use('/api/cars', carRoutes);
+app.use('/api/auctions', auctionRoutes);
+app.use('/api/deliveries', deliveryRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/listings', listingRoutes);
+app.use('/api/vehicles', vehicleRoutes);
+app.use( '/api/notifications', notificationRoutes );
 app.get( '/', ( req, res ) =>
 {
-	res.send("hello")
-} )
+  res.send('welcom')
+})
 
-app.use( '/uploads', express.static( path.join( __dirname, 'uploads' ) ) );
-app.use( "/api-docs", swaggerUi.serve, swaggerUi.setup( swaggerDocument ) );
+// Socket.IO
+io.on('connection', (socket) => {
+  console.log(`User connected: ${socket.id}`);
 
-// Error handling (must be last middleware)
-app.use(errorHandler);
-
-http://localhost:5000 => backend,frontend
-
-if (process.env.NODE_ENV === "production") {
-	app.use(express.static(path.join(__dirname, "/frontend/dist")));
-
-	// react app
-	app.get("*", (req, res) => {
-		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
-	});
-}
+  socket.on('disconnect', () => {
+    console.log(`User disconnected: ${socket.id}`);
+  });
+} );
+const PORT = process.env.PORT || 5000;
 
 server.listen(PORT, () => console.log(`Server started at http://localhost:${PORT}`));
+// // Connect to MongoDB and start server
+// const dbUrl = process.env.MONGO_URI || 'mongodb://localhost:27017/CarHub';
+// mongoose.connect(dbUrl)
+//   .then(() => {
+//     server.listen(process.env.PORT || 5000, () => {
+//       console.log('✅ Server running');
+//     });
+//   })
+//   .catch(err => console.error('❌ MongoDB connection error:', err));

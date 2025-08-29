@@ -1,168 +1,45 @@
 // @ts-nocheck
-import express from "express";
-import passport from "passport"
-// import { issueTokenAndRedirect } from "../db/passport.js"
-import { keys } from "../db/Key.js";
-
+import express from 'express';
 import {
-	followUnFollowUser,
-	getUserProfile,
-	
-	logoutUser,
-
-	updateUser,
-	getSuggestedUsers,
-	freezeAccount,
-	changePassword,
-	forgotPassword,
-	login,
-	register,
-	resendCode,
-	resetPassword,
-	verifyEmail,
-	uploadFromUrl,
-	uploadFromLocal,
-	googleAuthSuccess,
-	verifyResetCode,
-	
-} from "../controllers/userController.js";
-import protectRoute from "../middlewares/protectRoute.js";
-import multer from "multer";
-
-function generateToken(user) {
-	return jwt.sign({ id: user._id }, keys.jwtSecret, { expiresIn: "7d" });
-  }
+  register,
+  login,
+  uploadDocuments,
+  acceptTerms,
+  logoutUser,
+  getUserProfile
+} from '../controllers/authController.js';
+import protectRoute from '../middlewares/protectRoute.js';
+import upload from "../utils/upload.js"
 
 
+const userRouter = express.Router();
 
-const router = express.Router();
+// Registration with document
+userRouter.post('/register', upload.single('document'), register);
 
-router.get("/profile/:query", getUserProfile);
-router.get("/suggested", protectRoute, getSuggestedUsers);
+// Auth routes
+userRouter.post('/login', login);
+userRouter.get('/me', protectRoute, getUserProfile);
+userRouter.post('/logout', logoutUser);
 
-router.post("/logout", logoutUser);
-router.post("/follow/:id", protectRoute, followUnFollowUser); // Toggle state(follow/unfollow)
+// Step 2: Upload identity documents (Car Dealers only)
+userRouter.post(
+  '/upload-documents/:userId',
+  upload.fields([
+    { name: 'idCardFront', maxCount: 1 },
+    { name: 'driverLicense', maxCount: 1 },
+    { name: 'insurance', maxCount: 1 },
+    { name: 'bankStatement', maxCount: 1 },
+  ]),
+  uploadDocuments
+);
 
-router.patch( "/freeze", protectRoute, freezeAccount );
+// Step 3: Accept terms
+userRouter.post('/accept-terms/:userId', acceptTerms);
 
-router.post("/register", register);
-router.post("/verify", verifyEmail);
-router.post("/resend-code", resendCode);
-router.post("/verify-reset-code", verifyResetCode);
-router.post("/login", login);
-router.post( "/forgot-password", forgotPassword );
-router.post( "/reset-password", resetPassword );
-router.post( "/change-password", protectRoute, changePassword );
-router.patch("/update/:id", protectRoute, updateUser);
-
-
-// Multer configuration - accepts both documents and images
-const upload = multer({ 
-	dest: 'temp_uploads/',
-	fileFilter: (req, file, cb) => {
-	  const allowedMimeTypes = [
-		// Documents
-		'application/pdf',
-		'application/msword',
-		'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-		
-		// Images
-		'image/jpeg',
-		'image/jpg',
-		'image/png'
-	  ];
-  
-	  if (allowedMimeTypes.includes(file.mimetype)) {
-		cb(null, true);
-	  } else {
-		cb(new Error('Invalid file type. Only PDF, Word docs, JPG, JPEG, PNG allowed'), false);
-	  }
-	},
-	limits: {
-	  fileSize: 5 * 1024 * 1024 // 5MB
-	}
-  });
-  
-  // Upload from URL (already handles all file types via Cloudinary)
-  router.post('/resume/url', protectRoute, uploadFromUrl);
-  
-  // Upload from local device (now accepts both docs and images)
-  router.post('/resume/local', protectRoute, upload.single('resume'), uploadFromLocal);
-  
-
-// Google auth routes
-// router.get(
-// 	'/google',
-// 	passport.authenticate('google', {
-// 	  scope: ['profile', 'email']
-// 	})
-//   );
-  
-//   router.get(
-// 	'/google/callback',
-// 	passport.authenticate('google', {
-// 	  failureRedirect: '/login',
-// 	  session: false
-// 	}),
-// 	googleAuthSuccess
-//   );
-
-
-// Google
-router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-router.get("/google/callback", passport.authenticate("google", { session: false }), (req, res) => {
-  const token = generateToken(req.user);
-  res.redirect(`${keys.clientURL}/oauth-success?token=${token}`);
-} );
-
-// GitHub
-router.get("/github", passport.authenticate("github", { scope: ["user:email"] }));
-router.get("/github/callback", passport.authenticate("github", { session: false }), (req, res) => {
-  const token = generateToken(req.user);
-  res.redirect(`${keys.clientURL}/oauth-success?token=${token}`);
+// Test route for single doc upload
+userRouter.post('/upload-doc', upload.single('document'), (req, res) => {
+  res.status(200).json({ url: req.file.path });
 });
 
-
-// // Google
-// router.get(
-// 	"/google",
-// 	passport.authenticate("google", { scope: ["profile", "email"] })
-//   );
-//   router.get("/google/callback", passport.authenticate("google"), issueTokenAndRedirect);
-  
-//   // Facebook
-//   router.get(
-// 	"/facebook",
-// 	passport.authenticate("facebook", { scope: ["email"] })
-//   );
-//   router.get("/facebook/callback", passport.authenticate("facebook"), issueTokenAndRedirect);
-  
-  // GitHub
-//   router.get(
-// 	"/github",
-// 	passport.authenticate("github", { scope: ["user:email"] })
-//   );
-//   router.get("/github/callback", passport.authenticate("github"), issueTokenAndRedirect);
-  
-//   // Verify token and get profile
-//   router.get("/me", (req, res) => {
-// 	const authHeader = req.headers.authorization;
-// 	if (!authHeader) return res.sendStatus(401);
-// 	const token = authHeader.split(" ")[1];
-// 	try {
-// 	  const payload = jwt.verify(token, process.env.JWT_SECRET);
-// 	  res.json(payload);
-// 	} catch {
-// 	  res.sendStatus(401);
-// 	}
-//   });
-
-
-
-
-
-
-
-
-
-export default router;
+export default userRouter;
