@@ -39,7 +39,7 @@ userRouter.post("/verify-reset-code", verifyResetCode);
 userRouter.post("/login", login);
 userRouter.post( "/forgot-password", forgotPassword );
 userRouter.post( "/reset-password", resetPassword );
-userRouter.post( "/change-password", protectRoute, changePassword );
+userRouter.patch( "/change-password", protectRoute, changePassword );
 userRouter.patch("/update/:id", protectRoute, updateUser);
 
 

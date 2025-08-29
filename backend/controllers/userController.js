@@ -312,7 +312,7 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const user = await user.findById(userId);
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ msg: "user not found" });
 
     // Verify current password
