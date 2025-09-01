@@ -473,10 +473,10 @@ const uploadDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // ✅ Ensure logged-in user matches route param
-    if (!req.user || req.user._id.toString() !== userId) {
-      return res.status(403).json({ error: "Unauthorized action" });
-    }
+    // // ✅ Ensure logged-in user matches route param
+    // if (!req.user || req.user._id.toString() !== userId) {
+    //   return res.status(403).json({ error: "Unauthorized action" });
+    // }
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
