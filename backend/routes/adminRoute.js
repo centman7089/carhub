@@ -1,7 +1,8 @@
 // @ts-nocheck
 import express from "express";
-import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode, approveUser, rejectUser } from "../controllers/adminControllers.js";
+import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode, approveUser, rejectUser, createVehicle } from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
+import { vehicleImages } from "../middlewares/upload.js";
 
 
 const adminRouter = express.Router()
@@ -26,7 +27,16 @@ adminRouter.patch( "/update/:id", protectAdmin,updateUser );
 // Reject CAC
 
 adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), approveUser);
-adminRouter.patch("/:userId/reject",protectAdmin, authorizeRoles('admin'), rejectUser);
+adminRouter.patch( "/:userId/reject", protectAdmin, authorizeRoles( 'admin' ), rejectUser );
+// Admin-only routes
+adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
+adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );
+adminRouter.post(
+  "/",
+  protectAdmin, // require authentication (dealer must be logged in)
+  vehicleImages.single("image"), // accept only one image with field name = "image"
+  createVehicle
+);
 
 
 

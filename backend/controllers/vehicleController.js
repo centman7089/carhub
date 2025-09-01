@@ -14,37 +14,9 @@ const uploadToCloudinary = async (fileBuffer, filename) => {
   }).end(fileBuffer);
 };
 
-// Create new vehicle
-const createVehicle = async (req, res) => {
-  try {
-    const imageUrls = [];
 
-    if (req.files) {
-      for (const file of req.files) {
-        const result = await cloudinary.uploader.upload_stream(
-          {
-            folder: "vehicles",
-            resource_type: "image",
-          },
-          (error, result) => {
-            if (result?.secure_url) imageUrls.push(result.secure_url);
-          }
-        ).end(file.buffer);
-      }
-    }
+// CREATE NEW VEHICLE
 
-    const vehicle = new Vehicle({
-      ...req.body,
-      features: req.body.features || [],
-      images: imageUrls,
-    });
-
-    const saved = await vehicle.save();
-    res.status(201).json(saved);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
 
 // Get all vehicles with optional search
 const getVehicles = async (req, res) => {

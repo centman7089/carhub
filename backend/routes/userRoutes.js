@@ -24,7 +24,7 @@ import {
 import protectRoute from "../middlewares/protectRoute.js";
 
 import multer from "multer";
-import uploadImages from "../middlewares/upload.js";
+import {uploadImages} from "../middlewares/upload.js";
 
 function generateToken(user) {
 	return jwt.sign({ id: user._id }, keys.jwtSecret, { expiresIn: "7d" });

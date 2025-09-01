@@ -10,6 +10,7 @@ import generateCode from "../utils/generateCode.js";
 import sendEmail from "../utils/sendEmails.js";
 import mongoose from "mongoose";
 import User from "../models/userModel.js";
+import Vehicle from "../models/Vehicle.js";
 
 
 // In-memory session store (use Redis in production)
@@ -468,3 +469,166 @@ export const rejectUser = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+
+
+
+// =============================
+// GET ALL USERS (with filters)
+// =============================
+export const getAllUsers = async (req, res) => {
+  try {
+    const { role, status, sort, search } = req.query;
+
+    let filter = {};
+
+    // ✅ Filter by role
+    if (role) filter.role = role;
+
+    // ✅ Filter by verification/approval status
+    if (status === "active") filter.isVerified = true;
+    if (status === "inactive") filter.isVerified = false;
+    if (status === "approved") filter.isApproved = true;
+    if (status === "pending") filter.isApproved = false;
+
+    // ✅ Search by name or email
+    if (search) {
+      filter.$or = [
+        { firstName: new RegExp(search, "i") },
+        { lastName: new RegExp(search, "i") },
+        { email: new RegExp(search, "i") },
+      ];
+    }
+
+    // ✅ Sorting
+    let sortOption = { createdAt: -1 }; // default recent
+    if (sort === "oldest") sortOption = { createdAt: 1 };
+
+    const users = await User.find(filter).sort(sortOption);
+
+    res.status(200).json({
+      success: true,
+      count: users.length,
+      users,
+    });
+  } catch (error) {
+    console.error("❌ Error fetching users:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users",
+      error: error.message,
+    });
+  }
+};
+
+// =============================
+// UPDATE USER ROLE
+// =============================
+export const updateUserRole = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { role } = req.body;
+
+    if (!["user", "admin", "car_dealer", "retailer"].includes(role)) {
+      return res.status(400).json({ success: false, message: "Invalid role" });
+    }
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { role },
+      { new: true }
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User role updated to ${role}`,
+      user,
+    });
+  } catch (error) {
+    console.error("❌ Error updating user role:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to update role",
+      error: error.message,
+    });
+  }
+};
+
+export const createVehicle = async (req, res) => {
+  try {
+    const {
+      make,
+      model,
+      year,
+      vin,
+      bodyType,
+      fuelType,
+      transmission,
+      price,
+      mileage,
+      color,
+      description,
+      features,
+      status,
+    } = req.body;
+
+    // ✅ Validation
+    if (!make || !model || !year || !vin || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Make, model, year, VIN, and price are required",
+      });
+    }
+
+    // ✅ Handle both single and multiple uploads
+    let images = [];
+    if (req.file) {
+      // single image
+      images.push(req.file.path);
+    } else if (req.files && req.files.length > 0) {
+      // multiple images
+      images = req.files.map((file) => file.path);
+    }
+
+    const vehicle = await Vehicle.create({
+      make,
+      model,
+      year,
+      vin,
+      bodyType,
+      fuelType,
+      transmission,
+      price,
+      mileage,
+      color,
+      description,
+      features: features
+        ? Array.isArray(features)
+          ? features
+          : features.split(",").map((f) => f.trim())
+        : [],
+      images,
+      status: status || "draft",
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "✅ Vehicle created successfully",
+      vehicle,
+    });
+  } catch (error) {
+    console.error("❌ Error creating vehicle:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create vehicle",
+      error: error.message,
+    });
+  }
+};
+
+
+

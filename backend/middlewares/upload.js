@@ -38,6 +38,23 @@ const imageStorage = new CloudinaryStorage({
       ],
     };
   },
+} );
+
+// ✅ Cloudinary storage for images
+const carStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: "vehicles", // change folder name if needed
+      public_id: `${Date.now()}-${file.originalname.split(".")[0]}`,
+      resource_type: "image",
+      allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      transformation: [
+        { width: 800, height: 800, crop: "limit" },
+        { quality: "auto:best" },
+      ],
+    };
+  },
 });
 
 // ✅ Multer uploader (multipart form)
@@ -45,6 +62,12 @@ const uploadImages = multer({
   storage: imageStorage,
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
+} );
+
+const vehicleImages = multer({
+  storage: carStorage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
 });
 
-export default uploadImages;
+export {uploadImages, vehicleImages};
