@@ -3,27 +3,22 @@ import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
 
 const protectRoute = async (req, res, next) => {
-  try {
-    const token =
-      req.cookies.jwt || req.header("Authorization")?.replace("Bearer ", "");
+	try {
+		const token = req.cookies.jwt || req.header("Authorization")?.replace("Bearer ", "");
 
-    if (!token) {
-      return res.status(401).json({ message: "Unauthorized, no token provided" });
-    }
+		if (!token) return res.status(401).json({ message: "Unauthorized" });
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+		const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    const user = await User.findById(decoded.userId).select("-password");
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized, user not found" });
-    }
+		const user = await User.findById(decoded.userId).select("-password");
 
-    req.user = user;
-    next();
-  } catch (err) {
-    console.error("JWT Error:", err.message);
-    return res.status(401).json({ message: "Invalid or expired token" });
-  }
+		req.user = user;
+
+		next();
+	} catch (err) {
+		res.status(500).json({ message: err.message });
+		console.log("Error in registerUser: ", err.message);
+	}
 };
 
 export default protectRoute;
