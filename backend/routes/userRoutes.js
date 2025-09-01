@@ -46,16 +46,21 @@ userRouter.post( "/reset-password", resetPassword );
 userRouter.patch( "/change-password", protectRoute, changePassword );
 userRouter.patch( "/update/:id", protectRoute, updateUser );
 
-// Upload documents (multipart + Cloudinary)
-userRouter.post("/:userId/documents", protectRoute,uploadImages.fields([
-  { name: "idCardFront", maxCount: 1 },
-  { name: "driverLicense", maxCount: 1 },
-  { name: "insurance", maxCount: 1 },
-  { name: "bankStatement", maxCount: 1 },
-]), uploadDocuments);
+// Upload identity documents
+userRouter.post(
+  "/:userId/documents",
+  protectRoute,
+  uploadImages.fields([
+    { name: "idCardFront", maxCount: 1 },
+    { name: "driverLicense", maxCount: 1 },
+    { name: "insurance", maxCount: 1 },
+    { name: "bankStatement", maxCount: 1 },
+  ]),
+  uploadDocuments
+);
 
 // Accept terms
-userRouter.post("/:userId/terms",protectRoute, acceptTerms);
+userRouter.post("/:userId/terms", protectRoute, acceptTerms);
 
 // Admin approves
 // userRouter.post("/:userId/approve", approveUser);

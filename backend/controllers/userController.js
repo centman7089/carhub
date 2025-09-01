@@ -471,8 +471,12 @@ const resetPassword = async (req, res) => {
 // STEP 1: Upload Documents (Cloudinary middleware handles the upload)
 const uploadDocuments = async (req, res) => {
   try {
-    // ✅ Use the authenticated user from middleware
-    const userId = req.user._id;  
+    const { userId } = req.params;
+
+    // ✅ Ensure the logged-in user is the same as the param userId
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ error: "Unauthorized action" });
+    }
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
@@ -486,7 +490,7 @@ const uploadDocuments = async (req, res) => {
 
     uploadedFields.forEach((field) => {
       const file = req.files[field][0];
-      user.identityDocuments[field] = file.path; // Cloudinary URL from multer-storage-cloudinary
+      user.identityDocuments[field] = file.path; // Cloudinary URL
     });
 
     user.identityDocuments.status = "pending";
@@ -506,22 +510,31 @@ const uploadDocuments = async (req, res) => {
 };
 
 
+
 // STEP 2: Accept Terms
 const acceptTerms = async (req, res) => {
   try {
     const { userId } = req.params;
+
+    // ✅ Ensure logged-in user matches the route param
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ error: "Unauthorized action" });
+    }
+
     const { acceptedTerms, acceptedPrivacy } = req.body;
 
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     if (!acceptedTerms || !acceptedPrivacy) {
-      return res.status(400).json({ error: "You must accept both Terms and Privacy Policy" });
+      return res.status(400).json({
+        error: "You must accept both Terms and Privacy Policy",
+      });
     }
 
     user.acceptedTerms = true;
     user.acceptedPrivacy = true;
-    user.onboardingStage = "admin_review"; // ✅ Move to waiting stage
+    user.onboardingStage = "admin_review";
 
     await user.save();
 
@@ -533,6 +546,7 @@ const acceptTerms = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // STEP 3: Admin approves user
 // const approveUser = async (req, res) => {
