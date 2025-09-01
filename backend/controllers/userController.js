@@ -470,22 +470,23 @@ const resetPassword = async (req, res) => {
 
 // STEP 1: Upload Documents (Cloudinary middleware handles the upload)
 const uploadDocuments = async (req, res) => {
-  try
-  {
-    const userId = req.user._id
-    const { userId } = req.params;
+  try {
+    // ✅ Use the authenticated user from middleware
+    const userId = req.user._id;  
+
     const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     const fields = ["idCardFront", "driverLicense", "insurance", "bankStatement"];
     const uploadedFields = fields.filter((field) => req.files[field]);
 
-    if (uploadedFields.length === 0)
+    if (uploadedFields.length === 0) {
       return res.status(400).json({ error: "Please upload at least one document" });
+    }
 
     uploadedFields.forEach((field) => {
       const file = req.files[field][0];
-      user.identityDocuments[field] = file.path; // Cloudinary URL
+      user.identityDocuments[field] = file.path; // Cloudinary URL from multer-storage-cloudinary
     });
 
     user.identityDocuments.status = "pending";
@@ -503,6 +504,7 @@ const uploadDocuments = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // STEP 2: Accept Terms
 const acceptTerms = async (req, res) => {
