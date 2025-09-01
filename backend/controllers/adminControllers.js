@@ -350,45 +350,70 @@ export const getAdminUser = async (req, res) => {
   }
 };
 
-export const verifyCac = async (req, res) => {
+// export const verifyCac = async (req, res) => {
+//   try {
+//     const employer = await Employer.findById(req.params.employerId);
+//     if (!employer) return res.status(404).json({ error: "Employer not found" });
+
+//     employer.cacStatus = "approved";
+//     employer.cacVerified = true;
+//     employer.cacRejectionReason = "";
+
+//     await employer.save();
+//     res.json({ message: "CAC verified successfully." });
+//   } catch (err) {
+//     console.error("verifyCac error:", err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// };
+
+
+// export const rejectCac = async (req, res) => {
+//   try {
+//     const { reason } = req.body; // rejection reason from admin
+//     const employer = await Employer.findById(req.params.employerId);
+
+//     if (!employer) {
+//       return res.status(404).json({ error: "Employer not found" });
+//     }
+
+//     employer.cacStatus = "rejected";
+//     employer.cacVerified = false;
+//     employer.cacRejectionReason = reason || "No reason provided";
+
+//     await employer.save();
+
+//     res.status(200).json({
+//       message: "CAC rejected successfully",
+//       employer,
+//     });
+//   } catch (err) {
+//     console.error("rejectCac error:", err);
+//     res.status(500).json({ error: "Server error" });
+//   }
+// };
+
+
+export const approveUser = async (req, res) => {
   try {
-    const employer = await Employer.findById(req.params.employerId);
-    if (!employer) return res.status(404).json({ error: "Employer not found" });
+    const { userId } = req.params;
 
-    employer.cacStatus = "approved";
-    employer.cacVerified = true;
-    employer.cacRejectionReason = "";
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    await employer.save();
-    res.json({ message: "CAC verified successfully." });
-  } catch (err) {
-    console.error("verifyCac error:", err);
-    res.status(500).json({ error: "Server error" });
-  }
-};
+    user.identityDocuments.status = "approved";
+    user.identityDocuments.reviewedAt = new Date();
+    user.isApproved = true;
+    user.onboardingStage = "completed";
 
+    await user.save();
 
-export const rejectCac = async (req, res) => {
-  try {
-    const { reason } = req.body; // rejection reason from admin
-    const employer = await Employer.findById(req.params.employerId);
-
-    if (!employer) {
-      return res.status(404).json({ error: "Employer not found" });
-    }
-
-    employer.cacStatus = "rejected";
-    employer.cacVerified = false;
-    employer.cacRejectionReason = reason || "No reason provided";
-
-    await employer.save();
-
-    res.status(200).json({
-      message: "CAC rejected successfully",
-      employer,
+    res.json({
+      message: "User approved successfully.",
+      step: user.onboardingStage,
+      user,
     });
   } catch (err) {
-    console.error("rejectCac error:", err);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: err.message });
   }
 };

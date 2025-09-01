@@ -466,79 +466,95 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// Step 2: Upload identity documents (Car Dealer only)
+
+
+// STEP 1: Upload Documents (Cloudinary middleware handles the upload)
 const uploadDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
     const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    if (!user || user.accountType !== "car_dealer") {
-      return res.status(400).json({ error: "Invalid user or account type" });
-    }
-
-    // Allowed document fields
     const fields = ["idCardFront", "driverLicense", "insurance", "bankStatement"];
-
-    // Ensure only one document uploaded
     const uploadedFields = fields.filter((field) => req.files[field]);
-    if (uploadedFields.length === 0) {
-      return res.status(400).json({ error: "You must upload exactly one document" });
-    }
-    if (uploadedFields.length > 1) {
-      return res.status(400).json({ error: "Only one document can be uploaded at a time" });
-    }
 
-    const field = uploadedFields[0];
-    const file = req.files[field][0];
+    if (uploadedFields.length === 0)
+      return res.status(400).json({ error: "Please upload at least one document" });
 
-    // Save document in user record
-    user.identityDocuments = {
-      type: field,
-      url: file.path,
-      status: "pending", // pending admin review
-      uploadedAt: new Date(),
-    };
+    uploadedFields.forEach((field) => {
+      const file = req.files[field][0];
+      user.identityDocuments[field] = file.path; // Cloudinary URL
+    });
 
-    // Move onboarding step
-    user.step = "admin_approval";
+    user.identityDocuments.status = "pending";
+    user.identityDocuments.uploadedAt = new Date();
+    user.onboardingStage = "terms";
+
     await user.save();
 
     res.json({
-      message: "Document uploaded successfully, pending admin approval",
-      step: "admin_approval",
-      document: user.identityDocuments,
+      message: "Documents uploaded successfully. Proceed to Terms & Conditions.",
+      step: user.onboardingStage,
+      documents: user.identityDocuments,
     });
   } catch (err) {
-    console.error("Error in uploadDocuments:", err);
     res.status(500).json({ error: err.message });
   }
 };
 
-
-
-  
-  // Step 3: Accept Terms
+// STEP 2: Accept Terms
 const acceptTerms = async (req, res) => {
-    try {
-      const { userId } = req.params;
-      const user = await User.findById(userId);
-  
-      if (!user) return res.status(404).json({ error: 'User not found' });
-  
-      user.termsAccepted = true;
-  
-      // For Car Dealers, we leave isVerified false for admin to approve
-      if (user.accountType === 'Retailer') {
-        user.isVerified = true;
-      }
-  
-      await user.save();
-      res.json({ message: 'Terms accepted', user });
-    } catch (err) {
-      res.status(500).json({ error: err.message });
+  try {
+    const { userId } = req.params;
+    const { acceptedTerms, acceptedPrivacy } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    if (!acceptedTerms || !acceptedPrivacy) {
+      return res.status(400).json({ error: "You must accept both Terms and Privacy Policy" });
     }
-  };
-  
+
+    user.acceptedTerms = true;
+    user.acceptedPrivacy = true;
+    user.onboardingStage = "admin_review"; // ✅ Move to waiting stage
+
+    await user.save();
+
+    res.json({
+      message: "Terms accepted. Awaiting admin approval.",
+      step: user.onboardingStage,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// STEP 3: Admin approves user
+// const approveUser = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+
+//     const user = await User.findById(userId);
+//     if (!user) return res.status(404).json({ error: "User not found" });
+
+//     user.identityDocuments.status = "approved";
+//     user.identityDocuments.reviewedAt = new Date();
+//     user.isApproved = true;
+//     user.onboardingStage = "completed";
+
+//     await user.save();
+
+//     res.json({
+//       message: "User approved successfully.",
+//       step: user.onboardingStage,
+//       user,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 
 
 // =============================
@@ -558,5 +574,6 @@ export {
 	resetPassword,
 	changePassword,
 	acceptTerms,
-	uploadDocuments
+  uploadDocuments,
+  // approveUser
 };

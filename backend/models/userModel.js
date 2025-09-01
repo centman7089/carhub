@@ -3,6 +3,24 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
+
+const identityDocumentsSchema = new mongoose.Schema(
+  {
+    idCardFront: { type: String },
+    driverLicense: { type: String },
+    insurance: { type: String },
+    bankStatement: { type: String },
+    status: {
+      type: String,
+      enum: ["pending", "approved", "rejected"],
+      default: "pending",
+    },
+    uploadedAt: { type: Date },
+    reviewedAt: { type: Date },
+  },
+  { _id: false }
+);
+
 const userSchema = mongoose.Schema(
   {
         
@@ -32,26 +50,38 @@ const userSchema = mongoose.Schema(
       default:
         "https://res.cloudinary.com/dq5puvtne/image/upload/v1740648447/next_crib_avatar_jled2z.jpg",
     },
+
+     // Terms & Privacy
+    acceptedTerms: { type: Boolean, default: false },
+    acceptedPrivacy: { type: Boolean, default: false },
+        // Verification + Flow
+    identityDocuments: { type: identityDocumentsSchema, default: {} },
+    onboardingStage: {
+      type: String,
+      enum: ["documents", "terms", "admin_review", "completed"],
+      default: "documents",
+    },
     // accountType: { type: String, enum: [ 'retailer', 'car_dealer' ], required: true },
-    documentUrl: { type: String }, // for car dealers
+    // documentUrl: { type: String }, // for car dealers
     document: {
             url: String,
             type: { type: String, enum: ['id_card', 'bank_statement', 'insurance', 'driver_license'] },
             status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     },
     // Verification status
-    isVerified: { type: Boolean, default: false },
+      // Admin controls
+    isVerified: { type: Boolean, default: false }, // email verified
+    isApproved: { type: Boolean, default: false }, // admin approval
     requiresDocument: { type: Boolean, default: false },
-    verificationStage: {
-      type: String,
-      enum: ['personalInfo', 'identityDocs', 'terms', 'completed'],
-      default: 'personalInfo',
-    },
+    // verificationStage: {
+    //   type: String,
+    //   enum: ['personalInfo', 'identityDocs', 'terms', 'completed'],
+    //   default: 'personalInfo',
+    // },
     // Agreement
        // ✅ Policy acceptance fields
        acceptedTerms: { type: Boolean, required: true, default: false },
       acceptedPrivacy: { type: Boolean, required: true, default: false },
-      isApproved: { type: Boolean, default: false },
       onboardingCompleted: { type: Boolean, default: false }, // Full flow completed
 
   identityDocuments: {
