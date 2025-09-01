@@ -410,24 +410,52 @@ export const getAdminUser = async (req, res) => {
 //   }
 // };
 
-
+// ✅ Approve User
 export const approveUser = async (req, res) => {
   try {
-    // const { userId } = req.params;
-    const userId = req.user._id
+    const { userId } = req.params; // admin specifies userId in route
 
-    const user = await User.findById(req.params.userId);
+    const user = await User.findById(userId);
     if (!user) return res.status(404).json({ error: "User not found" });
 
     user.identityDocuments.status = "approved";
     user.identityDocuments.reviewedAt = new Date();
+    user.identityDocuments.rejectionReason = null; // clear old reason
     user.isApproved = true;
     user.onboardingStage = "completed";
 
     await user.save();
 
     res.json({
-      message: "User approved successfully.",
+      message: "User approved successfully ✅",
+      step: user.onboardingStage,
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const rejectUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { rejectionReason } = req.body; // admin must give a reason
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    user.identityDocuments.status = "rejected";
+    user.identityDocuments.reviewedAt = new Date();
+    user.identityDocuments.rejectionReason =
+      rejectionReason || "Documents not valid";
+    user.isApproved = false;
+    user.onboardingStage = "rejected"; // ✅ mark stage as rejected
+
+    await user.save();
+
+    res.json({
+      message: "User rejected ❌",
+      reason: user.identityDocuments.rejectionReason,
       step: user.onboardingStage,
       user,
     });

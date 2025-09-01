@@ -128,43 +128,75 @@ const register = async (req, res) => {
 // LOGIN
 // =============================
 const login = async (req, res) => {
-	try {
-		const { email, password } = req.body;
-		const user = await User.findOne({ email });
-		if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+  try {
+    const { email, password } = req.body;
 
-		const isPasswordCorrect = await user.correctPassword(password);
-		if (!isPasswordCorrect) return res.status(400).json({ error: "Invalid password" });
+    // 🔎 Find user by email
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ msg: "Invalid credentials" });
 
-		if (!user.isVerified) {
-			const code = generateCode();
-			user.emailCode = code;
-			user.emailCodeExpires = Date.now() + 10 * 60 * 1000;
-			await user.save();
-			await sendEmail(email, "New Verification Code", `Your new verification code is: ${code}`);
-			return res.status(403).json({
-				msg: "Account not verified. A new verification code has been sent.",
-				isVerified: false
-			});
-		}
+    // 🔒 Check password
+    const isPasswordCorrect = await user.correctPassword(password);
+    if (!isPasswordCorrect) {
+      return res.status(400).json({ error: "Invalid password" });
+    }
 
-		if (user.role === "car_dealer" && !user.isApproved) {
-			return res.status(403).json({ msg: "Awaiting admin approval", isVerified: true, isApproved: false });
-		}
+    // 📧 Check if email is verified
+    if (!user.isVerified) {
+      const code = generateCode();
+      user.emailCode = code;
+      user.emailCodeExpires = Date.now() + 10 * 60 * 1000;
+      await user.save();
+      await sendEmail(
+        email,
+        "New Verification Code",
+        `Your new verification code is: ${code}`
+      );
+      return res.status(403).json({
+        msg: "Account not verified. A new verification code has been sent.",
+        isVerified: false,
+      });
+    }
 
-		const token = generateTokenAndSetCookie(user._id, res);
-		res.status(200).json({
-			token,
-			_id: user._id,
-			email: user.email,
-			msg: "Login Successful",
-			isVerified: true,
-			onboardingCompleted: user.onboardingCompleted
-		});
-	} catch (err) {
-		console.error("Error in login:", err.message);
-		res.status(500).json({ error: err.message });
-	}
+    // 🚗 If role = car_dealer, ensure admin approval
+    if (user.role === "car_dealer") {
+      if (!user.isApproved || user.identityDocuments.status !== "approved") {
+        return res.status(403).json({
+          msg: "Awaiting admin approval",
+          isVerified: true,
+          isApproved: false,
+          documentStatus: user.identityDocuments?.status || "pending",
+        });
+      }
+    }
+
+    // ✅ Auto-fix onboarding stage if approved
+    if (
+      user.identityDocuments?.status === "approved" &&
+      user.onboardingStage !== "completed"
+    ) {
+      user.onboardingStage = "completed";
+      user.onboardingCompleted = true;
+      await user.save();
+    }
+
+    // 🎟 Generate token
+    const token = generateTokenAndSetCookie(user._id, res);
+
+    res.status(200).json({
+      token,
+      _id: user._id,
+      email: user.email,
+      msg: "Login Successful",
+      isVerified: true,
+      isApproved: user.isApproved,
+      documentStatus: user.identityDocuments?.status,
+      onboardingCompleted: user.onboardingCompleted,
+    });
+  } catch (err) {
+    console.error("Error in login:", err.message);
+    res.status(500).json({ error: err.message });
+  }
 };
 
 // =============================
@@ -469,7 +501,9 @@ const resetPassword = async (req, res) => {
 
 
 // STEP 1: Upload Documents (Cloudinary middleware handles the upload)
-const uploadDocuments = async (req, res) => {
+
+
+export const uploadDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
 
@@ -488,11 +522,16 @@ const uploadDocuments = async (req, res) => {
       return res.status(400).json({ error: "Please upload at least one document" });
     }
 
+    // ✅ Save uploaded documents
     uploadedFields.forEach((field) => {
       const file = req.files[field][0];
-      user.identityDocuments[field] = file.path; // ✅ Cloudinary URL
+      user.identityDocuments[field] = file.path; // Cloudinary URL
     });
 
+    // ✅ Reset status if previously rejected
+    user.resetDocumentsIfRejected();
+
+    // ✅ Update upload details
     user.identityDocuments.status = "pending";
     user.identityDocuments.uploadedAt = new Date();
     user.onboardingStage = "terms";
@@ -508,6 +547,7 @@ const uploadDocuments = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 

@@ -438,41 +438,67 @@ export const getDashboardStats = async (req, res) => {
   }
 };
 
-export const approveUser = async (req, res) => {
-  try
-  {
-      const {userId} = req.params
-      const user = await User.findById(userId);
-      // if (!user || user.accountType !== 'car_dealer') {
-      //   return res.status(404).json({ message: 'Dealer not found' });
-      // }
-  
-      user.isApproved = true;
-      user.document.status = 'approved';
-      await user.save();
-  
-      res.status(200).json({ message: 'User approved successfully' });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+
+
+// ✅ Approve User
+export const approveUserDocument = async (req, res) => {
+  try {
+    const { userId } = req.params; // Admin specifies user to approve
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
-  };
-  
-  export const rejectUser = async (req, res) => {
-    try {
-      const user = await User.findById(req.params.userId);
-      if (!user || user.accountType !== 'car_dealer') {
-        return res.status(404).json({ message: 'Dealer not found' });
-      }
-  
-      user.isApproved = false;
-      user.document.status = 'rejected';
-      await user.save();
-  
-      res.status(200).json({ message: 'User rejected successfully' });
-    } catch (error) {
-      res.status(500).json({ message: 'Server error', error });
+
+    user.identityDocuments.status = "approved";
+    user.identityDocuments.reviewedAt = new Date();
+    user.isApproved = true;
+    user.onboardingStage = "completed";
+
+    await user.save();
+
+    res.status(200).json({
+      message: "User approved successfully",
+      step: user.onboardingStage,
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ❌ Reject User
+export const rejectUser = async (req, res) => {
+  try {
+    const { userId } = req.params; // Admin specifies user to reject
+    const { reason } = req.body; // Optional reason for rejection
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
     }
-  };
+
+    user.identityDocuments.status = "rejected";
+    user.identityDocuments.reviewedAt = new Date();
+    user.isApproved = false;
+    user.onboardingStage = "rejected";
+
+    if (reason) {
+      user.identityDocuments.rejectionReason = reason; // ✅ store reason if given
+    }
+
+    await user.save();
+
+    res.status(200).json({
+      message: "User rejected successfully",
+      step: user.onboardingStage,
+      user,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 export const getPendingDealers = async (req, res) => {
     const users = await User.find({ accountType: 'car_dealer', 'document.status': 'pending' });
     res.json(users);

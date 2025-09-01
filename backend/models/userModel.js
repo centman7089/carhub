@@ -15,7 +15,9 @@ const identityDocumentsSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    rejectionReason: { type: String }, // ✅ added for rejection feedback
     uploadedAt: { type: Date },
+
     reviewedAt: { type: Date },
   },
   { _id: false }
@@ -143,6 +145,16 @@ userSchema.methods.setPasswordResetCode = function () {
   this.resetCode = crypto.createHash("sha256").update(code).digest("hex");
   this.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   return code;
+};
+
+// ✅ Auto-reset identity status if user re-uploads docs after rejection
+userSchema.methods.resetDocumentsIfRejected = function () {
+  if (this.identityDocuments.status === "rejected") {
+    this.identityDocuments.status = "pending";
+    this.identityDocuments.rejectionReason = undefined;
+    this.identityDocuments.reviewedAt = undefined;
+    this.onboardingStage = "admin_review"; // move back to review
+  }
 };
 
 // Validate reset code

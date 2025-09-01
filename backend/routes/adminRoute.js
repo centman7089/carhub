@@ -26,6 +26,7 @@ adminRouter.patch( "/update/:id", protectAdmin,updateUser );
 // Reject CAC
 
 adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), approveUser);
+adminRouter.patch("/:userId/reject",protectAdmin, authorizeRoles('admin'), approveUser);
 
 
 
