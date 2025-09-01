@@ -1,6 +1,7 @@
 // server.mjs or server.js with "type": "module"
 import express from 'express';
 import dotenv from "dotenv";
+
 import connectDB from "./db/connectDB.js";
 // import mongoose from 'mongoose';
 import cors from 'cors';
