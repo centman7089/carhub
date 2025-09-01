@@ -49,7 +49,6 @@ userRouter.patch( "/update/:id", protectRoute, updateUser );
 // Upload identity documents
 userRouter.post(
   "/:userId/documents",
-  protectRoute,
   uploadImages.fields([
     { name: "idCardFront", maxCount: 1 },
     { name: "driverLicense", maxCount: 1 },
@@ -60,7 +59,7 @@ userRouter.post(
 );
 
 // Accept terms
-userRouter.post("/:userId/terms", protectRoute, acceptTerms);
+userRouter.post("/:userId/terms", acceptTerms);
 
 // Admin approves
 // userRouter.post("/:userId/approve", approveUser);
