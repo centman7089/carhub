@@ -1,6 +1,6 @@
 // @ts-nocheck
 import express from "express";
-import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode, approveUser } from "../controllers/adminControllers.js";
+import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode, approveUser, rejectUser } from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 
 
@@ -26,7 +26,7 @@ adminRouter.patch( "/update/:id", protectAdmin,updateUser );
 // Reject CAC
 
 adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), approveUser);
-adminRouter.patch("/:userId/reject",protectAdmin, authorizeRoles('admin'), approveUser);
+adminRouter.patch("/:userId/reject",protectAdmin, authorizeRoles('admin'), rejectUser);
 
 
 
