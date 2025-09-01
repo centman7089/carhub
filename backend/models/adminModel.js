@@ -5,30 +5,27 @@ import bcrypt from "bcryptjs"
 
 
 const adminSchema = new  mongoose.Schema( {
-    firstName: {
-        type: String,
-        required: true,
-    },
-    lastName: {
-        type: String,
-        required: true,
-    },
+      firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
     email: {
-        type: String,
-        required: true,
+      type: String,
+      required: true,
+      unique: true,
+      lowercase: true,
+      trim: true,
     },
-    password: {
-        type: String,
-        required: true,
-    },
-    phone: {
-        type: String,
-        required: true,
-    },
-    country: {
-        type: String,
-        required: true,
-    },
+    password: { type: String, minLength: 6, required: true },
+    phone: { type: String, minLength: 6, required: true },
+
+    // Location details
+    // country: { type: String, required: true },
+    state: { type: String, required: true },
+    city: { type: String, required: true },
+    streetAddress: { type: String, required: true },
+    zipCode: { type: String },
+
+    // Optional profile info
+    dateOfBirth: { type: Date },
     role
         : {
         type: String,

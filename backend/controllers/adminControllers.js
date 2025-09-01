@@ -9,7 +9,7 @@ import { v2 as cloudinary } from "cloudinary";
 import generateCode from "../utils/generateCode.js";
 import sendEmail from "../utils/sendEmails.js";
 import mongoose from "mongoose";
-import Employer from "../models/employerModel.js";
+
 
 // In-memory session store (use Redis in production)
 const resetSessions = new Map();
@@ -37,11 +37,23 @@ const formatAdminResponse = (admin) => ({
 // ========================
 export const createAdmin = async (req, res) => {
   try {
-    const { firstName, lastName, email, password, phone, country, role } = req.body;
+    const { firstName,
+			lastName,
+			email,
+			password,
+			phone,
+			state,
+			city,
+			streetAddress,
+			zipCode,
+			dateOfBirth, role } = req.body;
 
-    if (!firstName || !lastName || !email || !password || !phone || !country) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
+   // Validate required fields
+		if (
+			!firstName || !lastName || !email || !password || !phone || !state || !city || !streetAddress || !dateOfBirth
+		) {
+			return res.status(400).json({ message: "All fields are required" });
+		}
 
     const adminExists = await Admin.findOne({ email });
     if (adminExists) {
@@ -50,12 +62,16 @@ export const createAdmin = async (req, res) => {
 
     const code = generateCode();
     const admin = new Admin({
-      firstName,
-      lastName,
-      email,
-      password, // pre-save hook will hash
-      phone,
-      country,
+    firstName,
+			lastName,
+			email,
+			password,
+			phone,
+			state,
+			city,
+			streetAddress,
+			zipCode,
+			dateOfBirth,
       role,
       emailCode: code,
       emailCodeExpires: Date.now() + 10 * 60 * 1000, // 10 mins
