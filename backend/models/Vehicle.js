@@ -2,11 +2,7 @@ import mongoose from "mongoose";
 
 const vehicleSchema = new mongoose.Schema(
   {
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true, // link to dealer who added the car
-    },
+  
     make: { type: String, required: true },
     model: { type: String, required: true },
     year: { type: String, required: true },
@@ -18,7 +14,8 @@ const vehicleSchema = new mongoose.Schema(
     mileage: Number,
     color: String,
     description: String,
-    features: [String],
+    features: [ String ],
+    condition: String,
     images: [String], // Cloudinary URLs
     status: {
       type: String,

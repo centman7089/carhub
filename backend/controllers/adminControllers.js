@@ -573,6 +573,7 @@ export const createVehicle = async (req, res) => {
       color,
       description,
       features,
+      condition,
       status,
     } = req.body;
 
@@ -611,6 +612,7 @@ export const createVehicle = async (req, res) => {
           ? features
           : features.split(",").map((f) => f.trim())
         : [],
+      condition,
       images,
       status: status || "draft",
     });
