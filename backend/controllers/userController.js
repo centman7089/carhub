@@ -473,8 +473,8 @@ const uploadDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // ✅ Ensure the logged-in user is the same as the param userId
-    if (req.user._id.toString() !== userId) {
+    // ✅ Ensure logged-in user matches route param
+    if (!req.user || req.user._id.toString() !== userId) {
       return res.status(403).json({ error: "Unauthorized action" });
     }
 
@@ -490,7 +490,7 @@ const uploadDocuments = async (req, res) => {
 
     uploadedFields.forEach((field) => {
       const file = req.files[field][0];
-      user.identityDocuments[field] = file.path; // Cloudinary URL
+      user.identityDocuments[field] = file.path; // ✅ Cloudinary URL
     });
 
     user.identityDocuments.status = "pending";
@@ -508,6 +508,7 @@ const uploadDocuments = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 
