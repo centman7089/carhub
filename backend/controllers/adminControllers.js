@@ -9,6 +9,7 @@ import { v2 as cloudinary } from "cloudinary";
 import generateCode from "../utils/generateCode.js";
 import sendEmail from "../utils/sendEmails.js";
 import mongoose from "mongoose";
+import User from "../models/userModel.js";
 
 
 // In-memory session store (use Redis in production)

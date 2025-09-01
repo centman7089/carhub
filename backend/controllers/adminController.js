@@ -439,8 +439,10 @@ export const getDashboardStats = async (req, res) => {
 };
 
 export const approveUser = async (req, res) => {
-    try {
-      const user = await User.findById(req.params.userId);
+  try
+  {
+      const {userId} = req.params
+      const user = await User.findById(userId);
       if (!user || user.accountType !== 'car_dealer') {
         return res.status(404).json({ message: 'Dealer not found' });
       }
