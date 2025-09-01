@@ -503,7 +503,7 @@ const resetPassword = async (req, res) => {
 // STEP 1: Upload Documents (Cloudinary middleware handles the upload)
 
 
-export const uploadDocuments = async (req, res) => {
+const uploadDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
 
