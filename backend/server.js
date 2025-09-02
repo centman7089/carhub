@@ -43,11 +43,46 @@ const io = new Server(server, {
 });
 
 // ✅ Middleware
-app.use( cors() );
-app.use( '/api/admin', adminRouter );
-app.use('/api/vehicles', vehicleRoutes);
+app.use(cors());
 
-// ✅ Only for JSON routes (NOT file uploads!)
+// 🚨 IMPORTANT: Mount vehicles BEFORE body parsers so Multer handles file uploads
+app.use( '/api/vehicles', vehicleRoutes );
+app.use( '/api/admin', adminRouter );
+
+// ✅ JSON body parser only for non-file routes
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/api/vehicles")) {
+    // skip body-parser for vehicle uploads (handled by Multer)
+    return next();
+  }
+  express.json({ limit: "50mb" })(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/api/vehicles")) {
+    return next();
+  }
+  express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
+});
+
+// ✅ JSON body parser only for non-file routes
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/api/admin")) {
+    // skip body-parser for vehicle uploads (handled by Multer)
+    return next();
+  }
+  express.json({ limit: "50mb" })(req, res, next);
+});
+
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/api/admin")) {
+    return next();
+  }
+  express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
+});
+
+
+// ✅ Body parsers (only for JSON/text routes, NOT file uploads)
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
@@ -62,11 +97,6 @@ app.use('/api/deliveries', deliveryRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/listings', listingRoutes);
-
-// ❗️ Important: vehicleRoutes already uses Multer
-// Do NOT parse it again with express.json/bodyParser
-
-
 app.use('/api/notifications', notificationRoutes);
 
 
