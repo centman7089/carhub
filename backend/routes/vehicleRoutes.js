@@ -12,7 +12,7 @@ import { vehicleImages } from '../middlewares/upload.js';
 
 const router = express.Router();
 
-router.post('/', vehicleImages,createVehicle);
+router.post('/create-vehicle', vehicleImages,createVehicle);
 router.get('/', getVehicles);
 router.get('/:id', getVehicleById);
 router.put('/:id', upload.array('images', 5), updateVehicle);
