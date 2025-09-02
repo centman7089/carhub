@@ -32,7 +32,7 @@ adminRouter.patch( "/:userId/reject", protectAdmin, authorizeRoles( 'admin' ), r
 adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
 adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );
 adminRouter.post(
-  "/",
+  "/create-vehicle",
   protectAdmin, // require authentication (dealer must be logged in)
   vehicleImages.single("image"), // accept only one image with field name = "image"
   createVehicle
