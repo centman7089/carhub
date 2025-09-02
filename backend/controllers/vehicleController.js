@@ -18,6 +18,22 @@ const uploadToCloudinary = async (fileBuffer, filename) => {
 // CREATE NEW VEHICLE
 const createVehicle = async (req, res) => {
   try {
+    // Check if file size error occurred
+    if (req.fileValidationError) {
+      return res.status(400).json({
+        success: false,
+        message: req.fileValidationError
+      });
+    }
+
+    // Check for multer errors (file too large, etc.)
+    if (req.files && req.files.length === 0 && req.body.images) {
+      return res.status(400).json({
+        success: false,
+        message: "File upload failed - file may be too large or invalid format"
+      });
+    }
+
     const {
       make,
       model,
