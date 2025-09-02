@@ -34,7 +34,7 @@ adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ),
 adminRouter.post(
   "/create-vehicle",
   protectAdmin, // require authentication (dealer must be logged in)
-  vehicleImages.single("image"), // accept only one image with field name = "image"
+  vehicleImages, // accept only one image with field name = "image"
   createVehicle
 );
 

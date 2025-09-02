@@ -575,14 +575,13 @@ export const createVehicle = async (req, res) => {
       lotNumber,
       description,
       features,
-      // status,
       zipCode,
       address,
       state,
       city
     } = req.body;
 
-    // ✅ Validation
+    // Validation
     if (!make || !model || !year || !vin || !price) {
       return res.status(400).json({
         success: false,
@@ -590,14 +589,13 @@ export const createVehicle = async (req, res) => {
       });
     }
 
-    // ✅ Handle both single and multiple uploads
-    let images = [];
-    if (req.file) {
-      // single image
-      images.push(req.file.path);
-    } else if (req.files && req.files.length > 0) {
-      // multiple images
-      images = req.files.map((file) => file.path);
+    // ✅ Handle images
+    let mainImage = "";
+    let supportingImages = [];
+
+    if (req.files && req.files.length > 0) {
+      mainImage = req.files[0].path; // first image = cover photo
+      supportingImages = req.files.slice(1).map((file) => file.path); // rest of images
     }
 
     const vehicle = await Vehicle.create({
@@ -619,12 +617,12 @@ export const createVehicle = async (req, res) => {
           ? features
           : features.split(",").map((f) => f.trim())
         : [],
-      images,
-      // status: status || "draft",
+      mainImage,
+      supportingImages,
       zipCode,
       address,
       state,
-      city
+      city,
     });
 
     res.status(201).json({
@@ -641,6 +639,7 @@ export const createVehicle = async (req, res) => {
     });
   }
 };
+
 
 
 
