@@ -17,6 +17,17 @@ router.post('/create-vehicle', protectAdmin,vehicleImages,createVehicle);
 router.get('/', getVehicles);
 router.get('/:id', getVehicleById);
 router.put('/:id', upload.array('images', 5), updateVehicle);
-router.delete('/:id', deleteVehicle);
+router.delete( '/:id', deleteVehicle );
+import { createVehicleWithBusboy } from '../controllers/vehicleController';
+
+router.post('/vehicles', (req, res) => {
+  if (req.is('multipart/form-data')) {
+    createVehicleWithBusboy(req, res).catch(error => {
+      res.status(500).json({ error: error.message });
+    });
+  } else {
+    createVehicle(req, res);
+  }
+});
 
 export default router;
