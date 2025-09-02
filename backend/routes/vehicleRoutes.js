@@ -8,10 +8,11 @@ import {
   updateVehicle,
   deleteVehicle,
 } from '../controllers/vehicleController.js';
+import { vehicleImages } from '../middlewares/upload.js';
 
 const router = express.Router();
 
-router.post('/', upload.array('images', 5), createVehicle);
+router.post('/', vehicleImages,createVehicle);
 router.get('/', getVehicles);
 router.get('/:id', getVehicleById);
 router.put('/:id', upload.array('images', 5), updateVehicle);

@@ -578,7 +578,7 @@ export const createVehicle = async (req, res) => {
       zipCode,
       address,
       state,
-      city
+      city,
     } = req.body;
 
     // Validation
@@ -589,13 +589,15 @@ export const createVehicle = async (req, res) => {
       });
     }
 
-    // ✅ Handle images
+    // ✅ Multer saves files as req.files
     let mainImage = "";
     let supportingImages = [];
 
-    if (req.files && req.files.length > 0) {
-      mainImage = req.files[0].path; // first image = cover photo
-      supportingImages = req.files.slice(1).map((file) => file.path); // rest of images
+    if (req.files?.mainImage?.[0]) {
+      mainImage = req.files.mainImage[0].path; // Cloudinary URL
+    }
+    if (req.files?.supportingImages?.length > 0) {
+      supportingImages = req.files.supportingImages.map((f) => f.path);
     }
 
     const vehicle = await Vehicle.create({
@@ -639,6 +641,7 @@ export const createVehicle = async (req, res) => {
     });
   }
 };
+
 
 
 

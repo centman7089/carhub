@@ -61,11 +61,15 @@ const uploadImages = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
 } );
 
+// ✅ Multer fields: one mainImage, multiple supportingImages
 const vehicleImages = multer({
   storage: carStorage,
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per image
-}).array("images", 10); // <-- use "images" field in frontend
+}).fields([
+  { name: "mainImage", maxCount: 1 },       // single file
+  { name: "supportingImages", maxCount: 10 } // multiple files
+]);
 
 
 export {uploadImages, vehicleImages};

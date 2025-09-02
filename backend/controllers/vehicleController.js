@@ -16,7 +16,87 @@ const uploadToCloudinary = async (fileBuffer, filename) => {
 
 
 // CREATE NEW VEHICLE
+const createVehicle = async (req, res) => {
+  try {
+    const {
+      make,
+      model,
+      year,
+      vin,
+      bodyType,
+      fuelType,
+      transmission,
+      price,
+      mileage,
+      color,
+      condition,
+      lotNumber,
+      description,
+      features,
+      zipCode,
+      address,
+      state,
+      city
+    } = req.body;
 
+    // Validation
+    if (!make || !model || !year || !vin || !price) {
+      return res.status(400).json({
+        success: false,
+        message: "Make, model, year, VIN, and price are required",
+      });
+    }
+
+    // ✅ Handle images
+    let mainImage = "";
+    let supportingImages = [];
+
+    if (req.files && req.files.length > 0) {
+      mainImage = req.files[0].path; // first image = cover photo
+      supportingImages = req.files.slice(1).map((file) => file.path); // rest of images
+    }
+
+    const vehicle = await Vehicle.create({
+      make,
+      model,
+      year,
+      vin,
+      bodyType,
+      fuelType,
+      transmission,
+      price,
+      mileage,
+      color,
+      condition,
+      lotNumber,
+      description,
+      features: features
+        ? Array.isArray(features)
+          ? features
+          : features.split(",").map((f) => f.trim())
+        : [],
+      mainImage,
+      supportingImages,
+      zipCode,
+      address,
+      state,
+      city,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "✅ Vehicle created successfully",
+      vehicle,
+    });
+  } catch (error) {
+    console.error("❌ Error creating vehicle:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to create vehicle",
+      error: error.message,
+    });
+  }
+};
 
 // Get all vehicles with optional search
 const getVehicles = async (req, res) => {
