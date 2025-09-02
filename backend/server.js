@@ -82,6 +82,8 @@ app.use(cors());
 //   express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
 // });
 
+app.use('/api/admin', adminRouter);
+app.use('/api/vehicles', vehicleRoutes);
 
 // Middlewares
 app.use(express.json()); // To parse JSON data in the req.body
@@ -103,8 +105,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/notifications', notificationRoutes);
-app.use('/api/admin', adminRouter);
-app.use('/api/vehicles', vehicleRoutes);
+
 
 
 app.get('/', (req, res) => {
