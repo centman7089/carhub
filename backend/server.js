@@ -49,7 +49,9 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use( express.urlencoded( { limit: '10mb', extended: true } ) );
 // Parse application/json with size limit 10mb
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use( bodyParser.json( { limit: '10mb' } ) );
+// Parse application/x-www-form-urlencoded with size limit 10mb
+app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
 
 // Share io instance globally via app
 app.set('io', io);
