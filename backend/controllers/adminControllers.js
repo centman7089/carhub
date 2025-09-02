@@ -840,3 +840,52 @@ export const createVehicleWithBusboy = (req, res) => {
   });
 };
 
+
+export const addVehicle = async (req,res) =>
+{
+    try {
+        const { make, model, year, vin, bodyType, fuelType, transmission, price, mileage, color, condition, lotNumber, description, features, zipCode, address, state, city,} = req.body;
+
+       
+
+        const image1 = req.files.image1 && req.files.image1.length > 0 ? req.files.image1[ 0 ] : null;
+        const image2 = req.files.image2 && req.files.image2.length > 0 ? req.files.image2[ 0 ] : null;
+        const image3 = req.files.image3 && req.files.image3.length > 0 ? req.files.image3[ 0 ] : null;
+        const image4 = req.files.image4 && req.files.image4.length > 0 ? req.files.image4[ 0 ] : null;
+       
+        
+         const images  = [ image1, image2, image3, image4 ].filter(  (item)  => item !== null && item !== undefined ) 
+        console.log(images);
+        
+        let imagesUrl = await Promise.all(
+            images.map( async ( item ) =>
+            {
+                let result = await cloudinary.uploader.upload( item.path, { resource_type: 'image' } )
+                return result.secure_url
+                // console.log(imagesUrl);
+                
+            })
+        )
+
+        //  console.log( name, description, price, category, subCategory, sizes, bestseller );
+        // console.log( imagesUrl );
+        const vehicleData = {
+           make, model, year, vin, bodyType, fuelType, transmission, price, mileage, color, condition, lotNumber, description, features: features ? Array.isArray(features) ? features : features.split(",").map((f) => f.trim()) : [], mainImage, supportingImages, zipCode, address, state, city,
+        }
+        
+console.log(vehicleData);
+
+
+        const vehicle = new Vehicle( vehicleData );
+
+        await vehicle.save()
+
+        return res.json({success:true, message: "Vehicle added successfully"})
+
+    } catch ( error )
+    {
+        console.log(error);
+        
+        return res.json({success:false,message:error.message})
+    }
+}

@@ -15,7 +15,7 @@ const vehicleSchema = new mongoose.Schema(
     condition: { type: String },
     lotNumber: { type: String },
     description: { type: String },
-
+    image: { type: Array,required:true},
     // ✅ Images
     mainImage: {
       type: String, // single image URL
