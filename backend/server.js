@@ -19,6 +19,8 @@ import listingRoutes from './routes/listingRoutes.js';
 import vehicleRoutes from './routes/vehicleRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import adminRouter from './routes/adminRoute.js';
+import bodyParser from 'body-parser';
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 connectDB();
@@ -46,45 +48,48 @@ const io = new Server(server, {
 app.use(cors());
 
 // 🚨 IMPORTANT: Mount vehicles BEFORE body parsers so Multer handles file uploads
-app.use( '/api/vehicles', vehicleRoutes );
-app.use( '/api/admin', adminRouter );
+
 
 // ✅ JSON body parser only for non-file routes
-app.use((req, res, next) => {
-  if (req.originalUrl.startsWith("/api/vehicles")) {
-    // skip body-parser for vehicle uploads (handled by Multer)
-    return next();
-  }
-  express.json({ limit: "50mb" })(req, res, next);
-});
+// app.use((req, res, next) => {
+//   if (req.originalUrl.startsWith("/api/vehicles")) {
+//     // skip body-parser for vehicle uploads (handled by Multer)
+//     return next();
+//   }
+//   express.json({ limit: "50mb" })(req, res, next);
+// });
 
-app.use((req, res, next) => {
-  if (req.originalUrl.startsWith("/api/vehicles")) {
-    return next();
-  }
-  express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
-});
+// app.use((req, res, next) => {
+//   if (req.originalUrl.startsWith("/api/vehicles")) {
+//     return next();
+//   }
+//   express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
+// });
 
-// ✅ JSON body parser only for non-file routes
-app.use((req, res, next) => {
-  if (req.originalUrl.startsWith("/api/admin")) {
-    // skip body-parser for vehicle uploads (handled by Multer)
-    return next();
-  }
-  express.json({ limit: "50mb" })(req, res, next);
-});
+// // ✅ JSON body parser only for non-file routes
+// app.use((req, res, next) => {
+//   if (req.originalUrl.startsWith("/api/admin")) {
+//     // skip body-parser for vehicle uploads (handled by Multer)
+//     return next();
+//   }
+//   express.json({ limit: "50mb" })(req, res, next);
+// });
 
-app.use((req, res, next) => {
-  if (req.originalUrl.startsWith("/api/admin")) {
-    return next();
-  }
-  express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
-});
+// app.use((req, res, next) => {
+//   if (req.originalUrl.startsWith("/api/admin")) {
+//     return next();
+//   }
+//   express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
+// });
 
 
-// ✅ Body parsers (only for JSON/text routes, NOT file uploads)
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+// Middlewares
+app.use(express.json()); // To parse JSON data in the req.body
+app.use(express.urlencoded({ extended: true })); // To parse form data in the req.body
+app.use( cookieParser() );
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 // Share io instance globally via app
 app.set('io', io);
@@ -98,6 +103,8 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/listings', listingRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/admin', adminRouter);
+app.use('/api/vehicles', vehicleRoutes);
 
 
 app.get('/', (req, res) => {
