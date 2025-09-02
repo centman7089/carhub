@@ -571,10 +571,15 @@ export const createVehicle = async (req, res) => {
       price,
       mileage,
       color,
+      condition,
+      lotNumber,
       description,
       features,
-      condition,
-      status,
+      // status,
+      zipCode,
+      address,
+      state,
+      city
     } = req.body;
 
     // ✅ Validation
@@ -606,15 +611,20 @@ export const createVehicle = async (req, res) => {
       price,
       mileage,
       color,
+      condition,
+      lotNumber,
       description,
       features: features
         ? Array.isArray(features)
           ? features
           : features.split(",").map((f) => f.trim())
         : [],
-      condition,
       images,
-      status: status || "draft",
+      // status: status || "draft",
+      zipCode,
+      address,
+      state,
+      city
     });
 
     res.status(201).json({

@@ -13,15 +13,21 @@ const vehicleSchema = new mongoose.Schema(
     price: { type: Number, required: true },
     mileage: Number,
     color: String,
+    condition: String,
+    lotNumber: Number,
     description: String,
     features: [ String ],
-    condition: String,
     images: [String], // Cloudinary URLs
-    status: {
-      type: String,
-      enum: ["draft", "published"],
-      default: "draft",
-    },
+    // status: {
+    //   type: String,
+    //   enum: ["draft", "published"],
+    //   default: "draft",
+    // },
+    state: String,
+    address: String,
+    city: String,
+    zipCode: String
+
   },
   { timestamps: true }
 );
