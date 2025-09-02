@@ -1,5 +1,6 @@
 // server.mjs or server.js with "type": "module"
 import express from 'express';
+import bodyParser from 'body-parser';
 import dotenv from "dotenv";
 
 import connectDB from "./db/connectDB.js";
@@ -44,7 +45,11 @@ const io = new Server(server, {
 
 // Middleware
 app.use(cors());
-app.use(express.json());
+// increase limit to 10mb (adjust as needed)
+app.use(express.json({ limit: '10mb' }));
+app.use( express.urlencoded( { limit: '10mb', extended: true } ) );
+// Parse application/json with size limit 10mb
+app.use(bodyParser.json({ limit: '10mb' }));
 
 // Share io instance globally via app
 app.set('io', io);
