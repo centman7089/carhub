@@ -1,0 +1,14 @@
+# render.yaml
+services:
+  - type: web
+    name: your-app-name
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+    # Increase request size limit for Render's proxy
+    httpOptions:
+      maxBodySize: 50MB

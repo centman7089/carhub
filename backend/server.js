@@ -1,3 +1,4 @@
+// @ts-nocheck
 // server.mjs or server.js with "type": "module"
 import express from "express";
 import dotenv from "dotenv";
@@ -46,31 +47,23 @@ const io = new Server(server, {
 // ✅ Middleware
 app.use(cors());
 app.use( cookieParser() );
-
-// Increase payload size limit (e.g., 50MB)
-app.use(express.json({ limit: '500mb' }));
-app.use(express.urlencoded({ limit: '500mb', extended: true }));
-
-
-// 🚨 Smart body-parser: skip for file uploads
-app.use((req, res, next) => {
-  if (
-    req.originalUrl.startsWith("/api/vehicles") &&
-    req.headers["content-type"]?.includes("multipart/form-data")
-  ) {
-    // Skip JSON body parsing, let Multer handle this
-    return next();
+// Increase limits BEFORE any middleware
+app.use(express.json({ 
+  limit: '50mb',
+  verify: (req, res, buf) => {
+    req.rawBody = buf;
   }
-  express.json({ limit: "50mb" })(req, res, next);
-});
+}));
+
+app.use(express.urlencoded({ 
+  limit: '50mb', 
+  extended: true 
+}));
+
+// Add this middleware to handle large payloads
 app.use((req, res, next) => {
-  if (
-    req.originalUrl.startsWith("/api/vehicles") &&
-    req.headers["content-type"]?.includes("multipart/form-data")
-  ) {
-    return next();
-  }
-  express.urlencoded({ limit: "50mb", extended: true })(req, res, next);
+  res.setHeader('X-Request-Size-Limit', '50mb');
+  next();
 });
 
 // ✅ Routes
