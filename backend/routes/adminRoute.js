@@ -1,8 +1,10 @@
 // @ts-nocheck
 import express from "express";
-import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode, approveUser, rejectUser, createVehicle, addVehicle } from "../controllers/adminControllers.js";
+import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode, approveUser, rejectUser, createVehicle, addVehicle,getAllUsers,updateUserRole } from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 import { vehicleImages } from "../middlewares/upload.js";
+import upload from "../middlewares/multer.js";
+
 
 
 const adminRouter = express.Router()
@@ -37,7 +39,7 @@ adminRouter.post(
   vehicleImages, // accept only one image with field name = "image"
   createVehicle
 );
-aminRouter.post("/add",protectAdmin,upload.fields([{name:'image1',maxCount:1},{name:'image2',maxCount:1},{name:'image3',maxCount:1},{name:'image4',maxCount:1}]), addVehicle)
+adminRouter.post("/add",protectAdmin,upload.fields([{name:'image1',maxCount:1},{name:'image2',maxCount:1},{name:'image3',maxCount:1},{name:'image4',maxCount:1}]), addVehicle)
 
 
 
