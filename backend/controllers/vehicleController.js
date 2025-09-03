@@ -106,9 +106,7 @@ export const addVehicle = async (req, res) => {
  */
 export const getAllVehicles = async (req, res) => {
   try {
-    const vehicles = await Vehicle.find()
-      .populate("createdBy", "name email accountType")
-      .sort({ createdAt: -1 });
+    const vehicles = await Vehicle.find().sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
