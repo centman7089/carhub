@@ -1,6 +1,6 @@
 // @ts-nocheck
 // controllers/vehicleController.js
-import Vehicle from "../models/vehicle.js";
+import Vehicle from "../models/Vehicle.js";
 import { Parser } from "json2csv";
 
 /**
