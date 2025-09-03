@@ -7,6 +7,7 @@ import {
   getVehicleById,
   updateVehicle,
   deleteVehicle,
+  exportVehiclesCSV, updateVehiclePriority
 } from "../controllers/vehicleController.js";
 
 
@@ -18,7 +19,9 @@ const router = express.Router();
 /**
  * Public routes (anyone can view)
  */
-router.get("/", getAllVehicles);
+// Export CSV route
+router.get("/export/csv", exportVehiclesCSV);
+router.get( "/", getAllVehicles );
 router.get("/:id", getVehicleById);
 
 /**
@@ -48,6 +51,8 @@ router.put(
   updateVehicle
 );
 
-router.delete("/:id", protectAdmin, deleteVehicle);
+router.delete( "/:id", protectAdmin, deleteVehicle );
+// Admin updates vehicle priority
+router.patch("/:id/priority", protectAdmin, updateVehiclePriority);
 
 export default router;
