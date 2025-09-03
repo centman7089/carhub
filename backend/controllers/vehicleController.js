@@ -78,7 +78,7 @@ export const addVehicle = async (req, res) => {
       address,
       state,
       city,
-      // createdBy: req.admin._id, // Admin ID
+     
     };
 
     const vehicle = await Vehicle.create(vehicleData);
@@ -129,7 +129,7 @@ export const getAllVehicles = async (req, res) => {
  */
 export const getVehicleById = async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById(req.params.id).populate("createdBy", "name email");
+    const vehicle = await Vehicle.findById( req.params.id );
 
     if (!vehicle) {
       return res.status(404).json({
