@@ -1,16 +1,23 @@
 // controllers/vehicleController.js
-import Vehicle from "../models/Vehicle.js";
+import Vehicle from "../models/vehicle.js";
 
 /**
  * @desc Add a new vehicle (Admin only)
  * @route POST /api/vehicles
  * @access Private (admin)
- */
+ */// controllers/vehicleController.js
+
+
+// controllers/vehicleController.js
+
+
 export const addVehicle = async (req, res) => {
   try {
-    if (req.user.accountType !== "admin") {
-      return res.status(403).json({ success: false, message: "Only admins can add vehicles" });
-    }
+    // if (req.user.accountType !== "admin") {
+    //   return res
+    //     .status(403)
+    //     .json({ success: false, message: "Only admins can add vehicles" });
+    // }
 
     const {
       make,
@@ -33,12 +40,15 @@ export const addVehicle = async (req, res) => {
       city,
     } = req.body;
 
-    // Collect Cloudinary URLs
-    const files = ["image1", "image2", "image3", "image4"]
-      .map((field) => req.files?.[field]?.[0]?.path)
-      .filter(Boolean);
+    // ✅ Extract Cloudinary URLs directly from multer-storage-cloudinary
+    const image1 = req.files?.image1 ? req.files.image1[0].path : null;
+    const image2 = req.files?.image2 ? req.files.image2[0].path : null;
+    const image3 = req.files?.image3 ? req.files.image3[0].path : null;
+    const image4 = req.files?.image4 ? req.files.image4[0].path : null;
 
-    const [mainImage, ...supportingImages] = files;
+    const images = [image1, image2, image3, image4].filter(Boolean);
+
+    const [mainImage, ...supportingImages] = images;
 
     const vehicleData = {
       make,
@@ -68,24 +78,26 @@ export const addVehicle = async (req, res) => {
       address,
       state,
       city,
-      createdBy: req.user._id, // Admin who added it
+      // createdBy: req.admin._id, // Admin ID
     };
 
     const vehicle = await Vehicle.create(vehicleData);
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Vehicle added successfully",
       vehicle,
     });
   } catch (error) {
     console.error("Error adding vehicle:", error);
-    res.status(400).json({
+    return res.status(500).json({
       success: false,
       message: error.message || "Failed to add vehicle",
     });
   }
 };
+
+
 
 /**
  * @desc Get all vehicles
@@ -143,46 +155,109 @@ export const getVehicleById = async (req, res) => {
  * @route PUT /api/vehicles/:id
  * @access Private (admin)
  */
+// controllers/vehicleController.js
+
+
 export const updateVehicle = async (req, res) => {
   try {
-    if (req.user.accountType !== "admin") {
-      return res.status(403).json({ success: false, message: "Only admins can update vehicles" });
-    }
+    // if (req.user.accountType !== "admin") {
+    //   return res
+    //     .status(403)
+    //     .json({ success: false, message: "Only admins can update vehicles" });
+    // }
 
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) {
-      return res.status(404).json({ success: false, message: "Vehicle not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Vehicle not found" });
     }
 
-    // Update fields
-    Object.assign(vehicle, req.body);
+    // ✅ Update text fields
+    const {
+      make,
+      model,
+      year,
+      vin,
+      bodyType,
+      fuelType,
+      transmission,
+      price,
+      mileage,
+      color,
+      condition,
+      lotNumber,
+      description,
+      features,
+      zipCode,
+      address,
+      state,
+      city,
+    } = req.body;
 
-    // Handle new images
-    const files = ["image1", "image2", "image3", "image4"]
-      .map((field) => req.files?.[field]?.[0]?.path)
-      .filter(Boolean);
+    Object.assign(vehicle, {
+      make: make ?? vehicle.make,
+      model: model ?? vehicle.model,
+      year: year ?? vehicle.year,
+      vin: vin ?? vehicle.vin,
+      bodyType: bodyType ?? vehicle.bodyType,
+      fuelType: fuelType ?? vehicle.fuelType,
+      transmission: transmission ?? vehicle.transmission,
+      price: price ?? vehicle.price,
+      mileage: mileage ?? vehicle.mileage,
+      color: color ?? vehicle.color,
+      condition: condition ?? vehicle.condition,
+      lotNumber: lotNumber ?? vehicle.lotNumber,
+      description: description ?? vehicle.description,
+      features: features
+        ? Array.isArray(features)
+          ? features
+          : String(features)
+              .split(",")
+              .map((f) => f.trim())
+              .filter(Boolean)
+        : vehicle.features,
+      zipCode: zipCode ?? vehicle.zipCode,
+      address: address ?? vehicle.address,
+      state: state ?? vehicle.state,
+      city: city ?? vehicle.city,
+    });
 
-    if (files.length) {
-      const [mainImage, ...supportingImages] = files;
-      vehicle.mainImage = mainImage || vehicle.mainImage;
-      vehicle.supportingImages = [...vehicle.supportingImages, ...supportingImages];
+    // ✅ Handle new images from Cloudinary via Multer
+    const image1 = req.files?.image1 ? req.files.image1[0].path : null;
+    const image2 = req.files?.image2 ? req.files.image2[0].path : null;
+    const image3 = req.files?.image3 ? req.files.image3[0].path : null;
+    const image4 = req.files?.image4 ? req.files.image4[0].path : null;
+
+    const newImages = [image1, image2, image3, image4].filter(Boolean);
+
+    if (newImages.length > 0) {
+      // Replace mainImage if provided
+      vehicle.mainImage = newImages[0] || vehicle.mainImage;
+
+      // Append supporting images
+      vehicle.supportingImages = [
+        ...vehicle.supportingImages,
+        ...newImages.slice(1),
+      ];
     }
 
     await vehicle.save();
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
       message: "Vehicle updated successfully",
       vehicle,
     });
   } catch (error) {
     console.error("Error updating vehicle:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to update vehicle",
+      message: error.message || "Failed to update vehicle",
     });
   }
 };
+
 
 /**
  * @desc Delete vehicle (Admin only)
@@ -191,9 +266,9 @@ export const updateVehicle = async (req, res) => {
  */
 export const deleteVehicle = async (req, res) => {
   try {
-    if (req.user.accountType !== "admin") {
-      return res.status(403).json({ success: false, message: "Only admins can delete vehicles" });
-    }
+    // if (req.user.accountType !== "admin") {
+    //   return res.status(403).json({ success: false, message: "Only admins can delete vehicles" });
+    // }
 
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) {

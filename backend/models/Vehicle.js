@@ -87,16 +87,16 @@ const vehicleSchema = new mongoose.Schema(
       type: String,
     },
     // ✅ Relation to user (dealer)
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    // createdBy: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Admin",
+    //   required: true,
+    // },
   },
   {
     timestamps: true, // adds createdAt & updatedAt
   }
 );
 
-const Vehicle = mongoose.model("Vehicle", vehicleSchema);
+const Vehicle = mongoose.models.Vehicle || mongoose.model("Vehicle", vehicleSchema);
 export default Vehicle;

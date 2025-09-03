@@ -46,28 +46,28 @@ const io = new Server(server, {
 
 // ✅ Middleware
 app.use(cors());
-app.use(cookieParser());
+app.use( cookieParser() );
+
+// Only parse JSON if content-type is application/json
+app.use(
+  express.json({
+    limit: "50mb",
+    type: "application/json", // 👈 prevents parsing form-data
+  })
+);
+
+app.use(
+  express.urlencoded({
+    limit: "50mb",
+    extended: true,
+    type: "application/x-www-form-urlencoded", // 👈 prevents conflict
+  })
+);
 
 // ✅ Only parse JSON if `Content-Type` is application/json
-app.use(express.json({
-  limit: "50mb",
-  type: ["application/json"], // <-- this prevents parsing multipart/form-data
-  verify: (req, res, buf) => {
-    req.rawBody = buf;
-  }
-}));
 
-// ✅ Parse URL-encoded bodies (NOT multipart)
-app.use(express.urlencoded({
-  limit: "50mb",
-  extended: true
-}));
 
-// Optional: add a header for debugging large payloads
-app.use((req, res, next) => {
-  res.setHeader("X-Request-Size-Limit", "50mb");
-  next();
-});
+
 
 // ✅ Routes
 app.use("/api/admin", adminRouter);
