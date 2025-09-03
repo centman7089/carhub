@@ -1,33 +1,53 @@
 // @ts-nocheck
-import express from 'express';
-import upload from '../middlewares/multer.js';
+// routes/vehicleRoutes.js
+import express from "express";
 import {
-  createVehicle,
-  getVehicles,
+  addVehicle,
+  getAllVehicles,
   getVehicleById,
   updateVehicle,
   deleteVehicle,
-} from '../controllers/vehicleController.js';
-import { vehicleImages } from '../middlewares/upload.js';
-import { protectAdmin } from '../middlewares/adminAuth.js';
+} from "../controllers/vehicleController.js";
 
+
+import { vehicleImages } from "../middlewares/multer.js"; // ✅ multer config for Cloudinary/local
+import { protectAdmin } from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 
-router.post('/create-vehicle', protectAdmin,vehicleImages,createVehicle);
-router.get('/', getVehicles);
-router.get('/:id', getVehicleById);
-router.put('/:id', upload.array('images', 5), updateVehicle);
-router.delete( '/:id', deleteVehicle );
+/**
+ * Public routes (anyone can view)
+ */
+router.get("/", getAllVehicles);
+router.get("/:id", getVehicleById);
 
-// router.post('/vehicles', (req, res) => {
-//   if (req.is('multipart/form-data')) {
-//     createVehicleWithBusboy(req, res).catch(error => {
-//       res.status(500).json({ error: error.message });
-//     });
-//   } else {
-//     createVehicle(req, res);
-//   }
-// });
+/**
+ * Admin routes (add/update/delete vehicles)
+ */
+router.post(
+  "/",
+  protectAdmin,
+  vehicleImages.fields([
+    { name: "image1", maxCount: 1 },
+    { name: "image2", maxCount: 1 },
+    { name: "image3", maxCount: 1 },
+    { name: "image4", maxCount: 1 },
+  ]),
+  addVehicle
+);
+
+router.put(
+  "/:id",
+  protectAdmin,
+  vehicleImages.fields([
+    { name: "image1", maxCount: 1 },
+    { name: "image2", maxCount: 1 },
+    { name: "image3", maxCount: 1 },
+    { name: "image4", maxCount: 1 },
+  ]),
+  updateVehicle
+);
+
+router.delete("/:id", protectAdmin, deleteVehicle);
 
 export default router;

@@ -1,53 +1,102 @@
+// models/vehicleModel.js
 import mongoose from "mongoose";
 
 const vehicleSchema = new mongoose.Schema(
   {
-    make: { type: String, required: true },
-    model: { type: String, required: true },
-    year: { type: Number, required: true },
-    vin: { type: String, required: true, unique: true },
-    bodyType: { type: String },
-    fuelType: { type: String },
-    transmission: { type: String },
-    price: { type: Number, required: true },
-    mileage: { type: Number },
-    color: { type: String },
-    condition: { type: String },
-    lotNumber: { type: String },
-    description: { type: String },
-    image: { type: Array,required:true},
+    make: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    model: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    year: {
+      type: Number,
+      required: true,
+    },
+    vin: {
+      type: String,
+      unique: true,
+      sparse: true, // allows null if VIN isn’t mandatory
+      trim: true,
+    },
+    bodyType: {
+      type: String,
+      trim: true,
+    },
+    fuelType: {
+      type: String,
+      trim: true,
+    },
+    transmission: {
+      type: String,
+      trim: true,
+    },
+    price: {
+      type: Number,
+      required: true,
+    },
+    mileage: {
+      type: Number,
+    },
+    color: {
+      type: String,
+    },
+    condition: {
+      type: String,
+      enum: ["new", "used", "salvage", "other"],
+      default: "new",
+    },
+    lotNumber: {
+      type: String,
+      trim: true,
+    },
+    description: {
+      type: String,
+    },
+    features: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
     // ✅ Images
     mainImage: {
-      type: String, // single image URL
-      required: true,
+      type: String, // Cloudinary URL
+      required: false,
     },
     supportingImages: [
       {
-        type: String, // array of image URLs
+        type: String, // Cloudinary URLs
       },
     ],
-
-    features: {
-      type: [String], // list of features
-      default: [],
-    },
-
-    // ✅ Location
-    address: { type: String },
-    city: { type: String },
-    state: { type: String },
-    zipCode: { type: String },
-
-    // ✅ Status (draft, published, sold, etc.)
-    status: {
+    // ✅ Location info
+    zipCode: {
       type: String,
-      enum: ["draft", "published", "sold"],
-      default: "draft",
+    },
+    address: {
+      type: String,
+    },
+    state: {
+      type: String,
+    },
+    city: {
+      type: String,
+    },
+    // ✅ Relation to user (dealer)
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
   },
-  { timestamps: true }
+  {
+    timestamps: true, // adds createdAt & updatedAt
+  }
 );
 
 const Vehicle = mongoose.model("Vehicle", vehicleSchema);
-
 export default Vehicle;
