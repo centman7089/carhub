@@ -2,7 +2,7 @@
 
 import Delivery from '../models/Delivery.js';
 // controllers/deliveryController.js
-import Vehicle from "../models/vehicle.js";
+import Vehicle from "../models/Vehicle.js";
 import { generateTrackingNumber } from "../utils/generateTrackingNumber.js";
 
 // Create a new delivery
