@@ -90,7 +90,7 @@ export const createAdmin = async (req, res) => {
     await admin.save();
     await sendEmail(email, "Verify your email", `Your verification code is: ${code}`);
 
-    const token = generateTokenAndSetCookie(admin._id, res, "admin");
+    const token = generateTokenAndSetCookie(admin._id, res, "adminId");
 
     res.status(201).json({
       token,
@@ -124,7 +124,7 @@ export const login = async (req, res) => {
       });
     }
 
-    const token = generateTokenAndSetCookie(admin._id, res, "admin");
+    const token = generateTokenAndSetCookie(admin._id, res, "adminId");
     res.status(200).json({
       token,
       ...formatAdminResponse(admin),

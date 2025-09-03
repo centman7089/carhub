@@ -328,9 +328,7 @@ export const updateVehicle = async (req, res) => {
  */
 export const deleteVehicle = async (req, res) => {
   try {
-    // if (req.user.accountType !== "admin") {
-    //   return res.status(403).json({ success: false, message: "Only admins can delete vehicles" });
-    // }
+  
 
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) {
