@@ -5,7 +5,7 @@ import {
   getDeliveryById,
   updateDelivery,
   deleteDelivery, createShipment,
-  updateShipmentStatus,trackShipment, getAllShipments, getShipmentById
+  trackShipment, getAllShipments, getShipmentById
 } from '../controllers/deliveryController.js';
 
 import protectRoute from '../middlewares/protectRoute.js';
@@ -28,7 +28,7 @@ router.delete( '/:id', protectRoute, deleteDelivery );
 router.post("/:vehicleId/shipment", protectAdmin, createShipment);
 
 // Update shipment status
-router.put("/:vehicleId/shipment/status", protectAdmin, updateShipmentStatus);
+// router.put("/:vehicleId/shipment/status", protectAdmin, updateShipmentStatus);
 // ✅ Track shipment
 router.get( "/track/:trackingNumber", trackShipment );
 

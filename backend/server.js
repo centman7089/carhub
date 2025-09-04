@@ -21,6 +21,7 @@ import listingRoutes from "./routes/listingRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import adminRouter from "./routes/adminRoute.js";
+import shipmentRouter from "./routes/shipmentRoute.js";
 
 dotenv.config();
 connectDB();
@@ -80,7 +81,8 @@ app.use("/api/deliveries", deliveryRoutes);
 app.use("/api/customers", customerRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/listings", listingRoutes);
-app.use("/api/notifications", notificationRoutes);
+app.use( "/api/notifications", notificationRoutes );
+app.use( "/api/shipment", shipmentRouter );
 
 app.get("/", (req, res) => {
   res.send("Welcome 🚀");

@@ -1,29 +1,61 @@
 // models/vehicleModel.js
 import mongoose from "mongoose";
 
-const addressSchema = new mongoose.Schema({
-  street: String,
-  state: String,
-  city: String,
-  zipCode: String,
-});
+// const addressSchema = new mongoose.Schema({
+//   street: String,
+//   state: String,
+//   city: String,
+//   zipCode: String,
+// });
+
+// const shipmentSchema = new mongoose.Schema({
+//   trackingNumber: { type: String, unique: true, required: true },
+//   carrierCompany: { type: String, required: true },
+//   expectedDelivery: { type: Date },
+//   shippingStatus: {
+//     type: String,
+//     enum: ["Pending", "In Transit", "Delivered", "Cancelled"],
+//     default: "Pending",
+//   },
+//   pickupAddress: addressSchema,
+//   deliveryAddress: addressSchema,
+//   shippingCost: Number,
+//   insuranceValue: Number,
+//   priorityLevel: { type: String, enum: ["Standard", "Express", "Overnight"] },
+//   specialInstructions: String,
+// });
+
+// models/vehicleModel.js (excerpt)
 
 const shipmentSchema = new mongoose.Schema({
   trackingNumber: { type: String, unique: true, required: true },
   carrierCompany: { type: String, required: true },
-  expectedDelivery: { type: Date },
+  pickupDate: { type: Date },       // ✅ Added
+  deliveryDate: { type: Date },     // ✅ Added
+  expectedDelivery: { type: Date }, // already supported
   shippingStatus: {
     type: String,
     enum: ["Pending", "In Transit", "Delivered", "Cancelled"],
     default: "Pending",
   },
-  pickupAddress: addressSchema,
-  deliveryAddress: addressSchema,
+  pickupAddress: {
+    street: String,
+    state: String,
+    city: String,
+    zipCode: String,
+  },
+  deliveryAddress: {
+    street: String,
+    state: String,
+    city: String,
+    zipCode: String,
+  },
   shippingCost: Number,
   insuranceValue: Number,
   priorityLevel: { type: String, enum: ["Standard", "Express", "Overnight"] },
   specialInstructions: String,
 });
+
 
 const vehicleSchema = new mongoose.Schema(
   {
