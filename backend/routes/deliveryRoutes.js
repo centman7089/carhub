@@ -25,10 +25,10 @@ router.delete( '/:id', protectRoute, deleteDelivery );
 
 
 // Admin creates shipment for a vehicle
-router.post("/:vehicleId/shipment", createShipment);
+router.post("/:vehicleId/shipment", protectAdmin, createShipment);
 
 // Update shipment status
-router.put("/:vehicleId/shipment/status", updateShipmentStatus);
+router.put("/:vehicleId/shipment/status", protectAdmin, updateShipmentStatus);
 // ✅ Track shipment
 router.get( "/track/:trackingNumber", trackShipment );
 
