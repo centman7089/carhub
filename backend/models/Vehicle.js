@@ -71,8 +71,8 @@ const vehicleSchema = new mongoose.Schema(
     },
     condition: {
       type: String,
-      enum: ["new", "used", "salvage", "other"],
-      default: "new",
+      enum: ["New", "Used", "Salvage", "Other"],
+      default: "New",
     },
     lotNumber: {
       type: String,

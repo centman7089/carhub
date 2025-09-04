@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 
 const deliverySchema = new mongoose.Schema({
-  car: { type: mongoose.Schema.Types.ObjectId, ref: 'Car', required: true },
+  vehicle: { type: mongoose.Schema.Types.ObjectId, ref: 'Vehicle', required: true },
   auction: { type: mongoose.Schema.Types.ObjectId, ref: 'Auction', required: true },
   user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   address: { type: String, required: true },

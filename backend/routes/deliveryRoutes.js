@@ -5,10 +5,12 @@ import {
   getDeliveryById,
   updateDelivery,
   deleteDelivery, createShipment,
-  updateShipmentStatus,trackShipment
+  updateShipmentStatus,trackShipment, getAllShipments, getShipmentById
 } from '../controllers/deliveryController.js';
 
 import protectRoute from '../middlewares/protectRoute.js';
+import { protectAdmin } from "../middlewares/adminAuth.js";
+
 
 const router = express.Router();
 
@@ -28,7 +30,21 @@ router.post("/:vehicleId/shipment", createShipment);
 // Update shipment status
 router.put("/:vehicleId/shipment/status", updateShipmentStatus);
 // ✅ Track shipment
-router.get("/track/:trackingNumber", trackShipment);
+router.get( "/track/:trackingNumber", trackShipment );
+
+/**
+ * @desc Get all shipments
+ * @route GET /api/shipments
+ * @access Private (admin)
+ */
+router.get("/", protectAdmin, getAllShipments);
+
+/**
+ * @desc Get shipment details by vehicle ID
+ * @route GET /api/shipments/:vehicleId
+ * @access Private (admin)
+ */
+router.get("/:vehicleId", protectAdmin, getShipmentById);
 
 export default router;
 

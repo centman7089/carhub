@@ -5,8 +5,8 @@ import Auction from '../models/Auction.js';
 // Create auction
 const createAuction = async (req, res) => {
   try {
-    const { car, currentBid, endsAt } = req.body;
-    const auction = await Auction.create({ car, currentBid, endsAt });
+    const { vehicle, currentBid, endsAt } = req.body;
+    const auction = await Auction.create({ vehicle, currentBid, endsAt });
     res.status(201).json(auction);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -17,7 +17,7 @@ const createAuction = async (req, res) => {
 const getAuctions = async (req, res) => {
   try {
     const auctions = await Auction.find()
-      .populate('car') // Pulls in full vehicle details
+      .populate('vehicle') // Pulls in full vehicle details
       .sort({ endsAt: 1 }); // soonest ending first
     res.json(auctions);
   } catch (err) {
@@ -28,7 +28,7 @@ const getAuctions = async (req, res) => {
 // Get single auction
 const getAuction = async (req, res) => {
   try {
-    const auction = await Auction.findById(req.params.id).populate('car');
+    const auction = await Auction.findById(req.params.id).populate('vehicle');
     if (!auction) return res.status(404).json({ error: 'Auction not found' });
     res.json(auction);
   } catch (err) {
@@ -43,7 +43,7 @@ const updateAuction = async (req, res) => {
       req.params.id,
       req.body,
       { new: true }
-    ).populate('car');
+    ).populate('vehicle');
     if (!auction) return res.status(404).json({ error: 'Auction not found' });
     res.json(auction);
   } catch (err) {

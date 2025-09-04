@@ -163,8 +163,67 @@ const trackShipment = async (req, res) => {
   }
 };
 
+// @desc Get all shipments
+// @route GET /api/shipments
+// @access Private (admin or manager, depends on your auth)
+const getAllShipments = async (req, res) => {
+  try {
+    // Find vehicles that have shipment data
+    const vehicles = await Vehicle.find({ "shipment.trackingNumber": { $exists: true } });
+
+    if (!vehicles.length) {
+      return res.status(404).json({ success: false, message: "No shipments found" });
+    }
+
+    // Map vehicles to shipment data
+    const shipments = vehicles.map((v) => ({
+      vehicleId: v._id,
+      make: v.make,
+      model: v.model,
+      year: v.year,
+      vin: v.vin,
+      shipment: v.shipment,
+    }));
+
+    res.json({ success: true, count: shipments.length, shipments });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
+// @desc Get shipment details by vehicleId
+// @route GET /api/shipments/:vehicleId
+// @access Private (admin or user with access)
+const getShipmentById = async (req, res) => {
+  try {
+    const { vehicleId } = req.params;
+
+    const vehicle = await Vehicle.findById(vehicleId);
+
+    if (!vehicle || !vehicle.shipment) {
+      return res.status(404).json({ success: false, message: "Shipment not found for this vehicle" });
+    }
+
+    res.json({
+      success: true,
+      shipment: vehicle.shipment,
+      vehicle: {
+        vehicleId: vehicle._id,
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        vin: vehicle.vin,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
 
 export
 {
-  createDelivery,getAllDeliveries, getDeliveryById,updateDelivery,deleteDelivery,createShipment,updateShipmentStatus, trackShipment
+  createDelivery,getAllDeliveries, getDeliveryById,updateDelivery,deleteDelivery,createShipment,updateShipmentStatus, trackShipment, getAllShipments, getShipmentById
 }

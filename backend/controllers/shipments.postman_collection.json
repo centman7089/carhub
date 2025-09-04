@@ -1,0 +1,116 @@
+{
+  "info": {
+    "name": "Shipment API",
+    "_postman_id": "8e3a4c0d-bc5f-45cd-b21d-shipments",
+    "description": "Postman collection for Shipment API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Shipment",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/shipments/:vehicleId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "shipments", ":vehicleId"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"carrierCompany\": \"DHL\",\n  \"expectedDelivery\": \"2025-09-10\",\n  \"pickupAddress\": \"123 Main St, New York, NY\",\n  \"deliveryAddress\": \"456 Market St, San Francisco, CA\",\n  \"shippingCost\": 450,\n  \"insuranceValue\": 1000,\n  \"priorityLevel\": \"High\",\n  \"specialInstructions\": \"Handle with care\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Update Shipment Status",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/shipments/:vehicleId/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "shipments", ":vehicleId", "status"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"status\": \"In Transit\"\n}"
+        }
+      }
+    },
+    {
+      "name": "Track Shipment",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/shipments/track/:trackingNumber",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "shipments", "track", ":trackingNumber"]
+        }
+      }
+    },
+    {
+      "name": "Get All Shipments",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/shipments",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "shipments"]
+        }
+      }
+    },
+    {
+      "name": "Get Shipment By Vehicle ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{adminToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/shipments/:vehicleId",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "shipments", ":vehicleId"]
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000"
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    }
+  ]
+}
