@@ -12,7 +12,7 @@ import {
 
 
 import { vehicleImages } from "../middlewares/multer.js"; // ✅ multer config for Cloudinary/local
-import { protectAdmin } from "../middlewares/adminAuth.js";
+import { protectAdmin, authorizeRoles } from "../middlewares/adminAuth.js";
 
 const router = express.Router();
 
