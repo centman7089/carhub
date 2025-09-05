@@ -416,3 +416,26 @@ export const updateVehiclePriority = async (req, res) => {
   }
 };
 
+
+
+// ⚠️ Delete ALL vehicles
+export const deleteAllVehicles = async (req, res) => {
+  try {
+    // Optional: restrict only super admin
+    if (req.admin?.role !== "admin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only admin can delete all vehicles",
+      });
+    }
+
+    const result = await Vehicle.deleteMany({});
+    res.json({
+      success: true,
+      message: `${result.deletedCount} vehicles deleted successfully`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+

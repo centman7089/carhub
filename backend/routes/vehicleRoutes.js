@@ -7,7 +7,7 @@ import {
   getVehicleById,
   updateVehicle,
   deleteVehicle,
-  exportVehiclesCSV, updateVehiclePriority
+  exportVehiclesCSV, updateVehiclePriority, deleteAllVehicles
 } from "../controllers/vehicleController.js";
 
 
@@ -37,6 +37,13 @@ router.post(
     { name: "image4", maxCount: 1 },
   ]),
   addVehicle
+);
+
+router.delete(
+  "/",
+  protectAdmin,
+  authorizeRoles("admin"), // restrict role
+  deleteAllVehicles
 );
 
 router.put(
