@@ -1,15 +1,28 @@
-// @ts-nocheck
+import express from "express";
+import {
+  createAuction,
+  placeBid,
+  getAllAuctions,
+  getAuctionById,
+  closeAuction,
+} from "../controllers/auctionController.js";
+import protectRoute  from "../middlewares/protectRoute.js";
 
-import express from "express"
-import {createAuction, getAuction, getAuctions, updateAuction,deleteAuction} from "../controllers/auctionController.js"
-const auctionRouter= express.Router();
+const router = express.Router();
 
+// Create auction for vehicle
+router.post("/:vehicleId", protectRoute, createAuction);
 
-auctionRouter.post('/', createAuction);
-auctionRouter.get('/', getAuctions);
-auctionRouter.get('/:id', getAuction);
-auctionRouter.put('/:id', updateAuction);
-auctionRouter.delete( '/:id', deleteAuction );
+// Place a bid
+router.post("/bid/:auctionId", protectRoute, placeBid);
 
-export default auctionRouter
+// Get all auctions
+router.get("/", getAllAuctions);
 
+// Get single auction
+router.get("/:auctionId", getAuctionById);
+
+// Close auction
+router.post("/close/:auctionId", protectRoute, closeAuction);
+
+export default router;

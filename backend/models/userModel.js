@@ -6,22 +6,23 @@ import bcrypt from "bcryptjs";
 
 const identityDocumentsSchema = new mongoose.Schema(
   {
-    idCardFront: { type: String },
-    driverLicense: { type: String },
-    insurance: { type: String },
-    bankStatement: { type: String },
+    idCardFront: { type: String, required: true },
+    driverLicense: { type: String, required: true },
+    tin: { type: String, required: true },
+    bankStatement: { type: String, required: true },
+    cac: { type: String }, // ✅ optional
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
-    rejectionReason: { type: String }, // ✅ added for rejection feedback
+    rejectionReason: { type: String },
     uploadedAt: { type: Date },
-
     reviewedAt: { type: Date },
   },
   { _id: false }
 );
+
 
 const userSchema = mongoose.Schema(
   {
@@ -67,7 +68,7 @@ const userSchema = mongoose.Schema(
     // documentUrl: { type: String }, // for car dealers
     document: {
             url: String,
-            type: { type: String, enum: ['id_card', 'bank_statement', 'insurance', 'driver_license'] },
+            type: { type: String, enum: ['id_card', 'bank_statement', 'tin','cac','driver_license'] },
             status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
     },
     // Verification status
@@ -89,7 +90,8 @@ const userSchema = mongoose.Schema(
   identityDocuments: {
     idCardFront: { type: String },
     driverLicense: { type: String },
-    insurance: { type: String },
+    tin: { type: String },
+    cac: { type: String },
     bankStatement: { type: String },
     status: { 
       type: String, 

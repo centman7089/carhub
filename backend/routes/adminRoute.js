@@ -1,6 +1,9 @@
 // @ts-nocheck
 import express from "express";
-import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode, approveUser, rejectUser,getAllUsers,updateUserRole } from "../controllers/adminControllers.js";
+import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode,   getUserDocuments,
+  approveUserDocuments,
+  rejectUserDocuments,
+  getPendingUsers,getAllUsers,updateUserRole } from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 import { vehicleImages } from "../middlewares/upload.js";
 // import vehicleImages from "../middlewares/multer.js";
@@ -27,9 +30,10 @@ adminRouter.patch( "/update/:id", protectAdmin,updateUser );
 
 // adminRouter.put('/verify-cac/:employerId',protectAdmin, authorizeRoles('admin','superadmin'),verifyCac );
 // Reject CAC
-
-adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), approveUser);
-adminRouter.patch( "/:userId/reject", protectAdmin, authorizeRoles( 'admin' ), rejectUser );
+// Get one user’s documents
+adminRouter.get("/users/:userId/documents",protectAdmin, authorizeRoles('admin'),getUserDocuments);
+adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), approveUserDocuments);
+adminRouter.patch( "/:userId/reject", protectAdmin, authorizeRoles( 'admin' ), rejectUserDocuments );
 // Admin-only routes
 adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
 adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );

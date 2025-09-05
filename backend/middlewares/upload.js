@@ -1,3 +1,4 @@
+// @ts-nocheck
 import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
 import cloudinaryModule from "cloudinary";
@@ -13,33 +14,43 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// ✅ Allowed image types
-const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
+// ✅ Allowed file types (images + PDF)
+const allowedDocTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+];
 
-// ✅ File filter (images only)
+// ✅ File filter for documents (images OR PDF)
 const fileFilter = (req, file, cb) => {
-  if (allowedImageTypes.includes(file.mimetype)) cb(null, true);
-  else cb(new Error("Only image files (jpg, jpeg, png, webp) are allowed!"), false);
+  if (allowedDocTypes.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Only JPG, PNG, WEBP images or PDF files are allowed!"), false);
 };
 
-// ✅ Cloudinary storage for images
-const imageStorage = new CloudinaryStorage({
+// ✅ Cloudinary storage for identity documents
+const documentStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => {
+    const isPDF = file.mimetype === "application/pdf";
     return {
-      folder: "identity-documents", // change folder name if needed
+      folder: "identity-documents",
       public_id: `${Date.now()}-${file.originalname.split(".")[0]}`,
-      resource_type: "image",
-      allowed_formats: ["jpg", "jpeg", "png", "webp"],
-      transformation: [
-        { width: 800, height: 800, crop: "limit" },
-        { quality: "auto:best" },
-      ],
+      resource_type: "auto", // ⚡ auto-detect (handles image/pdf)
+      allowed_formats: ["jpg", "jpeg", "png", "webp", "pdf"],
+      ...(isPDF
+        ? {} // No image transformation for PDFs
+        : {
+            transformation: [
+              { width: 800, height: 800, crop: "limit" },
+              { quality: "auto:best" },
+            ],
+          }),
     };
   },
-} );
+});
 
-// ✅ Cloudinary storage for vehicle images
+// ✅ Cloudinary storage for vehicle images (unchanged)
 const carStorage = new CloudinaryStorage({
   cloudinary,
   params: async (req, file) => ({
@@ -54,22 +65,24 @@ const carStorage = new CloudinaryStorage({
   }),
 });
 
-// ✅ Multer uploader (multipart form)
-const uploadImages = multer({
-  storage: imageStorage,
+// ✅ Multer uploader for documents
+const uploadDocuments = multer({
+  storage: documentStorage,
   fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
-} );
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max for docs
+});
 
-// ✅ Multer fields: one mainImage, multiple supportingImages
+// ✅ Multer uploader for vehicles
 const vehicleImages = multer({
   storage: carStorage,
-  fileFilter,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per image
+  fileFilter: (req, file, cb) => {
+    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only image files are allowed for vehicles!"), false);
+  },
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB max
 }).fields([
-  { name: "mainImage", maxCount: 1 },       // single file
-  { name: "supportingImages", maxCount: 10 } // multiple files
+  { name: "mainImage", maxCount: 1 },
+  { name: "supportingImages", maxCount: 10 },
 ]);
 
-
-export {uploadImages, vehicleImages};
+export { uploadDocuments, vehicleImages };

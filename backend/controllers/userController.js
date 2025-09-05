@@ -498,40 +498,96 @@ const resetPassword = async (req, res) => {
   }
 };
 
+// // STEP 1: Upload Documents (must upload all 4 docs)
+// const uploadDocuments = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const user = await User.findById(userId);
 
+//     if (!user) return res.status(404).json({ error: "User not found" });
 
-// STEP 1: Upload Documents (Cloudinary middleware handles the upload)
+//     const fields = ["idCardFront", "driverLicense", "tin","cac", "bankStatement"];
+//     let uploadedCount = 0;
 
+//     fields.forEach((field) => {
+//       if (req.files[field] && req.files[field][0]) {
+//         user.identityDocuments[field] = req.files[field][0].path; // Cloudinary URL
+//         uploadedCount++;
+//       }
+//     });
 
+//     if (uploadedCount === 0) {
+//       return res.status(400).json({ error: "You must upload all required documents" });
+//     }
+
+//     // ✅ Reset if previously rejected
+//     user.resetDocumentsIfRejected();
+
+//     // ✅ If all docs uploaded, mark pending
+//     if (
+//       user.identityDocuments.idCardFront &&
+//       user.identityDocuments.driverLicense &&
+//       user.identityDocuments.insurance &&
+//       user.identityDocuments.bankStatement
+//     ) {
+//       user.identityDocuments.status = "pending";
+//       user.identityDocuments.uploadedAt = new Date();
+//       user.onboardingStage = "terms";
+//     } else {
+//       return res.status(400).json({ error: "All 4 documents are required before proceeding" });
+//     }
+
+//     await user.save();
+
+//     res.json({
+//       message: "All documents uploaded successfully. Proceed to Terms & Conditions.",
+//       step: user.onboardingStage,
+//       documents: user.identityDocuments,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 const uploadDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
-
-    // // ✅ Ensure logged-in user matches route param
-    // if (!req.user || req.user._id.toString() !== userId) {
-    //   return res.status(403).json({ error: "Unauthorized action" });
-    // }
-
     const user = await User.findById(userId);
+
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const fields = ["idCardFront", "driverLicense", "insurance", "bankStatement"];
-    const uploadedFields = fields.filter((field) => req.files[field]);
+    // Define required + optional fields
+    const requiredFields = ["idCardFront", "driverLicense", "tin", "bankStatement"];
+    const optionalFields = ["cac"];
 
-    if (uploadedFields.length === 0) {
-      return res.status(400).json({ error: "Please upload at least one document" });
-    }
+    let uploadedCount = 0;
 
-    // ✅ Save uploaded documents
-    uploadedFields.forEach((field) => {
-      const file = req.files[field][0];
-      user.identityDocuments[field] = file.path; // Cloudinary URL
+    // Save required documents
+    requiredFields.forEach((field) => {
+      if (req.files[field] && req.files[field][0]) {
+        user.identityDocuments[field] = req.files[field][0].path; // Cloudinary URL
+        uploadedCount++;
+      }
     });
 
-    // ✅ Reset status if previously rejected
+    // Save optional documents (if provided)
+    optionalFields.forEach((field) => {
+      if (req.files[field] && req.files[field][0]) {
+        user.identityDocuments[field] = req.files[field][0].path; // Cloudinary URL
+      }
+    });
+
+    // Check if all required docs uploaded
+    const missingDocs = requiredFields.filter((field) => !user.identityDocuments[field]);
+    if (missingDocs.length > 0) {
+      return res.status(400).json({
+        error: `Missing required documents: ${missingDocs.join(", ")}`,
+      });
+    }
+
+    // ✅ Reset if previously rejected
     user.resetDocumentsIfRejected();
 
-    // ✅ Update upload details
+    // ✅ Mark as pending for admin review
     user.identityDocuments.status = "pending";
     user.identityDocuments.uploadedAt = new Date();
     user.onboardingStage = "terms";
@@ -539,7 +595,7 @@ const uploadDocuments = async (req, res) => {
     await user.save();
 
     res.json({
-      message: "Documents uploaded successfully. Proceed to Terms & Conditions.",
+      message: "All required documents uploaded successfully. Proceed to Terms & Conditions.",
       step: user.onboardingStage,
       documents: user.identityDocuments,
     });
@@ -549,39 +605,77 @@ const uploadDocuments = async (req, res) => {
 };
 
 
-
-
-
 // STEP 2: Accept Terms
-const acceptTerms = async (req, res) => {
+// const acceptTerms = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const { acceptedTerms, acceptedPrivacy } = req.body;
+
+//     if (req.user._id.toString() !== userId) {
+//       return res.status(403).json({ error: "Unauthorized action" });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) return res.status(404).json({ error: "User not found" });
+
+//     if (!acceptedTerms || !acceptedPrivacy) {
+//       return res.status(400).json({ error: "You must accept both Terms and Privacy Policy" });
+//     }
+
+//     user.acceptedTerms = true;
+//     user.acceptedPrivacy = true;
+//     user.onboardingStage = "admin_review";
+
+//     await user.save();
+
+//     res.json({
+//       message: "Terms accepted. Awaiting admin approval.",
+//       step: user.onboardingStage,
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
+export const acceptTerms = async (req, res) => {
   try {
     const { userId } = req.params;
+     const { acceptedTerms, acceptedPrivacy } = req.body;
 
-    // ✅ Ensure logged-in user matches the route param
-    if (req.user._id.toString() !== userId) {
-      return res.status(403).json({ error: "Unauthorized action" });
-    }
+     if (req.user._id.toString() !== userId) {
+       return res.status(403).json({ error: "Unauthorized action" });
+     }
 
-    const { acceptedTerms, acceptedPrivacy } = req.body;
-
+    // 🔑 Find user
     const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ error: "User not found" });
-
+    if ( !user ) return res.status( 404 ).json( { error: "User not found" } );
+    
     if (!acceptedTerms || !acceptedPrivacy) {
+      return res.status(400).json({ error: "You must accept both Terms and Privacy Policy" });
+   }
+
+    // ✅ Ensure user has uploaded all required documents
+    const { idCardFront, driverLicense, tin, bankStatement } =
+      user.identityDocuments;
+
+    if (!idCardFront || !driverLicense || !tin || !bankStatement) {
       return res.status(400).json({
-        error: "You must accept both Terms and Privacy Policy",
+        error:
+          "You must upload all required documents (ID card, Driver License, TIN, Bank Statement) before accepting terms.",
       });
     }
 
-    user.acceptedTerms = true;
-    user.acceptedPrivacy = true;
-    user.onboardingStage = "admin_review";
+    // ✅ Accept terms and privacy
+  user.acceptedTerms = true;
+  user.acceptedPrivacy = true;
+  user.onboardingStage = "admin_review";
 
     await user.save();
 
     res.json({
-      message: "Terms accepted. Awaiting admin approval.",
+      message: "Terms and privacy accepted successfully ✅. Awaiting Admin Approval",
       step: user.onboardingStage,
+      user,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -589,36 +683,9 @@ const acceptTerms = async (req, res) => {
 };
 
 
-// STEP 3: Admin approves user
-// const approveUser = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ error: "User not found" });
-
-//     user.identityDocuments.status = "approved";
-//     user.identityDocuments.reviewedAt = new Date();
-//     user.isApproved = true;
-//     user.onboardingStage = "completed";
-
-//     await user.save();
-
-//     res.json({
-//       message: "User approved successfully.",
-//       step: user.onboardingStage,
-//       user,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 
 
 
-// =============================
-// (rest of functions remain same, except replace `accountType` with `role` check)
-// =============================
 
 export {
 	register,
