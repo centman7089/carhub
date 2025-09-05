@@ -163,11 +163,35 @@ export const trackShipment = async (req, res) => {
 };
 
 // 🔹 Get All Shipments
+// export const getAllShipments = async (req, res) => {
+//   try {
+//     const vehicles = await Vehicle.find({ "shipment.trackingNumber": { $exists: true } });
+
+//     const shipments = vehicles.map(v => ({
+//       vehicleId: v._id,
+//       vehicleDetails: {
+//         make: v.make,
+//         model: v.model,
+//         year: v.year,
+//         vin: v.vin,
+//       },
+//       shipment: v.shipment,
+//     }));
+
+//     res.json({ success: true, count: shipments.length, shipments });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 export const getAllShipments = async (req, res) => {
   try {
-    const vehicles = await Vehicle.find({ "shipment.trackingNumber": { $exists: true } });
+    // ✅ Find only vehicles that have a shipment and sort by last updated
+    const vehicles = await Vehicle.find({
+      "shipment.trackingNumber": { $exists: true },
+    }).sort({ updatedAt: -1 }); // most recent first
 
-    const shipments = vehicles.map(v => ({
+    const shipments = vehicles.map((v) => ({
       vehicleId: v._id,
       vehicleDetails: {
         make: v.make,
@@ -176,13 +200,22 @@ export const getAllShipments = async (req, res) => {
         vin: v.vin,
       },
       shipment: v.shipment,
+      lastUpdated: v.updatedAt, // helpful for frontend
     }));
 
-    res.json({ success: true, count: shipments.length, shipments });
+    res.json({
+      success: true,
+      count: shipments.length,
+      shipments,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
+
 
 // 🔹 Get Shipment By Vehicle ID
 export const getShipmentById = async (req, res) => {

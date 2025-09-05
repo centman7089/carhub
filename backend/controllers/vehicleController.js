@@ -139,6 +139,29 @@ export const addVehicle = async (req, res) => {
  * @access Public
  */
 // ✅ Get all vehicles with filters
+// export const getAllVehicles = async (req, res) => {
+//   try {
+//     const { status, priority, sort } = req.query;
+
+//     let filter = {};
+//     if (status) filter.status = status;
+//     if (priority) filter.priority = priority;
+
+//     let query = Vehicle.find(filter);
+
+//     // Sorting (recent, price, views)
+//     if (sort === "recent") query = query.sort({ dateListed: -1 });
+//     if (sort === "views") query = query.sort({ views: -1 });
+//     if (sort === "price") query = query.sort({ price: -1 });
+
+//     const vehicles = await query.exec();
+
+//     res.json({ success: true, count: vehicles.length, vehicles });
+//   } catch (err) {
+//     res.status(500).json({ success: false, message: err.message });
+//   }
+// };
+
 export const getAllVehicles = async (req, res) => {
   try {
     const { status, priority, sort } = req.query;
@@ -149,18 +172,30 @@ export const getAllVehicles = async (req, res) => {
 
     let query = Vehicle.find(filter);
 
-    // Sorting (recent, price, views)
-    if (sort === "recent") query = query.sort({ dateListed: -1 });
-    if (sort === "views") query = query.sort({ views: -1 });
-    if (sort === "price") query = query.sort({ price: -1 });
+    // ✅ Default: recent first
+    if (!sort || sort === "recent") {
+      query = query.sort({ dateListed: -1 });
+    } else if (sort === "views") {
+      query = query.sort({ views: -1 });
+    } else if (sort === "price") {
+      query = query.sort({ price: -1 });
+    }
 
     const vehicles = await query.exec();
 
-    res.json({ success: true, count: vehicles.length, vehicles });
+    res.json({
+      success: true,
+      count: vehicles.length,
+      vehicles,
+    });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
+
 
 /**
  * @desc Get single vehicle
