@@ -1,7 +1,7 @@
 // @ts-nocheck
 // const User = require('../models/User');
 // const Car = require('../models/Car');
-const Auction = require( '../models/Auction' );
+
 import Auction from "../models/Auction.js";
 
 

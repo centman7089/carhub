@@ -66,7 +66,7 @@ const carStorage = new CloudinaryStorage({
 });
 
 // ✅ Multer uploader for documents
-const uploadDocuments = multer({
+const uploadDocument = multer({
   storage: documentStorage,
   fileFilter,
   limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max for docs
@@ -85,4 +85,4 @@ const vehicleImages = multer({
   { name: "supportingImages", maxCount: 10 },
 ]);
 
-export { uploadDocuments, vehicleImages };
+export { uploadDocument, vehicleImages };

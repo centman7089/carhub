@@ -6,7 +6,15 @@ import crypto from "crypto";
 import generateTokenAndSetCookie from "../utils/helpers/generateTokenAndSetCookie.js";
 import { v2 as cloudinary } from "cloudinary";
 import generateCode from "../utils/generateCode.js";
-import { sendEmail, buildEmailTemplate } from "../utils/sendEmails.js";
+import
+  {
+ 
+  sendVerificationEmail,
+  sendPasswordResetEmail,
+  sendApprovalEmail,
+  sendRejectionEmail,
+ 
+} from "../utils/sendEmails.js";
 import mongoose from "mongoose";
 import User from "../models/userModel.js";
 import Vehicle from "../models/Vehicle.js";
@@ -29,13 +37,18 @@ cloudinary.config({
 });
 
 // Helper to safely format admin response
+// Utility to format safe response
 const formatAdminResponse = (admin) => ({
   _id: admin._id,
   firstName: admin.firstName || "",
   lastName: admin.lastName || "",
   email: admin.email || "",
   phone: admin.phone || "",
-  country: admin.country || "",
+  state: admin.state || "",
+  city: admin.city || "",
+  streetAddress: admin.streetAddress || "",
+  zipCode: admin.zipCode || "",
+  dateOfBirth: admin.dateOfBirth || "",
   role: admin.role || "",
   profilePic: admin.profilePic || "",
   isVerified: admin.isVerified || false,
@@ -43,25 +56,36 @@ const formatAdminResponse = (admin) => ({
 
 // Auth Controllers
 // ========================
+
 export const createAdmin = async (req, res) => {
   try {
-    const { firstName,
-			lastName,
-			email,
-			password,
-			phone,
-			state,
-			city,
-			streetAddress,
-			zipCode,
-			dateOfBirth, role } = req.body;
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      phone,
+      state,
+      city,
+      streetAddress,
+      zipCode,
+      dateOfBirth,
+      role,
+    } = req.body;
 
-   // Validate required fields
-		if (
-			!firstName || !lastName || !email || !password || !phone || !state || !city || !streetAddress || !dateOfBirth
-		) {
-			return res.status(400).json({ message: "All fields are required" });
-		}
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !password ||
+      !phone ||
+      !state ||
+      !city ||
+      !streetAddress ||
+      !dateOfBirth
+    ) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
 
     const adminExists = await Admin.findOne({ email });
     if (adminExists) {
@@ -70,25 +94,29 @@ export const createAdmin = async (req, res) => {
 
     const code = generateCode();
     const admin = new Admin({
-    firstName,
-			lastName,
-			email,
-			password,
-			phone,
-			state,
-			city,
-			streetAddress,
-			zipCode,
-			dateOfBirth,
+      firstName,
+      lastName,
+      email,
+      password,
+      phone,
+      state,
+      city,
+      streetAddress,
+      zipCode,
+      dateOfBirth,
       role,
       emailCode: code,
-      emailCodeExpires: Date.now() + 10 * 60 * 1000, // 10 mins
-      passwordHistory: [{ password, changedAt: new Date() }],
+      emailCodeExpires: Date.now() + 10 * 60 * 1000,
+      passwordHistory: [],
       isVerified: false,
     });
 
+    // push hashed password into history (after save hook)
+    admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
+
     await admin.save();
-    await sendEmail(email, "Verify your email", `Your verification code is: ${code}`);
+   // ✅ Use new helper
+await sendVerificationEmail(email, code);
 
     const token = generateTokenAndSetCookie(admin._id, res, "adminId");
 
@@ -103,10 +131,11 @@ export const createAdmin = async (req, res) => {
   }
 };
 
+
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const admin = await Admin.findOne({ email });
+    const admin = await Admin.findOne({ email }).select("+password");
 
     if (!admin || !(await admin.correctPassword(password))) {
       return res.status(400).json({ msg: "Invalid credentials" });
@@ -117,7 +146,8 @@ export const login = async (req, res) => {
       admin.emailCode = code;
       admin.emailCodeExpires = Date.now() + 10 * 60 * 1000;
       await admin.save();
-      await sendEmail(email, "Verification Required", `Your new code: ${code}`);
+       // ✅ Branded resend
+      await sendVerificationEmail(email, code);
       return res.status(403).json({
         msg: "Account not verified. New verification code sent.",
         isVerified: false,
@@ -218,11 +248,13 @@ export const verifyEmail = async (req, res) => {
     const { email, code } = req.body;
     const admin = await Admin.findOne({ email });
 
-    if (!admin || admin.isVerified)
+    if (!admin || admin.isVerified) {
       return res.status(400).json({ msg: "Invalid request" });
+    }
 
-    if (admin.emailCode !== code || Date.now() > admin.emailCodeExpires)
-      return res.status( 400 ).json( { msg: "Code expired or incorrect" } );
+    if (admin.emailCode !== code || Date.now() > admin.emailCodeExpires) {
+      return res.status(400).json({ msg: "Code expired or incorrect" });
+    }
 
     admin.isVerified = true;
     admin.emailCode = null;
@@ -230,17 +262,6 @@ export const verifyEmail = async (req, res) => {
     await admin.save();
 
     res.json({ msg: "Email verified successfully" });
-    
-    // if (
-    //   !admin ||
-    //   admin.isVerified ||
-    //   admin.emailCode !== code ||
-    //   Date.now() > admin.emailCodeExpires
-    // ) {
-    //   return res.status(400).json({ msg: "Invalid or expired verification code" });
-    // }
-
-    
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
@@ -252,14 +273,15 @@ export const resendCode = async (req, res) => {
     const admin = await Admin.findOne({ email });
 
     if (!admin || admin.isVerified)
-      return res.status(400).json({ msg: "admin not found or already verified" });
+      return res.status(400).json({ msg: "Admin not found or already verified" });
 
     const code = generateCode();
     admin.emailCode = code;
     admin.emailCodeExpires = Date.now() + 10 * 60 * 1000;
     await admin.save();
 
-    await sendEmail(email, "New verification code", `Your new code is: ${code}`);
+  // ✅ Use new helper
+await sendVerificationEmail(email, code);
     res.json({ msg: "New verification code sent" });
   } catch (err) {
     res.status(500).json({ msg: err.message });
@@ -275,7 +297,7 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const admin = await Admin.findById(adminId);
+    const admin = await Admin.findById(adminId).select("+password");
     if (!admin) return res.status(404).json({ msg: "Admin not found" });
 
     if (!(await admin.correctPassword(currentPassword))) {
@@ -284,12 +306,14 @@ export const changePassword = async (req, res) => {
 
     // Prevent reuse
     const reused = await Promise.any(
-      admin.passwordHistory.map(({ password }) => admin.correctPassword(newPassword))
+      admin.passwordHistory.map(({ password }) =>
+        admin.correctPassword(newPassword)
+      )
     ).catch(() => false);
 
     if (reused) return res.status(400).json({ msg: "Password reused from history" });
 
-    admin.password = newPassword; // Let pre-save hook hash
+    admin.password = newPassword;
     admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
     if (admin.passwordHistory.length > 5) admin.passwordHistory.shift();
 
@@ -313,9 +337,9 @@ export const resetPassword = async (req, res) => {
     }
 
     const admin = await Admin.findById(decoded.adminId);
-    if (!admin) return res.status(404).json({ message: "User not found" });
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-    admin.password = newPassword; // Let pre-save hook hash
+    admin.password = newPassword;
     admin.emailCode = undefined;
     admin.emailCodeExpires = undefined;
     await admin.save();
@@ -337,7 +361,8 @@ export const forgotPassword = async (req, res) => {
 
     const code = admin.setPasswordResetCode();
     await admin.save({ validateBeforeSave: false });
-    await sendEmail(email, "Password Reset Code", `Your reset code is: ${code}`);
+    // ✅ Use new helper
+await sendPasswordResetEmail(email, code);
     res.json({ msg: "Password reset code sent" });
   } catch (err) {
     res.status(500).json({ msg: err.message });
@@ -508,8 +533,7 @@ export const getAdminUser = async (req, res) => {
 // };
 
 
-// @ts-nocheck
-import User from "../models/userModel.js";
+
 
 // ✅ Get all uploaded documents for a specific user
 export const getUserDocuments = async (req, res) => {
@@ -543,6 +567,7 @@ export const getUserDocuments = async (req, res) => {
 
 // ✅ Approve user documents
 // ✅ Approve user documents
+// ✅ Approve user documents
 export const approveUserDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -568,20 +593,11 @@ export const approveUserDocuments = async (req, res) => {
 
     await user.save();
 
-    // ✅ Build HTML template
-    const html = buildEmailTemplate(
-      "✅ Documents Approved",
-      `Hello ${user.firstName},<br><br>
-      Good news! Your identity verification documents have been <b>approved</b> 🎉.<br><br>
-      You can now access your account with full privileges.`,
-      "Go to Dashboard",
-      `${process.env.CLIENT_URL}/dashboard`
-    );
-
-    await sendEmail(user.email, "✅ Documents Approved", html);
+    // ✅ Use uniform email helper
+    await sendApprovalEmail(user.email, user.firstName);
 
     res.json({
-      message: "User Documents approved successfully ✅",
+      message: "User documents approved successfully ✅",
       step: user.onboardingStage,
       user,
     });
@@ -611,21 +627,11 @@ export const rejectUserDocuments = async (req, res) => {
 
     await user.save();
 
-    // ✅ Build HTML template
-    const html = buildEmailTemplate(
-      "❌ Documents Rejected",
-      `Hello ${user.firstName},<br><br>
-      Unfortunately, your identity verification documents were <b>rejected</b> for the following reason:<br><br>
-      <i>${rejectionReason}</i><br><br>
-      Please re-upload valid documents in your dashboard to continue.`,
-      "Re-upload Documents",
-      `${process.env.CLIENT_URL}/upload-documents`
-    );
-
-    await sendEmail(user.email, "❌ Documents Rejected", html);
+    // ✅ Use uniform email helper
+    await sendRejectionEmail(user.email, user.firstName, rejectionReason);
 
     res.json({
-      message: "User Documents rejected ❌",
+      message: "User documents rejected ❌",
       reason: user.identityDocuments.rejectionReason,
       step: user.onboardingStage,
       user,

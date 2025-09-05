@@ -24,7 +24,7 @@ import {
 import protectRoute from "../middlewares/protectRoute.js";
 
 import multer from "multer";
-import {uploadImages} from "../middlewares/upload.js";
+import {uploadDocument} from "../middlewares/upload.js";
 
 function generateToken(user) {
 	return jwt.sign({ id: user._id }, keys.jwtSecret, { expiresIn: "7d" });
@@ -50,11 +50,12 @@ userRouter.patch( "/update/:id", protectRoute, updateUser );
 userRouter.post(
   "/:userId/documents",
   protectRoute,
-  uploadImages.fields([
+  uploadDocument.fields([
     { name: "idCardFront", maxCount: 1 },
     { name: "driverLicense", maxCount: 1 },
-    { name: "insurance", maxCount: 1 },
+    { name: "tin", maxCount: 1 },
     { name: "bankStatement", maxCount: 1 },
+    { name: "cac", maxCount: 1 },
   ]),
   uploadDocuments
 );

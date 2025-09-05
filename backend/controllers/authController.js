@@ -6,7 +6,7 @@ import generateTokenAndSetCookie from "../utils/helpers/generateTokenAndSetCooki
 import { v2 as cloudinary } from "cloudinary";
 import mongoose from "mongoose";
 import generateCode from "../utils/generateCode.js";
-import sendEmail from "../utils/sendEmails.js";
+import {sendEmail} from "../utils/sendEmails.js";
 import jwt from "jsonwebtoken"
 import crypto from "crypto"
 import { v4 as uuidv4 } from "uuid";
