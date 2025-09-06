@@ -27,6 +27,6 @@ shipmentRouter.get( "/", protectAdmin, getAllShipments );
 shipmentRouter.put("/:vehicleId/shipment/status", updateShipmentStatus);
 
 // Get shipment by vehicle ID
-shipmentRouter.get("/:vehicleId", getShipmentById);
+shipmentRouter.get("/:vehicleId",protectAdmin, getShipmentById);
 
 export default shipmentRouter;
