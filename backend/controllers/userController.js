@@ -242,6 +242,77 @@ const register = async (req, res) => {
 //     res.status(500).json({ error: err.message });
 //   }
 // };
+// const login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const user = await User.findOne({ email });
+//     if (!user) return res.status(400).json({ msg: "Invalid credentials" });
+
+//     const isPasswordCorrect = await user.correctPassword(password);
+//     if (!isPasswordCorrect) {
+//       return res.status(400).json({ error: "Invalid password" });
+//     }
+
+//     if (!user.isVerified) {
+//       const code = generateCode();
+//       user.emailCode = code;
+//       user.emailCodeExpires = Date.now() + 10 * 60 * 1000;
+//       await user.save();
+
+//       // ✅ Branded resend
+//       await sendVerificationEmail(email, code);
+
+//       return res.status(403).json({
+//         msg: "Account not verified. A new verification code has been sent.",
+//         isVerified: false,
+//       });
+//     }
+
+//     if (user.role === "car_dealer") {
+//       if (!user.isApproved || user.identityDocuments.status !== "approved") {
+//         return res.status(403).json({
+//           msg: "Awaiting admin approval",
+//           isVerified: true,
+//           isApproved: false,
+//           documentStatus: user.identityDocuments?.status || "pending",
+//         });
+//       }
+//     }
+
+//     if (
+//       user.identityDocuments?.status === "approved" &&
+//       user.onboardingStage !== "completed"
+//     ) {
+//       user.onboardingStage = "completed";
+//       user.onboardingCompleted = true;
+//       await user.save();
+//     }
+
+//       // ✅ Update last login + status
+//     user.lastLogin = new Date();
+//     user.loginStatus = "Active";
+
+//     const token = generateTokenAndSetCookie(user._id, res, "userId");
+
+//     res.status(200).json({
+//       token,
+//       _id: user._id,
+//       email: user.email,
+//       msg: "Login Successful",
+//       isVerified: true,
+//       role: user.role,
+//       lastLogin: user.lastLogin,
+//       loginStatus: user.loginStatus,
+//       isApproved: user.isApproved,
+//       documentStatus: user.identityDocuments?.status,
+//       onboardingCompleted: user.onboardingCompleted,
+//     });
+//   } catch (err) {
+//     console.error("Error in login:", err.message);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -260,7 +331,6 @@ const login = async (req, res) => {
       user.emailCodeExpires = Date.now() + 10 * 60 * 1000;
       await user.save();
 
-      // ✅ Branded resend
       await sendVerificationEmail(email, code);
 
       return res.status(403).json({
@@ -286,12 +356,13 @@ const login = async (req, res) => {
     ) {
       user.onboardingStage = "completed";
       user.onboardingCompleted = true;
-      await user.save();
     }
 
-      // ✅ Update last login + status
+    // ✅ Update last login + status
     user.lastLogin = new Date();
     user.loginStatus = "Active";
+
+    await user.save(); // <-- you forgot this ✅
 
     const token = generateTokenAndSetCookie(user._id, res, "userId");
 
@@ -303,7 +374,7 @@ const login = async (req, res) => {
       isVerified: true,
       role: user.role,
       lastLogin: user.lastLogin,
-      loginStatus: user.loginStatus,
+      loginStatus: user.loginStatus, // will now be "Active"
       isApproved: user.isApproved,
       documentStatus: user.identityDocuments?.status,
       onboardingCompleted: user.onboardingCompleted,
@@ -314,18 +385,32 @@ const login = async (req, res) => {
   }
 };
 
+
 // =============================
 // LOGOUT
 // =============================
-const logoutUser = (req, res) => {
-	try {
-		res.cookie("jwt", "", { maxAge: 1 });
-		res.status(200).json({ message: "User logged out successfully" });
-	} catch (err) {
-		console.error("Error in logoutUser:", err.message);
-		res.status(500).json({ error: err.message });
-	}
+// const logoutUser = (req, res) => {
+// 	try {
+// 		res.cookie("jwt", "", { maxAge: 1 });
+// 		res.status(200).json({ message: "User logged out successfully" });
+// 	} catch (err) {
+// 		console.error("Error in logoutUser:", err.message);
+// 		res.status(500).json({ error: err.message });
+// 	}
+// };
+const logoutUser = async (req, res) => {
+  try {
+    const userId = req.user.id; // assuming you attach user from token middleware
+    await User.findByIdAndUpdate(userId, { loginStatus: "Inactive" });
+
+    res.clearCookie("userId"); // remove token cookie
+    res.status(200).json({ msg: "Logged out successfully", loginStatus: "Inactive" });
+  } catch (err) {
+    console.error("Error in logout:", err.message);
+    res.status(500).json({ error: err.message });
+  }
 };
+
 
 // =============================
 // VERIFY EMAIL
@@ -884,6 +969,15 @@ const getUserById = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // ✅ If token expired or user logged out manually
+    if (!req.user || req.user._id.toString() !== userId) {
+      // mark as Inactive
+      if (user.loginStatus !== "Inactive") {
+        user.loginStatus = "Inactive";
+        await user.save();
+      }
+    }
+
     // Compute status
     let status = "Inactive";
     if (user.isApproved) status = "Active";
@@ -891,7 +985,7 @@ const getUserById = async (req, res) => {
       status = "Pending";
     }
 
-    // Example stats (you can expand if your schema supports it)
+    // Example stats (optional)
     const stats = {
       totalBids: user.totalBids || 0,
       wonAuctions: user.wonAuctions || 0,
@@ -909,11 +1003,11 @@ const getUserById = async (req, res) => {
       username: user.username || "",
       email: user.email || "",
       phone: user.phone || "",
-      dob: user.dob || "",
+      dateOfBirth: user.dateOfBirth || "",
       profilePic: user.profilePic || "",
       role: user.role || "",
       status,
-      loginStatus: user.loginStatus || "Inactive",
+      loginStatus: user.loginStatus, // ✅ always up to date
       isVerified: user.isVerified || false,
       isApproved: user.isApproved || false,
       address: {
@@ -948,6 +1042,7 @@ const getUserById = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
 
 
 

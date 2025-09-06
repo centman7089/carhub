@@ -779,6 +779,7 @@ export const getAllUsers = async (req, res) => {
         country: user.country || "",
         state: user.state || "",
         city: user.city || "",
+        dateOfBirth: user.dateOfBirth || "",
         streetAddress: user.streetAddress || "",
         zipCode: user.zipCode || "",
         loginStatus: user.loginStatus || "Inactive",
@@ -832,6 +833,15 @@ export const getUserById = async (req, res) => {
       return res.status(404).json({ error: "User not found" });
     }
 
+    // ✅ If token expired or user logged out manually
+    if (!req.user || req.user._id.toString() !== userId) {
+      // mark as Inactive
+      if (user.loginStatus !== "Inactive") {
+        user.loginStatus = "Inactive";
+        await user.save();
+      }
+    }
+
     // Compute status
     let status = "Inactive";
     if (user.isApproved) status = "Active";
@@ -839,7 +849,7 @@ export const getUserById = async (req, res) => {
       status = "Pending";
     }
 
-    // Example stats (you can expand if your schema supports it)
+    // Example stats (optional)
     const stats = {
       totalBids: user.totalBids || 0,
       wonAuctions: user.wonAuctions || 0,
@@ -857,12 +867,11 @@ export const getUserById = async (req, res) => {
       username: user.username || "",
       email: user.email || "",
       phone: user.phone || "",
-      dob: user.dob || "",
+      dateOfBirth: user.dateOfBirth || "",
       profilePic: user.profilePic || "",
-      accountType: user.accountType || "",
       role: user.role || "",
       status,
-      loginStatus: user.loginStatus || "Inactive",
+      loginStatus: user.loginStatus, // ✅ always up to date
       isVerified: user.isVerified || false,
       isApproved: user.isApproved || false,
       address: {
