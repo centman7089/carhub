@@ -297,7 +297,7 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const admin = await Admin.findById(adminId).select("+password");
+    const admin = await Admin.findById(adminId).select("-password");
     if (!admin) return res.status(404).json({ msg: "Admin not found" });
 
     if (!(await admin.correctPassword(currentPassword))) {
