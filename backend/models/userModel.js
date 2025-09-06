@@ -3,30 +3,27 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
-
 const identityDocumentsSchema = new mongoose.Schema(
   {
-    idCardFront: { type: String, required: true },
-    driverLicense: { type: String, required: true },
-    tin: { type: String, required: true },
-    bankStatement: { type: String, required: true },
-    cac: { type: String }, // ✅ optional
+    idCardFront: { type: String },
+    driverLicense: { type: String },
+    tin: { type: String },
+    bankStatement: { type: String },
+    cac: { type: String }, // optional
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
     rejectionReason: { type: String },
-    uploadedAt: { type: Date },
+    uploadedAt: { type: Date, default: Date.now },
     reviewedAt: { type: Date },
   },
   { _id: false }
 );
 
-
-const userSchema = mongoose.Schema(
+const userSchema = new mongoose.Schema(
   {
-        
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
     email: {
@@ -39,8 +36,7 @@ const userSchema = mongoose.Schema(
     password: { type: String, minLength: 6, required: true },
     phone: { type: String, minLength: 6, required: true },
 
-    // Location details
-    // country: { type: String, required: true },
+    // Location
     state: { type: String, required: true },
     city: { type: String, required: true },
     streetAddress: { type: String, required: true },
@@ -54,61 +50,32 @@ const userSchema = mongoose.Schema(
         "https://res.cloudinary.com/dq5puvtne/image/upload/v1740648447/next_crib_avatar_jled2z.jpg",
     },
 
-     // Terms & Privacy
-    acceptedTerms: { type: Boolean, default: false },
-    acceptedPrivacy: { type: Boolean, default: false },
-        // Verification + Flow
-    identityDocuments: { type: identityDocumentsSchema, default: {} },
+    // ✅ Policy acceptance
+    acceptedTerms: { type: Boolean, required: true, default: false },
+    acceptedPrivacy: { type: Boolean, required: true, default: false },
+    onboardingCompleted: { type: Boolean, default: false },
     onboardingStage: {
       type: String,
       enum: ["documents", "terms", "admin_review", "completed"],
       default: "documents",
     },
-    // accountType: { type: String, enum: [ 'retailer', 'car_dealer' ], required: true },
-    // documentUrl: { type: String }, // for car dealers
-    document: {
-            url: String,
-            type: { type: String, enum: ['id_card', 'bank_statement', 'tin','cac','driver_license'] },
-            status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending' },
-    },
-    // Verification status
-      // Admin controls
+
+    // Identity Verification
+    identityDocuments: { type: identityDocumentsSchema, default: {} },
+
+    // Verification & approval
     isVerified: { type: Boolean, default: false }, // email verified
     isApproved: { type: Boolean, default: false }, // admin approval
     requiresDocument: { type: Boolean, default: false },
-    // verificationStage: {
-    //   type: String,
-    //   enum: ['personalInfo', 'identityDocs', 'terms', 'completed'],
-    //   default: 'personalInfo',
-    // },
-    // Agreement
-       // ✅ Policy acceptance fields
-       acceptedTerms: { type: Boolean, required: true, default: false },
-      acceptedPrivacy: { type: Boolean, required: true, default: false },
-      onboardingCompleted: { type: Boolean, default: false }, // Full flow completed
 
-  identityDocuments: {
-    idCardFront: { type: String },
-    driverLicense: { type: String },
-    tin: { type: String },
-    cac: { type: String },
-    bankStatement: { type: String },
-    status: { 
-      type: String, 
-      enum: ["pending", "approved", "rejected"], 
-      default: "pending" 
-    },
-    reviewedAt: { type: Date }
-},
-
-    // System Roles
+    // Role
     role: {
       type: String,
-      enum: ['user', 'admin','superadmin' ,'car_dealer', 'retailer'],
-      default: 'retailer',
+      enum: ["user", "admin", "superadmin", "car_dealer", "retailer"],
+      default: "retailer",
     },
 
-        // Status & activity
+    // Status & activity
     loginStatus: {
       type: String,
       enum: ["Active", "Inactive"],
@@ -121,50 +88,39 @@ const userSchema = mongoose.Schema(
     emailCodeExpires: Date,
     resetCode: String,
     resetCodeExpires: Date,
-    vverificationToken: String,
+    verificationToken: String,
+
+    // Track last 5 passwords
     passwordHistory: [
       {
-        password: String,
+        password: String, // hashed
         changedAt: Date,
       },
     ],
 
-    createdAt: {
-      type: Date,
-      default: Date.now,
-    },
+    createdAt: { type: Date, default: Date.now },
   },
   { timestamps: true }
 );
 
-// Hash password
+// 🔒 Hash password before save
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });
 
-// Check password
+// Compare passwords
 userSchema.methods.correctPassword = async function (candPwd) {
   return bcrypt.compare(candPwd, this.password);
 };
 
-// Set reset code
+// Generate reset code
 userSchema.methods.setPasswordResetCode = function () {
   const code = Math.floor(1000 + Math.random() * 9000).toString();
   this.resetCode = crypto.createHash("sha256").update(code).digest("hex");
   this.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
   return code;
-};
-
-// ✅ Auto-reset identity status if user re-uploads docs after rejection
-userSchema.methods.resetDocumentsIfRejected = function () {
-  if (this.identityDocuments.status === "rejected") {
-    this.identityDocuments.status = "pending";
-    this.identityDocuments.rejectionReason = undefined;
-    this.identityDocuments.reviewedAt = undefined;
-    this.onboardingStage = "admin_review"; // move back to review
-  }
 };
 
 // Validate reset code
@@ -177,6 +133,15 @@ userSchema.methods.validateResetCode = function (code) {
   );
 };
 
-const User = mongoose.model("User", userSchema);
+// Reset identity docs if rejected
+userSchema.methods.resetDocumentsIfRejected = function () {
+  if (this.identityDocuments.status === "rejected") {
+    this.identityDocuments.status = "pending";
+    this.identityDocuments.rejectionReason = undefined;
+    this.identityDocuments.reviewedAt = undefined;
+    this.onboardingStage = "admin_review";
+  }
+};
 
+const User = mongoose.model("User", userSchema);
 export default User;

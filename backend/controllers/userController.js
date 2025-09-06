@@ -636,6 +636,8 @@ const forgotPassword = async (req, res) => {
     }
   };
 // Step 3 – change the password with the JWT
+
+
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
@@ -647,40 +649,48 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
+    // 🔑 Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== "password_reset") {
       return res.status(400).json({ message: "Invalid token" });
     }
 
+    // 🔍 Find user
     const user = await User.findById(decoded.userId);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Prevent reusing current password
+    // ⛔ Prevent reusing current password
     if (await bcrypt.compare(newPassword, user.password)) {
-      return res.status(400).json({ message: "New password cannot be the same as the old password" });
+      return res
+        .status(400)
+        .json({ message: "New password cannot be the same as the old password" });
     }
 
-    // Prevent reusing passwords from history
+    // ⛔ Prevent reusing passwords from history
     for (const entry of user.passwordHistory || []) {
       if (await bcrypt.compare(newPassword, entry.password)) {
-        return res.status(400).json({ message: "You have already used this password before" });
+        return res
+          .status(400)
+          .json({ message: "You have already used this password before" });
       }
     }
 
-    // Save current hashed password into history
+    // ✅ Save current hashed password into history
     user.passwordHistory = user.passwordHistory || [];
     user.passwordHistory.push({
-      password: user.password,
+      password: user.password, // already hashed
       changedAt: new Date(),
     });
+
+    // Keep only the last 5 passwords
     if (user.passwordHistory.length > 5) {
       user.passwordHistory.shift();
     }
 
-    // Set new password in plain text — pre-save hook hashes
+    // ✅ Assign new password (plain) — pre-save hook will hash it
     user.password = newPassword;
 
-    // Clear reset tokens
+    // 🔄 Clear reset tokens
     user.emailCode = undefined;
     user.emailCodeExpires = undefined;
     user.resetCode = undefined;
@@ -688,7 +698,7 @@ const resetPassword = async (req, res) => {
 
     await user.save();
 
-    res.json({ success: true, message: "Password updated" });
+    res.json({ success: true, message: "Password updated successfully ✅" });
   } catch (err) {
     if (err.name === "TokenExpiredError") {
       return res.status(400).json({ message: "Token expired" });
@@ -697,6 +707,9 @@ const resetPassword = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+
+
 
 // // STEP 1: Upload Documents (must upload all 4 docs)
 // const uploadDocuments = async (req, res) => {
@@ -840,21 +853,25 @@ const uploadDocuments = async (req, res) => {
 const acceptTerms = async (req, res) => {
   try {
     const { userId } = req.params;
-     const { acceptedTerms, acceptedPrivacy } = req.body;
+    const { acceptedTerms, acceptedPrivacy } = req.body;
 
-     if (req.user._id.toString() !== userId) {
-       return res.status(403).json({ error: "Unauthorized action" });
-     }
+    // ✅ Only allow the logged-in user to accept their own terms
+    if (req.user._id.toString() !== userId) {
+      return res.status(403).json({ error: "Unauthorized action" });
+    }
 
-    // 🔑 Find user
+    // 🔎 Find user
     const user = await User.findById(userId);
-    if ( !user ) return res.status( 404 ).json( { error: "User not found" } );
-    
-    if (!acceptedTerms || !acceptedPrivacy) {
-      return res.status(400).json({ error: "You must accept both Terms and Privacy Policy" });
-   }
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-    // ✅ Ensure user has uploaded all required documents
+    // ✅ Both must be accepted
+    if (!acceptedTerms || !acceptedPrivacy) {
+      return res.status(400).json({
+        error: "You must accept both Terms and Privacy Policy",
+      });
+    }
+
+    // ✅ Check required docs
     const { idCardFront, driverLicense, tin, bankStatement } =
       user.identityDocuments;
 
@@ -865,20 +882,39 @@ const acceptTerms = async (req, res) => {
       });
     }
 
-    // ✅ Accept terms and privacy
-  user.acceptedTerms = true;
-  user.acceptedPrivacy = true;
-  user.onboardingStage = "admin_review";
-
+    // ✅ Update terms & stage
+    user.acceptedTerms = true;
+    user.acceptedPrivacy = true;
+    user.onboardingStage = "admin_review";
     await user.save();
 
+    // ✅ Safe response (no password / history / reset codes)
+    const safeUser = {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      role: user.role,
+      onboardingStage: user.onboardingStage,
+      acceptedTerms: user.acceptedTerms,
+      acceptedPrivacy: user.acceptedPrivacy,
+      identityDocuments: {
+        status: user.identityDocuments.status,
+        reviewedAt: user.identityDocuments.reviewedAt,
+      },
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
     res.json({
-      message: "Terms and privacy accepted successfully ✅. Awaiting Admin Approval",
+      message:
+        "Terms and privacy accepted successfully ✅. Awaiting Admin Approval",
       step: user.onboardingStage,
-      user,
+      user: safeUser,
     });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("acceptTerms error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 };
 
