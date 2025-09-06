@@ -28,7 +28,7 @@ import mongoose from "mongoose";
 // models/vehicleModel.js (excerpt)
 
 const shipmentSchema = new mongoose.Schema({
-  trackingNumber: { type: String, unique: true, required: true },
+  trackingNumber: { type: String, unique: true, sparse: true},
   carrierCompany: { type: String, required: true },
   pickupDate: { type: Date },       // ✅ Added
   deliveryDate: { type: Date },     // ✅ Added
