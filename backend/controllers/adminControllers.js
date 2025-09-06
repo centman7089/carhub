@@ -822,9 +822,9 @@ export const getAllUsers = async (req, res) => {
  */
 export const getUserById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { userId } = req.params;
 
-    const user = await User.findById(id).select(
+    const user = await User.findById(userId).select(
       "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
     );
 
