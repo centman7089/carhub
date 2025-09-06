@@ -130,6 +130,114 @@ export const addVehicle = async (req, res) => {
   }
 };
 
+// export const addVehicle = async (req, res) => {
+//   try {
+//     // ✅ Ensure only admins can add vehicles
+//     if (!req.admin || !req.admin.id) {
+//       return res
+//         .status(403)
+//         .json({ success: false, message: "Only admins can add vehicles" });
+//     }
+
+//     const {
+//       make,
+//       model,
+//       year,
+//       vin,
+//       bodyType,
+//       fuelType,
+//       transmission,
+//       price,
+//       mileage,
+//       color,
+//       condition,
+//       lotNumber,
+//       description,
+//       features,
+//       zipCode,
+//       address,
+//       state,
+//       city,
+//       priority, // ✅ added priority
+//       shipment, // ✅ optional shipment info
+//     } = req.body;
+
+//     // ✅ Extract Cloudinary URLs directly from multer-storage-cloudinary
+//     const image1 = req.files?.image1 ? req.files.image1[0].path : null;
+//     const image2 = req.files?.image2 ? req.files.image2[0].path : null;
+//     const image3 = req.files?.image3 ? req.files.image3[0].path : null;
+//     const image4 = req.files?.image4 ? req.files.image4[0].path : null;
+
+//     const images = [image1, image2, image3, image4].filter(Boolean);
+//     const [mainImage, ...supportingImages] = images;
+
+//     // ✅ Prepare base vehicle data
+//     const vehicleData = {
+//       make,
+//       model,
+//       year,
+//       vin,
+//       bodyType,
+//       fuelType,
+//       transmission,
+//       price,
+//       mileage,
+//       color,
+//       condition,
+//       lotNumber,
+//       description,
+//       features: features
+//         ? Array.isArray(features)
+//           ? features
+//           : String(features)
+//               .split(",")
+//               .map((f) => f.trim())
+//               .filter(Boolean)
+//         : [],
+//       mainImage: mainImage || null,
+//       supportingImages,
+//       zipCode,
+//       address,
+//       state,
+//       city,
+//       priority: ["Low", "Medium", "High"].includes(priority) ? priority : "Low",
+//       createdBy: req.admin.id, // ✅ attach the admin who created it
+//     };
+
+//     // ✅ Only add shipment if provided & trackingNumber is not empty
+//     if (shipment && shipment.trackingNumber) {
+//       vehicleData.shipment = {
+//         trackingNumber: shipment.trackingNumber,
+//         carrierCompany: shipment.carrierCompany || "",
+//         pickupDate: shipment.pickupDate || null,
+//         deliveryDate: shipment.deliveryDate || null,
+//         expectedDelivery: shipment.expectedDelivery || null,
+//         pickupAddress: shipment.pickupAddress || {},
+//         deliveryAddress: shipment.deliveryAddress || {},
+//         shippingCost: shipment.shippingCost || 0,
+//         insuranceValue: shipment.insuranceValue || 0,
+//         priorityLevel: shipment.priorityLevel || "Standard",
+//         specialInstructions: shipment.specialInstructions || "",
+//         shippingStatus: shipment.shippingStatus || "Pending",
+//       };
+//     }
+
+//     const vehicle = await Vehicle.create(vehicleData);
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Vehicle added successfully",
+//       vehicle,
+//     });
+//   } catch (error) {
+//     console.error("Error adding vehicle:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message || "Failed to add vehicle",
+//     });
+//   }
+// };
+
 
 
 
