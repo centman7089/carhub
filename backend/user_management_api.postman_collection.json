@@ -1,0 +1,49 @@
+{
+  "info": {
+    "name": "User Management API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Collection to test getUserById and getAllUsers endpoints"
+  },
+  "item": [
+    {
+      "name": "Get User By ID",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/users/{{userId}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "users", "{{userId}}"]
+        },
+        "description": "Fetch details of a single user by ID."
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Users",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "http://localhost:5000/api/users?page=1&limit=10",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["api", "users"],
+          "query": [
+            { "key": "page", "value": "1" },
+            { "key": "limit", "value": "10" }
+          ]
+        },
+        "description": "Fetch paginated list of all users."
+      },
+      "response": []
+    }
+  ]
+}

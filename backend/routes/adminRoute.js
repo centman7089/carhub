@@ -3,7 +3,8 @@ import express from "express";
 import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode,   getUserDocuments,
   approveUserDocuments,
   rejectUserDocuments,
-  getPendingUsers,getAllUsers,updateUserRole } from "../controllers/adminControllers.js";
+  getPendingUsers,getAllUsers,updateUserRole, 
+  getUserById} from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 import { vehicleImages } from "../middlewares/upload.js";
 // import vehicleImages from "../middlewares/multer.js";
@@ -25,6 +26,7 @@ adminRouter.post( '/reset-password', resetPassword )
 adminRouter.get( '/get', protectAdmin,getUserProfile )
 adminRouter.get( '/admin-user', protectAdmin,getAdminUser )
 
+
 adminRouter.patch( "/update/:id", protectAdmin,updateUser );
 
 
@@ -36,6 +38,7 @@ adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), appr
 adminRouter.patch( "/:userId/reject", protectAdmin, authorizeRoles( 'admin' ), rejectUserDocuments );
 // Admin-only routes
 adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
+adminRouter.get("/users/:userId",protectAdmin, authorizeRoles('admin'),getUserById);
 adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );
 // adminRouter.post(
 //   "/create-vehicle",

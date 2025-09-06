@@ -31,20 +31,57 @@ cloudinary.config({
 // GET USER PROFILE
 // =============================
 const getUserProfile = async (req, res) => {
-	const { query } = req.params;
-	try {
-		let user;
-		if (mongoose.Types.ObjectId.isValid(query)) {
-			user = await User.findById(query).select("-password -updatedAt");
-		} else {
-			user = await User.findOne({ username: query }).select("-password -updatedAt");
-		}
-		if (!user) return res.status(404).json({ error: "User not found" });
-		res.status(200).json(user);
-	} catch (err) {
-		console.error("Error in getUserProfile:", err.message);
-		res.status(500).json({ error: err.message });
-	}
+  try {
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ error: "Invalid userId" });
+    }
+
+    const user = await User.findById(id).select(
+      "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+    );
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    // Response with defaults
+    const userResponse = {
+      _id: user._id,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      username: user.username || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      profilePic: user.profilePic || "",
+      accountType: user.accountType || "",
+      country: user.country || "",
+      state: user.state || "",
+      city: user.city || "",
+      streetAddress: user.streetAddress || "",
+      zipCode: user.zipCode || "",
+      isVerified: user.isVerified || false,
+      isApproved: user.isApproved || false,
+      identityDocuments: {
+        idCardFront: user.identityDocuments?.idCardFront || "",
+        driverLicense: user.identityDocuments?.driverLicense || "",
+        tin: user.identityDocuments?.tin || "",
+        bankStatement: user.identityDocuments?.bankStatement || "",
+        status: user.identityDocuments?.status || "",
+        rejectionReason: user.identityDocuments?.rejectionReason || "",
+        reviewedAt: user.identityDocuments?.reviewedAt || "",
+      },
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    res.status(200).json({
+      message: "User profile fetched successfully",
+      user: userResponse,
+    });
+  } catch (err) {
+    console.error("Error in getUserProfile:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
 };
 
 // =============================
@@ -252,6 +289,10 @@ const login = async (req, res) => {
       await user.save();
     }
 
+      // ✅ Update last login + status
+    user.lastLogin = new Date();
+    user.loginStatus = "Active";
+
     const token = generateTokenAndSetCookie(user._id, res, "userId");
 
     res.status(200).json({
@@ -260,6 +301,9 @@ const login = async (req, res) => {
       email: user.email,
       msg: "Login Successful",
       isVerified: true,
+      role: user.role,
+      lastLogin: user.lastLogin,
+      loginStatus: user.loginStatus,
       isApproved: user.isApproved,
       documentStatus: user.identityDocuments?.status,
       onboardingCompleted: user.onboardingCompleted,
@@ -305,52 +349,50 @@ const verifyEmail = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-    const { firstName, lastName,email,phone,country, state, city, streetAddress } = req.body;
-    let { profilePic } = req.body;
+  const { firstName, lastName, email, phone, country, state, city, streetAddress, zipCode } = req.body;
+  const userId = req.user._id; // from auth middleware
 
-    const userId = req.user._id;
-    try {
-        let user = await User.findById(userId);
-        if (!user) return res.status(400).json({ error: "User not found" });
+  try {
+    // Ensure user exists
+    let user = await User.findById(userId);
+    if (!user) return res.status(404).json({ error: "User not found" });
 
-        if (req.params.id !== userId.toString())
-            return res.status(400).json({ error: "You cannot update other user's profile" });
-
-        // if (password) {
-        // 	const salt = await bcrypt.genSalt(10);
-        // 	const hashedPassword = await bcrypt.hash(password, salt);
-        // 	user.password = hashedPassword;
-        // }
-
-        if (profilePic) {
-            if (user.profilePic) {
-                await cloudinary.uploader.destroy(user.profilePic.split("/").pop().split(".")[0]);
-            }
-
-            const uploadedResponse = await cloudinary.uploader.upload(profilePic);
-            profilePic = uploadedResponse.secure_url;
-        }
-
-        user.firstName = firstName || user.firstName;
-        user.lastName = lastName || user.lastName;
-        user.email = email || user.email;
-        user.phone = phone || user.phone;
-        user.country = country || user.country;
-        user.state = state || user.state;
-        user.city = city || user.city;
-        user.address = address || user.address;
-        user.profilePic = profilePic || user.profilePic;
-
-        user = await user.save();
-
-        // password should be null in response
-        // user.password = null;
-
-        res.status(200).json(user);
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-        console.log("Error in updateUser: ", err.message);
+    // Ensure logged-in user is updating their own profile
+    if (req.params.id !== userId.toString()) {
+      return res.status(403).json({ error: "You cannot update another user's profile" });
     }
+
+    // Update fields → default to empty string if not provided
+    user.firstName = firstName !== undefined ? firstName : "";
+    user.lastName = lastName !== undefined ? lastName : "";
+    user.email = email !== undefined ? email : "";
+    user.phone = phone !== undefined ? phone : "";
+    user.country = country !== undefined ? country : "";
+    user.state = state !== undefined ? state : "";
+    user.city = city !== undefined ? city : "";
+    user.streetAddress = streetAddress !== undefined ? streetAddress : "";
+    user.zipCode = zipCode !== undefined ? zipCode : "";
+
+    // Save updated user
+    await user.save();
+
+    // Exclude sensitive fields from response
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    delete userResponse.passwordHistory;
+    delete userResponse.resetCode;
+    delete userResponse.resetCodeExpires;
+    delete userResponse.emailCode;
+    delete userResponse.emailCodeExpires;
+
+    res.status(200).json({
+      message: "Profile updated successfully",
+      user: userResponse,
+    });
+  } catch (err) {
+    console.error("Error in updateUser:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
 };
 
 const verifyPasswordResetCode = async (req, res) => {
@@ -756,6 +798,156 @@ const acceptTerms = async (req, res) => {
 };
 
 
+const updateProfilePhoto = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No profile photo uploaded!" });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    // Save Cloudinary URL to user
+    user.profilePic = req.file.path;
+    await user.save();
+
+    res.status(200).json({
+      message: "Profile photo updated successfully",
+      profilePic: user.profilePic,
+    });
+  } catch (error) {
+    console.error("Error updating profile photo:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
+/**
+ * Get the profile of the currently logged-in user.
+ * Uses req.user._id from auth middleware.
+ */
+/**
+ * Get the profile of the currently logged-in user.
+ * Uses req.user._id from auth middleware.
+ */
+const getMyProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    const user = await User.findById(userId).select(
+      "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+    );
+
+    if (!user) return res.status(404).json({ error: "User not found" });
+
+    const userResponse = {
+      _id: user._id,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      username: user.username || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      profilePic: user.profilePic || "",
+      accountType: user.accountType || "",
+      country: user.country || "",
+      state: user.state || "",
+      city: user.city || "",
+      streetAddress: user.streetAddress || "",
+      zipCode: user.zipCode || "",
+      isVerified: user.isVerified || false,
+      isApproved: user.isApproved || false,
+      identityDocuments: user.identityDocuments || {},
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    res.status(200).json({
+      message: "My profile fetched successfully",
+      user: userResponse,
+    });
+  } catch (err) {
+    console.error("Error in getMyProfile:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select(
+      "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Compute status
+    let status = "Inactive";
+    if (user.isApproved) status = "Active";
+    else if (!user.isApproved && user.identityDocuments?.status === "pending") {
+      status = "Pending";
+    }
+
+    // Example stats (you can expand if your schema supports it)
+    const stats = {
+      totalBids: user.totalBids || 0,
+      wonAuctions: user.wonAuctions || 0,
+      creditLimit: user.creditLimit || 0,
+      lastLogin: user.lastLogin || null,
+    };
+
+    // Format response
+    const userDetails = {
+      _id: user._id,
+      userId: `#USR${String(user._id).slice(-4).toUpperCase()}`,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+      username: user.username || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      dob: user.dob || "",
+      profilePic: user.profilePic || "",
+      role: user.role || "",
+      status,
+      loginStatus: user.loginStatus || "Inactive",
+      isVerified: user.isVerified || false,
+      isApproved: user.isApproved || false,
+      address: {
+        country: user.country || "",
+        state: user.state || "",
+        city: user.city || "",
+        streetAddress: user.streetAddress || "",
+        zipCode: user.zipCode || "",
+      },
+      accountDetails: stats,
+      identityDocuments: {
+        idCardFront: user.identityDocuments?.idCardFront || "",
+        driverLicense: user.identityDocuments?.driverLicense || "",
+        tin: user.identityDocuments?.tin || "",
+        cac: user.identityDocuments?.cac || "",
+        bankStatement: user.identityDocuments?.bankStatement || "",
+        proofOfAddress: user.identityDocuments?.proofOfAddress || "",
+        status: user.identityDocuments?.status || "",
+        rejectionReason: user.identityDocuments?.rejectionReason || "",
+        reviewedAt: user.identityDocuments?.reviewedAt || "",
+      },
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    res.status(200).json({
+      message: "User details fetched successfully",
+      user: userDetails,
+    });
+  } catch (err) {
+    console.error("Error in getUserById:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
 
 
 
@@ -765,7 +957,8 @@ export {
 	login,
 	logoutUser,
 	updateUser,
-	getUserProfile,
+  getUserProfile,
+  getMyProfile,
 	verifyEmail,
 	resendCode,
 	verifyResetCode,
@@ -774,5 +967,7 @@ export {
 	changePassword,
 	acceptTerms,
   uploadDocuments,
+  updateProfilePhoto,
+  getUserById
   // approveUser
 };

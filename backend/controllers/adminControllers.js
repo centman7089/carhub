@@ -663,50 +663,241 @@ export const getPendingUsers = async (req, res) => {
 // =============================
 // GET ALL USERS (with filters)
 // =============================
+// export const getAllUsers = async (req, res) => {
+//   try {
+//     const { role, status, sort, search } = req.query;
+
+//     let filter = {};
+
+//     // ✅ Filter by role
+//     if (role) filter.role = role;
+
+//     // ✅ Filter by verification/approval status
+//     if (status === "active") filter.isVerified = true;
+//     if (status === "inactive") filter.isVerified = false;
+//     if (status === "approved") filter.isApproved = true;
+//     if (status === "pending") filter.isApproved = false;
+
+//     // ✅ Search by name or email
+//     if (search) {
+//       filter.$or = [
+//         { firstName: new RegExp(search, "i") },
+//         { lastName: new RegExp(search, "i") },
+//         { email: new RegExp(search, "i") },
+//       ];
+//     }
+
+//     // ✅ Sorting
+//     let sortOption = { createdAt: -1 }; // default recent
+//     if (sort === "oldest") sortOption = { createdAt: 1 };
+
+//     const users = await User.find(filter).sort(sortOption);
+
+//     res.status(200).json({
+//       success: true,
+//       count: users.length,
+//       users,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error fetching users:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch users",
+//       error: error.message,
+//     });
+//   }
+// };
 export const getAllUsers = async (req, res) => {
   try {
-    const { role, status, sort, search } = req.query;
+    const {
+      role,
+      email,
+      name,
+      page = 1,
+      limit = 20,
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
 
+    // 🔍 Build filter
     let filter = {};
-
-    // ✅ Filter by role
     if (role) filter.role = role;
-
-    // ✅ Filter by verification/approval status
-    if (status === "active") filter.isVerified = true;
-    if (status === "inactive") filter.isVerified = false;
-    if (status === "approved") filter.isApproved = true;
-    if (status === "pending") filter.isApproved = false;
-
-    // ✅ Search by name or email
-    if (search) {
+    if (email) filter.email = { $regex: email, $options: "i" };
+    if (name) {
       filter.$or = [
-        { firstName: new RegExp(search, "i") },
-        { lastName: new RegExp(search, "i") },
-        { email: new RegExp(search, "i") },
+        { firstName: { $regex: name, $options: "i" } },
+        { lastName: { $regex: name, $options: "i" } },
+        { username: { $regex: name, $options: "i" } },
       ];
     }
 
-    // ✅ Sorting
-    let sortOption = { createdAt: -1 }; // default recent
-    if (sort === "oldest") sortOption = { createdAt: 1 };
+    // Pagination setup
+    const skip = (Number(page) - 1) * Number(limit);
 
-    const users = await User.find(filter).sort(sortOption);
+    // Sorting setup
+    const sortOrder = order === "asc" ? 1 : -1;
+    const sortOptions = { [sortBy]: sortOrder };
+
+    // Fetch users
+    const users = await User.find(filter)
+      .select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      )
+      .skip(skip)
+      .limit(Number(limit))
+      .sort(sortOptions);
+
+    const total = await User.countDocuments(filter);
+
+    if (!users || users.length === 0) {
+      return res.status(404).json({ error: "No users found" });
+    }
+
+    // Format response
+    const formattedUsers = users.map((user, index) => {
+      // Generate a simple userId like #USR001
+      const userId = `#USR${String(skip + index + 1).padStart(3, "0")}`;
+
+      // Compute status
+      let status = "Inactive";
+      if (user.isApproved) status = "Active";
+      else if (!user.isApproved && user.identityDocuments?.status === "pending") {
+        status = "Pending";
+      }
+
+      return {
+        _id: user._id,
+        userId,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        username: user.username || "",
+        email: user.email || "",
+        phone: user.phone || "",
+        profilePic: user.profilePic || "",
+        accountType: user.accountType || "",
+        role: user.role || "",
+        country: user.country || "",
+        state: user.state || "",
+        city: user.city || "",
+        streetAddress: user.streetAddress || "",
+        zipCode: user.zipCode || "",
+        loginStatus: user.loginStatus || "Inactive",
+        isVerified: user.isVerified || false,
+        isApproved: user.isApproved || false,
+        status,
+        identityDocuments: {
+          idCardFront: user.identityDocuments?.idCardFront || "",
+          driverLicense: user.identityDocuments?.driverLicense || "",
+          tin: user.identityDocuments?.tin || "",
+          cac: user.identityDocuments?.cac || "",
+          bankStatement: user.identityDocuments?.bankStatement || "",
+          status: user.identityDocuments?.status || "",
+          rejectionReason: user.identityDocuments?.rejectionReason || "",
+          reviewedAt: user.identityDocuments?.reviewedAt || "",
+        },
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      };
+    });
 
     res.status(200).json({
-      success: true,
-      count: users.length,
-      users,
+      message: "Users fetched successfully",
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+      count: formattedUsers.length,
+      users: formattedUsers,
     });
-  } catch (error) {
-    console.error("❌ Error fetching users:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch users",
-      error: error.message,
-    });
+  } catch (err) {
+    console.error("Error in getAllUsers:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
+
+/**
+ * Get a single user by ID
+ * Admin view: includes profile info, account details, documents, stats, etc.
+ * Excludes sensitive data like passwords & reset codes.
+ */
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const user = await User.findById(id).select(
+      "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+    );
+
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Compute status
+    let status = "Inactive";
+    if (user.isApproved) status = "Active";
+    else if (!user.isApproved && user.identityDocuments?.status === "pending") {
+      status = "Pending";
+    }
+
+    // Example stats (you can expand if your schema supports it)
+    const stats = {
+      totalBids: user.totalBids || 0,
+      wonAuctions: user.wonAuctions || 0,
+      creditLimit: user.creditLimit || 0,
+      lastLogin: user.lastLogin || null,
+    };
+
+    // Format response
+    const userDetails = {
+      _id: user._id,
+      userId: `#USR${String(user._id).slice(-4).toUpperCase()}`,
+      firstName: user.firstName || "",
+      lastName: user.lastName || "",
+      fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
+      username: user.username || "",
+      email: user.email || "",
+      phone: user.phone || "",
+      dob: user.dob || "",
+      profilePic: user.profilePic || "",
+      accountType: user.accountType || "",
+      role: user.role || "",
+      status,
+      loginStatus: user.loginStatus || "Inactive",
+      isVerified: user.isVerified || false,
+      isApproved: user.isApproved || false,
+      address: {
+        country: user.country || "",
+        state: user.state || "",
+        city: user.city || "",
+        streetAddress: user.streetAddress || "",
+        zipCode: user.zipCode || "",
+      },
+      accountDetails: stats,
+      identityDocuments: {
+        idCardFront: user.identityDocuments?.idCardFront || "",
+        driverLicense: user.identityDocuments?.driverLicense || "",
+        tin: user.identityDocuments?.tin || "",
+        cac: user.identityDocuments?.cac || "",
+        bankStatement: user.identityDocuments?.bankStatement || "",
+        proofOfAddress: user.identityDocuments?.proofOfAddress || "",
+        status: user.identityDocuments?.status || "",
+        rejectionReason: user.identityDocuments?.rejectionReason || "",
+        reviewedAt: user.identityDocuments?.reviewedAt || "",
+      },
+      createdAt: user.createdAt,
+      updatedAt: user.updatedAt,
+    };
+
+    res.status(200).json({
+      message: "User details fetched successfully",
+      user: userDetails,
+    });
+  } catch (err) {
+    console.error("Error in getUserById:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
 
 // =============================
 // UPDATE USER ROLE

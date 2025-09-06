@@ -104,9 +104,17 @@ const userSchema = mongoose.Schema(
     // System Roles
     role: {
       type: String,
-      enum: ['user', 'admin', 'car_dealer', 'retailer'],
-      default: 'user',
+      enum: ['user', 'admin','superadmin' ,'car_dealer', 'retailer'],
+      default: 'retailer',
     },
+
+        // Status & activity
+    loginStatus: {
+      type: String,
+      enum: ["Active", "Inactive"],
+      default: "Inactive",
+    },
+    lastLogin: { type: Date },
 
     // Auth utilities
     emailCode: String,
