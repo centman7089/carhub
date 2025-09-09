@@ -22,6 +22,7 @@ import vehicleRoutes from "./routes/vehicleRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import adminRouter from "./routes/adminRoute.js";
 import shipmentRouter from "./routes/shipmentRoute.js";
+import dealerRouter from "./routes/dealerRoutes.js";
 
 dotenv.config();
 connectDB();
@@ -76,6 +77,7 @@ app.use("/api/vehicles", vehicleRoutes); // ⬅️ Multer will handle multipart 
 
 app.use("/api/auth", authRouter);
 app.use("/api/user", userRouter);
+app.use("/api/dealer", dealerRouter);
 app.use("/api/auctions", auctionRoutes);
 app.use("/api/deliveries", deliveryRoutes);
 app.use("/api/customers", customerRoutes);

@@ -2,9 +2,9 @@
 import jwt from "jsonwebtoken";
 
 /**
- * @param {string} id - The unique identifier for the user/employer/admin
+ * @param {string} id - The unique identifier for the user/dealer/admin
  * @param {object} res - Express response object
- * @param {string} role - Role-based identifier key e.g., "userId", "employerId", "adminId"
+ * @param {string} role - Role-based identifier key e.g., "userId", "dealerId", "adminId"
  */
 const generateTokenAndSetCookie = (id, res, role = "userId") => {
   const payload = { [role]: id }; // dynamically set the payload key
