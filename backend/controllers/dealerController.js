@@ -109,28 +109,28 @@ const register = async (req, res) => {
         const code = generateCode();
 
         // Create dealer (default role = "dealer")
-        const newDealer = new Dealer({firstName,lastName,email,password,phone,state,city,streetAddress,zipCode,dateOfBirth, emailCode: code, emailCodeExpires: Date.now() + 10 * 60 * 1000, passwordHistory: [{ password, changedAt: new Date() }], isVerified: false,
+        const dealer = new Dealer({firstName,lastName,email,password,phone,state,city,streetAddress,zipCode,dateOfBirth, emailCode: code, emailCodeExpires: Date.now() + 10 * 60 * 1000, passwordHistory: [{ password, changedAt: new Date() }], isVerified: false,
             // isApproved: false,
             onboardingCompleted: false,
         });
 
-        await newDealer.save();
+        await dealer.save();
 
            // ✅ Use branded template
     await sendVerificationEmail(email, code);
 
-    generateTokenAndSetCookie(newDealer._id, res, "dealerId");
+    generateTokenAndSetCookie(dealer._id, res, "dealerId");
 
         res.status(201).json({
-            _id: newDealer._id,
-            firstName: newDealer.firstName,
-            lastName: newDealer.lastName,
-            email: newDealer.email,
-            phone: newDealer.phone,
-            state: newDealer.state,
-            city: newDealer.city,
-            address: newDealer.address,
-            role: newDealer.role,
+            _id: dealer._id,
+            firstName: dealer.firstName,
+            lastName: dealer.lastName,
+            email: dealer.email,
+            phone: dealer.phone,
+            state: dealer.state,
+            city: dealer.city,
+            address: dealer.address,
+            // role: dealer.role,
             msg: "User registered. Verification code sent to email."
         });
     } catch (err) {
@@ -166,16 +166,16 @@ const login = async (req, res) => {
       });
     }
 
-    if (dealer) {
-      if (!dealer.isApproved || dealer.identityDocuments.status !== "approved") {
-        return res.status(403).json({
-          msg: "Awaiting admin approval",
-          isVerified: true,
-          isApproved: false,
-          documentStatus: dealer.identityDocuments?.status || "pending",
-        });
-      }
-    }
+    // if (dealer) {
+    //   if (!dealer.isApproved || dealer.identityDocuments.status !== "approved") {
+    //     return res.status(403).json({
+    //       msg: "Awaiting admin approval",
+    //       isVerified: true,
+    //       isApproved: false,
+    //       documentStatus: dealer.identityDocuments?.status || "pending",
+    //     });
+    //   }
+    // }
 
     if (
       dealer.identityDocuments?.status === "approved" &&

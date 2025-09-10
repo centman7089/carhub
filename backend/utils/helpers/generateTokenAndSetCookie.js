@@ -1,5 +1,7 @@
 // @ts-nocheck
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv"
+dotenv.config();
 
 /**
  * @param {string} id - The unique identifier for the user/dealer/admin

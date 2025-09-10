@@ -1,6 +1,8 @@
 // @ts-nocheck
 import User from "../models/userModel.js";
 import jwt from "jsonwebtoken";
+import dotenv from "dotenv"
+dotenv.config();
 
 const protectRoute = async (req, res, next) => {
 	 try {

@@ -1,6 +1,8 @@
 // @ts-nocheck
 import jwt from "jsonwebtoken";
 import Admin from "../models/adminModel.js";
+import dotenv from "dotenv"
+dotenv.config();
 
 export const protectAdmin = async (req, res, next) => {
   let token = req.headers.authorization?.split(" ")[1];

@@ -1,6 +1,8 @@
 // @ts-nocheck
 import jwt from "jsonwebtoken";
 import Dealer from "../models/dealerModel.js";
+import dotenv from "dotenv"
+dotenv.config();
 
 const protectDealer = async (req, res, next) => {
   let token = req.headers.authorization?.split(" ")[1];

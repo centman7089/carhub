@@ -68,12 +68,12 @@ const dealerSchema = new mongoose.Schema(
     isApproved: { type: Boolean, default: false }, // admin approval
     requiresDocument: { type: Boolean, default: false },
 
-    // Role
-    role: {
-      type: String,
-      enum: ["retailer", "admin", "superadmin", "car_dealer", "retailer"],
-      default: "retailer",
-    },
+    // // Role
+    // role: {
+    //   type: String,
+    //   enum: ["retailer", "admin", "superadmin", "car_dealer", "retailer"],
+    //   default: "retailer",
+    // },
 
     // Status & activity
     loginStatus: {
