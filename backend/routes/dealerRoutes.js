@@ -29,9 +29,9 @@ import protectDealer from "../middlewares/protectDealer.js";
 import multer from "multer";
 import {uploadDocument,uploadProfilePhoto} from "../middlewares/upload.js";
 
-function generateToken(dealer) {
-    return jwt.sign({ id: dealer._id }, keys.jwtSecret, { expiresIn: "7d" });
-  }
+// function generateToken(dealer) {
+//     return jwt.sign({ id: dealer._id }, keys.jwtSecret, { expiresIn: "7d" });
+//   }
 
 
 

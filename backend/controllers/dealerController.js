@@ -119,7 +119,7 @@ const register = async (req, res) => {
            // ✅ Use branded template
     await sendVerificationEmail(email, code);
 
-    generateTokenAndSetCookie(dealer._id, res, "dealerId");
+    generateTokenAndSetCookie(newDealer._id, res, "dealerId");
 
         res.status(201).json({
             _id: newDealer._id,
