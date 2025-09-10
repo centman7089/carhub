@@ -1,5 +1,5 @@
 // middlewares/cache.js
-import client from "../config/redis.js";
+import client from "../db/redis.js";
 
 export const cacheMiddleware = (keyBuilder, ttl = 60) => {
   return async (req, res, next) => {
