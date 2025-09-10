@@ -23,7 +23,7 @@ import {
     getMyProfile,
     updateProfilePhoto
     
-} from "../controllers/userController.js";
+} from "../controllers/dealerController.js";
 import protectDealer from "../middlewares/protectDealer.js";
 
 import multer from "multer";

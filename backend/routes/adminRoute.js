@@ -7,6 +7,7 @@ import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfi
   getUserById, getAllAccounts, exportAccountsCSV, exportAccountsExcel} from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 import { vehicleImages } from "../middlewares/upload.js";
+import { cacheMiddleware } from "../middlewares/cache.js";
 // import vehicleImages from "../middlewares/multer.js";
 
 
@@ -41,7 +42,7 @@ adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
 adminRouter.get("/users/:userId",protectAdmin, authorizeRoles('admin'),getUserById);
 adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );
 
-adminRouter.get("/accounts", protectAdmin, authorizeRoles( 'admin' ), getAllAccounts);
+adminRouter.get("/accounts", protectAdmin, authorizeRoles( 'admin' ),cacheMiddleware((req) => `accounts:${JSON.stringify(req.query)}`, 120), getAllAccounts);
 
 /**
  * 📤 Export accounts as CSV
