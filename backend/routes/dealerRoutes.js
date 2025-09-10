@@ -63,7 +63,7 @@ dealerRouter.post(
   uploadDocuments
 );
 dealerRouter.patch( "/update/:id", protectDealer, updateUser );
-dealerRouter.get("/:userId", protectDealer, getUserById)
+dealerRouter.get("/:dealerId", protectDealer, getUserById)
 dealerRouter.patch(
   "/:userId/profile-photo",
   uploadProfilePhoto.single("profilePic"), // input name: profilePic
@@ -71,7 +71,7 @@ dealerRouter.patch(
 );
 
 // Accept terms
-dealerRouter.post("/:userId/terms", protectDealer, acceptTerms);
+dealerRouter.post("/:dealerId/terms", protectDealer, acceptTerms);
 
 // Admin approves
 // dealerRouter.post("/:userId/approve", approveUser);
