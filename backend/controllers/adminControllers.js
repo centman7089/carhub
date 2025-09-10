@@ -1056,10 +1056,14 @@ export const getAllAccounts = async (req, res) => {
 
     const [users, dealers] = await Promise.all([usersPromise, dealersPromise]);
 
-    // Merge results
-    let allAccounts = [...users, ...dealers];
+    // 🔑 Tag each record with its type
+    const usersTagged = users.map((u) => ({ ...u.toObject(), type: "User" }));
+    const dealersTagged = dealers.map((d) => ({ ...d.toObject(), type: "Dealer" }));
 
-    // Sort merged list manually since we combined 2 sources
+    // Merge results
+    let allAccounts = [...usersTagged, ...dealersTagged];
+
+    // Sort merged list manually
     allAccounts = allAccounts.sort((a, b) => {
       return order === "asc"
         ? new Date(a[sortBy]) - new Date(b[sortBy])
@@ -1070,7 +1074,7 @@ export const getAllAccounts = async (req, res) => {
     const total = allAccounts.length;
     const paginatedAccounts = allAccounts.slice(skip, skip + Number(limit));
 
-    // Format
+    // Format response
     const formatted = paginatedAccounts.map((acc, index) => {
       const accountId = `#USR${String(skip + index + 1).padStart(3, "0")}`;
 
@@ -1088,6 +1092,7 @@ export const getAllAccounts = async (req, res) => {
         email: acc.email,
         phone: acc.phone,
         role: acc.role,
+        type: acc.type, // 👈 clearly shows User or Dealer
         profilePic: acc.profilePic,
         status,
         isVerified: acc.isVerified,
@@ -1111,6 +1116,7 @@ export const getAllAccounts = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
 
 
 

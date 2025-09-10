@@ -365,22 +365,26 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const dealer = await Dealer.findById(dealerId).select("-password");
+    const dealer = await Dealer.findById(dealerId).select("+password +passwordHistory");
     if (!dealer) return res.status(404).json({ msg: "Dealer not found" });
 
+    // Verify current password
     if (!(await dealer.correctPassword(currentPassword))) {
       return res.status(400).json({ msg: "Incorrect current password" });
     }
 
     // Prevent reuse
     const reused = await Promise.any(
-      admin.passwordHistory.map(({ password }) =>
-        admin.correctPassword(newPassword)
+      dealer.passwordHistory.map(({ password }) =>
+        bcrypt.compare(newPassword, password)
       )
     ).catch(() => false);
 
-    if (reused) return res.status(400).json({ msg: "Password reused from history" });
+    if (reused) {
+      return res.status(400).json({ msg: "Password reused from history" });
+    }
 
+    // Save new password
     dealer.password = newPassword;
     dealer.passwordHistory.push({ password: dealer.password, changedAt: new Date() });
     if (dealer.passwordHistory.length > 5) dealer.passwordHistory.shift();
@@ -388,9 +392,11 @@ const changePassword = async (req, res) => {
     await dealer.save();
     res.json({ msg: "Password changed successfully" });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
+
 
 // FORGOT PASSWORD
 // =============================

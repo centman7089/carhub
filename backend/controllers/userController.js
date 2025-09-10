@@ -529,59 +529,100 @@ const resendCode = async (req, res) => {
   
 
   // Change Password (Requires token)
+// const changePassword = async (req, res) => {
+//   try {
+//     const userId = req.user?._id;
+//     if (!userId) {
+//       return res.status(401).json({ msg: "Unauthorized, no user in request" });
+//     }
+
+//     const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+//     if (!currentPassword || !newPassword || !confirmNewPassword) {
+//       return res.status(400).json({ msg: "All fields are required" });
+//     }
+
+//     if (newPassword !== confirmNewPassword) {
+//       return res.status(400).json({ msg: "Passwords do not match" });
+//     }
+
+//     const user = await User.findById(userId);
+//     if (!user) return res.status(404).json({ msg: "User not found" });
+
+//     // Verify current password
+//     const isMatch = await bcrypt.compare(currentPassword, user.password);
+//     if (!isMatch) return res.status(400).json({ msg: "Incorrect current password" });
+
+//     // Prevent setting same as current
+//     if (await bcrypt.compare(newPassword, user.password)) {
+//       return res.status(400).json({ msg: "New password cannot be the same as the old password" });
+//     }
+
+//     // Prevent reusing old passwords
+//     for (const entry of user.passwordHistory || []) {
+//       if (await bcrypt.compare(newPassword, entry.password)) {
+//         return res.status(400).json({ msg: "You have already used this password before" });
+//       }
+//     }
+
+//     // Store old password in history
+//     user.passwordHistory = user.passwordHistory || [];
+//     user.passwordHistory.push({
+//       password: user.password,
+//       changedAt: new Date(),
+//     });
+//     if (user.passwordHistory.length > 5) {
+//       user.passwordHistory.shift(); // keep last 5
+//     }
+
+//     // Assign new password in plain text — pre-save hook will hash it
+//     user.password = newPassword;
+//     await user.save();
+
+//     res.json({ msg: "Password changed successfully" });
+//   } catch (err) {
+//     console.error("changePassword error:", err);
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
+
 const changePassword = async (req, res) => {
   try {
-    const userId = req.user?._id;
-    if (!userId) {
-      return res.status(401).json({ msg: "Unauthorized, no user in request" });
-    }
-
+    const userId = req.user._id;
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
-
-    if (!currentPassword || !newPassword || !confirmNewPassword) {
-      return res.status(400).json({ msg: "All fields are required" });
-    }
 
     if (newPassword !== confirmNewPassword) {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ msg: "User not found" });
+    const user = await User.findById(userId).select("+password +passwordHistory");
+    if (!dealer) return res.status(404).json({ msg: "User not found" });
 
     // Verify current password
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) return res.status(400).json({ msg: "Incorrect current password" });
-
-    // Prevent setting same as current
-    if (await bcrypt.compare(newPassword, user.password)) {
-      return res.status(400).json({ msg: "New password cannot be the same as the old password" });
+    if (!(await user.correctPassword(currentPassword))) {
+      return res.status(400).json({ msg: "Incorrect current password" });
     }
 
-    // Prevent reusing old passwords
-    for (const entry of user.passwordHistory || []) {
-      if (await bcrypt.compare(newPassword, entry.password)) {
-        return res.status(400).json({ msg: "You have already used this password before" });
-      }
+    // Prevent reuse
+    const reused = await Promise.any(
+      user.passwordHistory.map(({ password }) =>
+        bcrypt.compare(newPassword, password)
+      )
+    ).catch(() => false);
+
+    if (reused) {
+      return res.status(400).json({ msg: "Password reused from history" });
     }
 
-    // Store old password in history
-    user.passwordHistory = user.passwordHistory || [];
-    user.passwordHistory.push({
-      password: user.password,
-      changedAt: new Date(),
-    });
-    if (user.passwordHistory.length > 5) {
-      user.passwordHistory.shift(); // keep last 5
-    }
-
-    // Assign new password in plain text — pre-save hook will hash it
+    // Save new password
     user.password = newPassword;
-    await user.save();
+    user.passwordHistory.push({ password: user.password, changedAt: new Date() });
+    if (user.passwordHistory.length > 5) user.passwordHistory.shift();
 
+    await user.save();
     res.json({ msg: "Password changed successfully" });
   } catch (err) {
-    console.error("changePassword error:", err);
+    console.error(err);
     res.status(500).json({ msg: "Server error" });
   }
 };
