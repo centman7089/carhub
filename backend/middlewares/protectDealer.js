@@ -2,7 +2,7 @@
 import jwt from "jsonwebtoken";
 import Dealer from "../models/dealerModel.js";
 
-export const protectDealer = async (req, res, next) => {
+const protectDealer = async (req, res, next) => {
   let token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ msg: "No token, not authorized" });
 
@@ -26,3 +26,5 @@ export const protectDealer = async (req, res, next) => {
     res.status(401).json({ msg: "Token failed" });
   }
 };
+
+export default protectDealer

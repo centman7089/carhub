@@ -25,6 +25,12 @@ import path from 'path';
 
 // Alternative: Use busboy for proper multipart streaming
 import busboy from 'busboy';
+import Dealer from "../models/dealerModel.js";
+
+import { Parser } from "json2csv";
+
+import ExcelJS from "exceljs";
+// import Dealer from "../models/dealerModel.js";
 
 
 // In-memory session store (use Redis in production)
@@ -606,6 +612,44 @@ export const approveUserDocuments = async (req, res) => {
   }
 };
 
+export const approveDealerDocuments = async (req, res) => {
+  try {
+    const { dealerId } = req.params;
+    const dealer = await Dealer.findById(userId);
+
+    if (!dealer) return res.status(404).json({ error: "Dealer not found" });
+
+    const { idCardFront, driverLicense } =
+      dealer.identityDocuments;
+
+    if (!idCardFront || !driverLicense) {
+      return res.status(400).json({
+        error:
+          "Cannot approve dealer. All required documents must be uploaded before approval.",
+      });
+    }
+
+    dealer.identityDocuments.status = "approved";
+    dealer.identityDocuments.reviewedAt = new Date();
+    dealer.identityDocuments.rejectionReason = null;
+    dealer.isApproved = true;
+    dealer.onboardingStage = "completed";
+
+    await dealer.save();
+
+    // ✅ Use uniform email helper
+    await sendApprovalEmail(dealer.email, dealer.firstName);
+
+    res.json({
+      message: "Dealer documents approved successfully ✅",
+      step: dealer.onboardingStage,
+      dealer,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // ✅ Reject user documents
 export const rejectUserDocuments = async (req, res) => {
   try {
@@ -641,6 +685,41 @@ export const rejectUserDocuments = async (req, res) => {
   }
 };
 
+// ✅ Reject user documents
+export const rejectDealerDocuments = async (req, res) => {
+  try {
+    const { dealerId } = req.params;
+    const { rejectionReason } = req.body;
+
+    const dealer = await Dealer.findById(dealerId);
+    if (!dealer) return res.status(404).json({ error: "Dealer not found" });
+
+    if (!rejectionReason) {
+      return res.status(400).json({ error: "Rejection reason is required" });
+    }
+
+    dealer.identityDocuments.status = "rejected";
+    dealer.identityDocuments.reviewedAt = new Date();
+    dealer.identityDocuments.rejectionReason = rejectionReason;
+    dealer.isApproved = false;
+    dealer.onboardingStage = "documents";
+
+    await dealer.save();
+
+    // ✅ Use uniform email helper
+    await sendRejectionEmail(dealer.email, dealer.firstName, rejectionReason);
+
+    res.json({
+      message: "Dealer documents rejected ❌",
+      reason: dealer.identityDocuments.rejectionReason,
+      step: dealer.onboardingStage,
+      dealer,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // ✅ List all users with pending documents
 export const getPendingUsers = async (req, res) => {
   try {
@@ -652,6 +731,22 @@ export const getPendingUsers = async (req, res) => {
       message: "Pending users retrieved successfully",
       count: pendingUsers.length,
       users: pendingUsers,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const getPendingDealers = async (req, res) => {
+  try {
+    const pendingDealers = await Dealer.find({
+      "identityDocuments.status": "pending",
+    }).select("firstName lastName email role identityDocuments createdAt");
+
+    res.json({
+      message: "Pending users retrieved successfully",
+      count: pendingDealers.length,
+      dealers: pendingDealers,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -814,6 +909,348 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
+export const getAllDealers = async (req, res) => {
+  try {
+    const {role,email,name,page = 1,limit = 20,sortBy = "createdAt",order = "desc",
+    } = req.query;
+
+    // 🔍 Build filter
+    let filter = {};
+    if (role) filter.role = role;
+    if (email) filter.email = { $regex: email, $options: "i" };
+    if (name) {
+      filter.$or = [
+        { firstName: { $regex: name, $options: "i" } },
+        { lastName: { $regex: name, $options: "i" } },
+        { username: { $regex: name, $options: "i" } },
+      ];
+    }
+
+    // Pagination setup
+    const skip = (Number(page) - 1) * Number(limit);
+
+    // Sorting setup
+    const sortOrder = order === "asc" ? 1 : -1;
+    const sortOptions = { [sortBy]: sortOrder };
+
+    // Fetch users
+    const dealers = await Dealer.find(filter)
+      .select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      )
+      .skip(skip)
+      .limit(Number(limit))
+      .sort(sortOptions);
+
+    const total = await User.countDocuments(filter);
+
+    if (!dealers || dealers.length === 0) {
+      return res.status(404).json({ error: "No Dealers found" });
+    }
+
+    // Format response
+    const formattedDealers = dealers.map((user, index) => {
+      // Generate a simple userId like #USR001
+      const userId = `#USR${String(skip + index + 1).padStart(3, "0")}`;
+
+      // Compute status
+      let status = "Inactive";
+      if (dealer.isApproved) status = "Active";
+      else if (!dealer.isApproved && dealer.identityDocuments?.status === "pending") {
+        status = "Pending";
+      }
+
+      return {
+        _id: dealer._id,
+        dealerId,
+        firstName: dealer.firstName || "",
+        lastName: dealer.lastName || "",
+        username: dealer.username || "",
+        email: dealer.email || "",
+        phone: dealer.phone || "",
+        profilePic: dealer.profilePic || "",
+        accountType: dealer.accountType || "",
+        role: dealer.role || "",
+        country: dealer.country || "",
+        state: dealer.state || "",
+        city: dealer.city || "",
+        dateOfBirth: dealer.dateOfBirth || "",
+        streetAddress: dealer.streetAddress || "",
+        zipCode: dealer.zipCode || "",
+        loginStatus: dealer.loginStatus || "Inactive",
+        isVerified: dealer.isVerified || false,
+        isApproved: dealer.isApproved || false,
+        status,
+        identityDocuments: {
+          idCardFront: dealer.identityDocuments?.idCardFront || "",
+          driverLicense: dealer.identityDocuments?.driverLicense || "",
+          tin: dealer.identityDocuments?.tin || "",
+          cac: dealer.identityDocuments?.cac || "",
+          bankStatement: dealer.identityDocuments?.bankStatement || "",
+          status: dealer.identityDocuments?.status || "",
+          rejectionReason: dealer.identityDocuments?.rejectionReason || "",
+          reviewedAt: dealer.identityDocuments?.reviewedAt || "",
+        },
+        createdAt: dealer.createdAt,
+        updatedAt: dealer.updatedAt,
+      };
+    });
+
+    res.status(200).json({
+      message: "Users fetched successfully",
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+      count: formattedUsers.length,
+      users: formattedUsers,
+    });
+  } catch (err) {
+    console.error("Error in getAllUsers:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+
+
+export const getAllAccounts = async (req, res) => {
+  try {
+    const {
+      role,
+      email,
+      name,
+      page = 1,
+      limit = 20,
+      sortBy = "createdAt",
+      order = "desc",
+    } = req.query;
+
+    let filter = {};
+    if (role) filter.role = role;
+    if (email) filter.email = { $regex: email, $options: "i" };
+    if (name) {
+      filter.$or = [
+        { firstName: { $regex: name, $options: "i" } },
+        { lastName: { $regex: name, $options: "i" } },
+        { username: { $regex: name, $options: "i" } },
+      ];
+    }
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const sortOrder = order === "asc" ? 1 : -1;
+    const sortOptions = { [sortBy]: sortOrder };
+
+    // Fetch Users
+    const usersPromise = User.find(filter)
+      .select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      )
+      .sort(sortOptions);
+
+    // Fetch Dealers
+    const dealersPromise = Dealer.find(filter)
+      .select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      )
+      .sort(sortOptions);
+
+    const [users, dealers] = await Promise.all([usersPromise, dealersPromise]);
+
+    // Merge results
+    let allAccounts = [...users, ...dealers];
+
+    // Sort merged list manually since we combined 2 sources
+    allAccounts = allAccounts.sort((a, b) => {
+      return order === "asc"
+        ? new Date(a[sortBy]) - new Date(b[sortBy])
+        : new Date(b[sortBy]) - new Date(a[sortBy]);
+    });
+
+    // Paginate after merge
+    const total = allAccounts.length;
+    const paginatedAccounts = allAccounts.slice(skip, skip + Number(limit));
+
+    // Format
+    const formatted = paginatedAccounts.map((acc, index) => {
+      const accountId = `#USR${String(skip + index + 1).padStart(3, "0")}`;
+
+      let status = "Inactive";
+      if (acc.isApproved) status = "Active";
+      else if (!acc.isApproved && acc.identityDocuments?.status === "pending") {
+        status = "Pending";
+      }
+
+      return {
+        _id: acc._id,
+        accountId,
+        firstName: acc.firstName,
+        lastName: acc.lastName,
+        email: acc.email,
+        phone: acc.phone,
+        role: acc.role,
+        profilePic: acc.profilePic,
+        status,
+        isVerified: acc.isVerified,
+        isApproved: acc.isApproved,
+        loginStatus: acc.loginStatus,
+        createdAt: acc.createdAt,
+        identityDocuments: acc.identityDocuments,
+      };
+    });
+
+    res.status(200).json({
+      message: "Accounts fetched successfully",
+      total,
+      page: Number(page),
+      pages: Math.ceil(total / Number(limit)),
+      count: formatted.length,
+      accounts: formatted,
+    });
+  } catch (err) {
+    console.error("Error in getAllAccounts:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+
+
+export const exportAccountsCSV = async (req, res) => {
+  try {
+    // Fetch all users and dealers
+    const [users, dealers] = await Promise.all([
+      User.find().select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      ),
+      Dealer.find().select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      ),
+    ]);
+
+    const allAccounts = [...users, ...dealers];
+
+    // Flatten and format for CSV
+    const formatted = allAccounts.map((acc, idx) => ({
+      accountId: `#USR${String(idx + 1).padStart(3, "0")}`,
+      firstName: acc.firstName || "",
+      lastName: acc.lastName || "",
+      email: acc.email || "",
+      phone: acc.phone || "",
+      role: acc.role || "",
+      accountType: acc.accountType || "",
+      status: acc.isApproved ? "Active" : "Pending/Inactive",
+      isVerified: acc.isVerified ? "Yes" : "No",
+      loginStatus: acc.loginStatus || "Inactive",
+      createdAt: acc.createdAt ? acc.createdAt.toISOString() : "",
+      lastLogin: acc.lastLogin ? acc.lastLogin.toISOString() : "",
+    }));
+
+    // Fields for CSV
+    const fields = [
+      "accountId",
+      "firstName",
+      "lastName",
+      "email",
+      "phone",
+      "role",
+      "accountType",
+      "status",
+      "isVerified",
+      "loginStatus",
+      "createdAt",
+      "lastLogin",
+    ];
+
+    const json2csvParser = new Parser({ fields });
+    const csv = json2csvParser.parse(formatted);
+
+    // Set headers for download
+    res.header("Content-Type", "text/csv");
+    res.attachment("accounts_export.csv");
+    return res.send(csv);
+  } catch (err) {
+    console.error("Error exporting accounts CSV:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+
+export const exportAccountsExcel = async (req, res) => {
+  try {
+    // Fetch users + dealers
+    const [users, dealers] = await Promise.all([
+      User.find().select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      ),
+      Dealer.find().select(
+        "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+      ),
+    ]);
+
+    const allAccounts = [...users, ...dealers];
+
+    // Create workbook + worksheet
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Accounts");
+
+    // Define columns
+    worksheet.columns = [
+      { header: "Account ID", key: "accountId", width: 12 },
+      { header: "First Name", key: "firstName", width: 15 },
+      { header: "Last Name", key: "lastName", width: 15 },
+      { header: "Email", key: "email", width: 25 },
+      { header: "Phone", key: "phone", width: 15 },
+      { header: "Role", key: "role", width: 15 },
+      { header: "Account Type", key: "accountType", width: 15 },
+      { header: "Status", key: "status", width: 12 },
+      { header: "Verified", key: "isVerified", width: 10 },
+      { header: "Login Status", key: "loginStatus", width: 12 },
+      { header: "Created At", key: "createdAt", width: 20 },
+      { header: "Last Login", key: "lastLogin", width: 20 },
+    ];
+
+    // Add rows
+    allAccounts.forEach((acc, idx) => {
+      worksheet.addRow({
+        accountId: `#USR${String(idx + 1).padStart(3, "0")}`,
+        firstName: acc.firstName || "",
+        lastName: acc.lastName || "",
+        email: acc.email || "",
+        phone: acc.phone || "",
+        role: acc.role || "",
+        accountType: acc.accountType || "",
+        status: acc.isApproved ? "Active" : "Pending/Inactive",
+        isVerified: acc.isVerified ? "Yes" : "No",
+        loginStatus: acc.loginStatus || "Inactive",
+        createdAt: acc.createdAt ? acc.createdAt.toISOString() : "",
+        lastLogin: acc.lastLogin ? acc.lastLogin.toISOString() : "",
+      });
+    });
+
+    // Style header row
+    worksheet.getRow(1).eachCell((cell) => {
+      cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "FF007ACC" }, // Blue header
+      };
+    });
+
+    // Send as download
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    res.setHeader("Content-Disposition", "attachment; filename=accounts_export.xlsx");
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error("Error exporting Excel:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
 
 
 /**

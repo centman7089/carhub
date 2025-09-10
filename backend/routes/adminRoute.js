@@ -4,7 +4,7 @@ import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfi
   approveUserDocuments,
   rejectUserDocuments,
   getPendingUsers,getAllUsers,updateUserRole, 
-  getUserById} from "../controllers/adminControllers.js";
+  getUserById, getAllAccounts, exportAccountsCSV, exportAccountsExcel} from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 import { vehicleImages } from "../middlewares/upload.js";
 // import vehicleImages from "../middlewares/multer.js";
@@ -40,14 +40,20 @@ adminRouter.patch( "/:userId/reject", protectAdmin, authorizeRoles( 'admin' ), r
 adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
 adminRouter.get("/users/:userId",protectAdmin, authorizeRoles('admin'),getUserById);
 adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );
-// adminRouter.post(
-//   "/create-vehicle",
-//   protectAdmin, // require authentication (dealer must be logged in)
-//   vehicleImages, // accept only one image with field name = "image"
-//   createVehicle
-// );
-// adminRouter.post("/add",protectAdmin,upload.fields([{name:'image1',maxCount:1},{name:'image2',maxCount:1},{name:'image3',maxCount:1},{name:'image4',maxCount:1}]), addVehicle)
 
+adminRouter.get("/accounts", protectAdmin, authorizeRoles( 'admin' ), getAllAccounts);
+
+/**
+ * 📤 Export accounts as CSV
+ * GET /api/admin/accounts/export/csv
+ */
+adminRouter.get("/accounts/export/csv", protectAdmin, authorizeRoles('admin'), exportAccountsCSV);
+
+/**
+ * 📤 Export accounts as Excel (.xlsx)
+ * GET /api/admin/accounts/export/excel
+ */
+adminRouter.get("/accounts/export/excel", protectAdmin, authorizeRoles('admin'), exportAccountsExcel);
 
 
 export default adminRouter
