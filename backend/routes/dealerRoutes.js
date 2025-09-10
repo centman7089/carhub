@@ -46,12 +46,12 @@ dealerRouter.post("/verify-reset-code", verifyResetCode);
 dealerRouter.post("/login", login);
 dealerRouter.post( "/forgot-password", forgotPassword );
 dealerRouter.post( "/reset-password", resetPassword );
-dealerRouter.patch( "/change-password", protectDealer, changePassword );
+dealerRouter.post( "/change-password", protectDealer, changePassword );
 dealerRouter.get("/me", protectDealer, getMyProfile )
 
 // Upload identity documents
 dealerRouter.post(
-  "/:userId/documents",
+  "/:dealerId/documents",
   protectDealer,
   uploadDocument.fields([
     { name: "idCardFront", maxCount: 1 },
