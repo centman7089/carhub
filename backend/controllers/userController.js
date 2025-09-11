@@ -337,7 +337,7 @@ const login = async (req, res) => {
       });
     }
 
-    if (user.role === "car_dealer") {
+    // if (user.role === "car_dealer") {
       if (!user.isApproved || user.identityDocuments.status !== "approved") {
         return res.status(403).json({
           msg: "Awaiting admin approval",
@@ -346,7 +346,7 @@ const login = async (req, res) => {
           documentStatus: user.identityDocuments?.status || "pending",
         });
       }
-    }
+    // }
 
     if (
       user.identityDocuments?.status === "approved" &&
