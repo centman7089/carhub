@@ -30,7 +30,7 @@ const adminSchema = new  mongoose.Schema( {
         : {
         type: String,
         enum: ['admin', 'superadmin', 'moderator'],
-        default: 'admin',
+        default: 'superadmin',
     },
     isVerified: {
         type: Boolean,

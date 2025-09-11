@@ -63,9 +63,7 @@ const getUserProfile = async (req, res) => {
       isApproved: user.isApproved || false,
       identityDocuments: {
         idCardFront: user.identityDocuments?.idCardFront || "",
-        driverLicense: user.identityDocuments?.driverLicense || "",
-        tin: user.identityDocuments?.tin || "",
-        bankStatement: user.identityDocuments?.bankStatement || "",
+        photo: user.identityDocuments?.photo || "",
         status: user.identityDocuments?.status || "",
         rejectionReason: user.identityDocuments?.rejectionReason || "",
         reviewedAt: user.identityDocuments?.reviewedAt || "",
@@ -810,8 +808,8 @@ const uploadDocuments = async (req, res) => {
     if (!user) return res.status(404).json({ error: "User not found" });
 
     // Define required + optional fields
-    const requiredFields = ["idCardFront", "driverLicense", "tin", "bankStatement"];
-    const optionalFields = ["cac"];
+    const requiredFields = ["idCardFront", "photo"];
+    // const optionalFields = ["cac"];
 
     let uploadedCount = 0;
 
@@ -824,11 +822,11 @@ const uploadDocuments = async (req, res) => {
     });
 
     // Save optional documents (if provided)
-    optionalFields.forEach((field) => {
-      if (req.files[field] && req.files[field][0]) {
-        user.identityDocuments[field] = req.files[field][0].path; // Cloudinary URL
-      }
-    });
+    // optionalFields.forEach((field) => {
+    //   if (req.files[field] && req.files[field][0]) {
+    //     user.identityDocuments[field] = req.files[field][0].path; // Cloudinary URL
+    //   }
+    // });
 
     // Check if all required docs uploaded
     const missingDocs = requiredFields.filter((field) => !user.identityDocuments[field]);

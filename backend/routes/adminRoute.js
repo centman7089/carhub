@@ -4,7 +4,9 @@ import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfi
   approveUserDocuments,
   rejectUserDocuments,
   getPendingUsers,getAllUsers,updateUserRole, 
-  getUserById, getAllAccounts, exportAccountsCSV, exportAccountsExcel} from "../controllers/adminControllers.js";
+  getUserById,getDealerById,getAllDealers,getAllAccounts, exportAccountsCSV, exportAccountsExcel, promoteUserToDealer, demoteDealerToUser,
+  rejectDealerDocuments,
+  approveDealerDocuments} from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 import { vehicleImages } from "../middlewares/upload.js";
 // import { cacheMiddleware } from "../middlewares/cache.js";
@@ -25,24 +27,8 @@ adminRouter.post( '/verify-reset-code', verifyResetCode )
 adminRouter.post( '/reset-password', resetPassword )
 
 adminRouter.get( '/get', protectAdmin,getUserProfile )
-adminRouter.get( '/admin-user', protectAdmin,getAdminUser )
+adminRouter.get( '/admin-user', protectAdmin, getAdminUser )
 
-
-adminRouter.patch( "/update/:id", protectAdmin,updateUser );
-
-
-// adminRouter.put('/verify-cac/:employerId',protectAdmin, authorizeRoles('admin','superadmin'),verifyCac );
-// Reject CAC
-// Get one user’s documents
-adminRouter.get("/users/:userId/documents",protectAdmin, authorizeRoles('admin'),getUserDocuments);
-adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), approveUserDocuments);
-adminRouter.patch( "/:userId/reject", protectAdmin, authorizeRoles( 'admin' ), rejectUserDocuments );
-// Admin-only routes
-adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
-adminRouter.get("/users/:userId",protectAdmin, authorizeRoles('admin'),getUserById);
-adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );
-
-// adminRouter.get( "/accounts", protectAdmin, authorizeRoles( 'admin' ), cacheMiddleware( ( req ) => `accounts:${ JSON.stringify( req.query ) }`, 120 ), getAllAccounts );
 adminRouter.get("/accounts", protectAdmin, authorizeRoles( 'admin' ), getAllAccounts);
 
 /**
@@ -56,6 +42,29 @@ adminRouter.get("/accounts/export/csv", protectAdmin, authorizeRoles('admin'), e
  * GET /api/admin/accounts/export/excel
  */
 adminRouter.get("/accounts/export/excel", protectAdmin, authorizeRoles('admin'), exportAccountsExcel);
+
+// Admin-only routes
+adminRouter.get("/users",protectAdmin, authorizeRoles('admin'),getAllUsers);
+
+adminRouter.patch( "/update/:id", protectAdmin,updateUser );
+
+
+// adminRouter.put('/verify-cac/:employerId',protectAdmin, authorizeRoles('admin','superadmin'),verifyCac );
+// Reject CAC
+// Get one user’s documents
+adminRouter.get("/users/:userId/documents",protectAdmin, authorizeRoles('admin'),getUserDocuments);
+adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles('admin'), approveUserDocuments);
+adminRouter.patch("/:dealerId/approve",protectAdmin, authorizeRoles('admin'), approveDealerDocuments);
+adminRouter.patch( "/:dealerId/reject", protectAdmin, authorizeRoles( 'admin' ), rejectDealerDocuments );
+
+adminRouter.get("/users/:userId",protectAdmin, authorizeRoles('admin'),getUserById);
+adminRouter.get("/dealers/:dealerId",protectAdmin, authorizeRoles('admin'),getDealerById);
+adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( 'admin' ), updateUserRole );
+// Only superadmins should be allowed to do this
+adminRouter.post("/promote/:userId", protectAdmin, authorizeRoles("superadmin"), promoteUserToDealer);
+adminRouter.post("/demote/:dealerId", protectAdmin, authorizeRoles("superadmin"), demoteDealerToUser);
+
+// adminRouter.get( "/accounts", protectAdmin, authorizeRoles( 'admin' ), cacheMiddleware( ( req ) => `accounts:${ JSON.stringify( req.query ) }`, 120 ), getAllAccounts );
 
 
 export default adminRouter

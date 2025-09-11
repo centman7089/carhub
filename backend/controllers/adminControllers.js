@@ -547,7 +547,7 @@ export const getUserDocuments = async (req, res) => {
     const { userId } = req.params;
 
     const user = await User.findById(userId).select(
-      "firstName lastName email role identityDocuments onboardingStage isApproved"
+      "firstName lastName email identityDocuments onboardingStage isApproved"
     );
 
     if (!user) {
@@ -725,7 +725,7 @@ export const getPendingUsers = async (req, res) => {
   try {
     const pendingUsers = await User.find({
       "identityDocuments.status": "pending",
-    }).select("firstName lastName email role identityDocuments createdAt");
+    }).select("firstName lastName email identityDocuments createdAt");
 
     res.json({
       message: "Pending users retrieved successfully",
@@ -741,7 +741,7 @@ export const getPendingDealers = async (req, res) => {
   try {
     const pendingDealers = await Dealer.find({
       "identityDocuments.status": "pending",
-    }).select("firstName lastName email role identityDocuments createdAt");
+    }).select("firstName lastName email identityDocuments createdAt");
 
     res.json({
       message: "Pending users retrieved successfully",
@@ -805,7 +805,6 @@ export const getPendingDealers = async (req, res) => {
 export const getAllUsers = async (req, res) => {
   try {
     const {
-      role,
       email,
       name,
       page = 1,
@@ -912,12 +911,12 @@ export const getAllUsers = async (req, res) => {
 
 export const getAllDealers = async (req, res) => {
   try {
-    const {role,email,name,page = 1,limit = 20,sortBy = "createdAt",order = "desc",
+    const {email,name,page = 1,limit = 20,sortBy = "createdAt",order = "desc",
     } = req.query;
 
     // 🔍 Build filter
     let filter = {};
-    if (role) filter.role = role;
+    // if (role) filter.role = role;
     if (email) filter.email = { $regex: email, $options: "i" };
     if (name) {
       filter.$or = [
@@ -943,7 +942,7 @@ export const getAllDealers = async (req, res) => {
       .limit(Number(limit))
       .sort(sortOptions);
 
-    const total = await User.countDocuments(filter);
+    const total = await Dealer.countDocuments(filter);
 
     if (!dealers || dealers.length === 0) {
       return res.status(404).json({ error: "No Dealers found" });
@@ -952,7 +951,7 @@ export const getAllDealers = async (req, res) => {
     // Format response
     const formattedDealers = dealers.map((user, index) => {
       // Generate a simple userId like #USR001
-      const userId = `#USR${String(skip + index + 1).padStart(3, "0")}`;
+      const dealerId = `#DEA${String(skip + index + 1).padStart(3, "0")}`;
 
       // Compute status
       let status = "Inactive";
@@ -970,8 +969,8 @@ export const getAllDealers = async (req, res) => {
         email: dealer.email || "",
         phone: dealer.phone || "",
         profilePic: dealer.profilePic || "",
-        accountType: dealer.accountType || "",
-        role: dealer.role || "",
+        // accountType: dealer.accountType || "",
+        // role: dealer.role || "",
         country: dealer.country || "",
         state: dealer.state || "",
         city: dealer.city || "",
@@ -985,9 +984,9 @@ export const getAllDealers = async (req, res) => {
         identityDocuments: {
           idCardFront: dealer.identityDocuments?.idCardFront || "",
           driverLicense: dealer.identityDocuments?.driverLicense || "",
-          tin: dealer.identityDocuments?.tin || "",
+          // tin: dealer.identityDocuments?.tin || "",
           cac: dealer.identityDocuments?.cac || "",
-          bankStatement: dealer.identityDocuments?.bankStatement || "",
+          // bankStatement: dealer.identityDocuments?.bankStatement || "",
           status: dealer.identityDocuments?.status || "",
           rejectionReason: dealer.identityDocuments?.rejectionReason || "",
           reviewedAt: dealer.identityDocuments?.reviewedAt || "",
@@ -998,15 +997,15 @@ export const getAllDealers = async (req, res) => {
     });
 
     res.status(200).json({
-      message: "Users fetched successfully",
+      message: "Dealers fetched successfully",
       total,
       page: Number(page),
       pages: Math.ceil(total / Number(limit)),
       count: formattedUsers.length,
-      users: formattedUsers,
+      dealers: formattedUsers,
     });
   } catch (err) {
-    console.error("Error in getAllUsers:", err.message);
+    console.error("Error in getAllDealers:", err.message);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
@@ -1016,7 +1015,7 @@ export const getAllDealers = async (req, res) => {
 export const getAllAccounts = async (req, res) => {
   try {
     const {
-      role,
+      type,
       email,
       name,
       page = 1,
@@ -1026,7 +1025,7 @@ export const getAllAccounts = async (req, res) => {
     } = req.query;
 
     let filter = {};
-    if (role) filter.role = role;
+    if (type) filter.type = type;
     if (email) filter.email = { $regex: email, $options: "i" };
     if (name) {
       filter.$or = [
@@ -1057,7 +1056,7 @@ export const getAllAccounts = async (req, res) => {
     const [users, dealers] = await Promise.all([usersPromise, dealersPromise]);
 
     // 🔑 Tag each record with its type
-    const usersTagged = users.map((u) => ({ ...u.toObject(), type: "User" }));
+    const usersTagged = users.map((u) => ({ ...u.toObject(), type: "Retailer" }));
     const dealersTagged = dealers.map((d) => ({ ...d.toObject(), type: "Dealer" }));
 
     // Merge results
@@ -1091,8 +1090,7 @@ export const getAllAccounts = async (req, res) => {
         lastName: acc.lastName,
         email: acc.email,
         phone: acc.phone,
-        role: acc.role,
-        type: acc.type, // 👈 clearly shows User or Dealer
+        type: acc.type, // 👈 clearly shows Retailer or Dealer
         profilePic: acc.profilePic,
         status,
         isVerified: acc.isVerified,
@@ -1116,8 +1114,6 @@ export const getAllAccounts = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
-
-
 
 
 export const exportAccountsCSV = async (req, res) => {
@@ -1350,6 +1346,92 @@ export const getUserById = async (req, res) => {
   }
 };
 
+export const getDealerById = async (req, res) => {
+  try {
+    const { dealerId } = req.params;
+
+    const dealer = await Dealer.findById(dealerId).select(
+      "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+    );
+
+    if (!dealer) {
+      return res.status(404).json({ error: "Dealer not found" });
+    }
+
+    // ✅ If token expired or user logged out manually
+    if (!req.dealer || req.dealer._id.toString() !== dealerId) {
+      // mark as Inactive
+      if (dealer.loginStatus !== "Inactive") {
+        dealer.loginStatus = "Inactive";
+        await dealer.save();
+      }
+    }
+
+    // Compute status
+    let status = "Inactive";
+    if (dealer.isApproved) status = "Active";
+    else if (!dealer.isApproved && dealer.identityDocuments?.status === "pending") {
+      status = "Pending";
+    }
+
+    // Example stats (optional)
+    const stats = {
+      totalBids: dealer.totalBids || 0,
+      wonAuctions: dealer.wonAuctions || 0,
+      creditLimit: dealer.creditLimit || 0,
+      lastLogin: dealer.lastLogin || null,
+    };
+
+    // Format response
+    const dealerDetails = {
+      _id: dealer._id,
+      dealerId: `#DEA${String(dealer._id).slice(-4).toUpperCase()}`,
+      firstName: dealer.firstName || "",
+      lastName: dealer.lastName || "",
+      fullName: `${dealer.firstName || ""} ${dealer.lastName || ""}`.trim(),
+      username: dealer.username || "",
+      email: dealer.email || "",
+      phone: dealer.phone || "",
+      dateOfBirth: dealer.dateOfBirth || "",
+      profilePic: dealer.profilePic || "",
+      role: dealer.role || "",
+      status,
+      loginStatus: dealer.loginStatus, // ✅ always up to date
+      isVerified: dealer.isVerified || false,
+      isApproved: dealer.isApproved || false,
+      address: {
+        country: dealer.country || "",
+        state: dealer.state || "",
+        city: dealer.city || "",
+        streetAddress: dealer.streetAddress || "",
+        zipCode: dealer.zipCode || "",
+      },
+      accountDetails: stats,
+      identityDocuments: {
+        idCardFront: dealer.identityDocuments?.idCardFront || "",
+        driverLicense: dealer.identityDocuments?.driverLicense || "",
+        tin: dealer.identityDocuments?.tin || "",
+        cac: dealer.identityDocuments?.cac || "",
+        bankStatement: dealer.identityDocuments?.bankStatement || "",
+        proofOfAddress: dealer.identityDocuments?.proofOfAddress || "",
+        status: dealer.identityDocuments?.status || "",
+        rejectionReason: dealer.identityDocuments?.rejectionReason || "",
+        reviewedAt: dealer.identityDocuments?.reviewedAt || "",
+      },
+      createdAt: dealer.createdAt,
+      updatedAt: dealer.updatedAt,
+    };
+
+    res.status(200).json({
+      message: "Dealer details fetched successfully",
+      dealer: dealerDetails,
+    });
+  } catch (err) {
+    console.error("Error in getDealerById:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
 
 // =============================
 // UPDATE USER ROLE
@@ -1385,6 +1467,114 @@ export const updateUserRole = async (req, res) => {
       message: "Failed to update role",
       error: error.message,
     });
+  }
+};
+
+/**
+ * Promote User → Dealer
+ */
+export const promoteUserToDealer = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Create Dealer from User data
+    const dealer = new Dealer({
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      password: user.password, // already hashed
+      phone: user.phone,
+      state: user.state,
+      city: user.city,
+      streetAddress: user.streetAddress,
+      zipCode: user.zipCode,
+      dateOfBirth: user.dateOfBirth,
+      profilePic: user.profilePic,
+      acceptedTerms: user.acceptedTerms,
+      acceptedPrivacy: user.acceptedPrivacy,
+      onboardingCompleted: user.onboardingCompleted,
+      onboardingStage: user.onboardingStage,
+      identityDocuments: user.identityDocuments,
+      isVerified: user.isVerified,
+      isApproved: false, // must go through admin approval again
+      requiresDocument: true,
+      loginStatus: user.loginStatus,
+      lastLogin: user.lastLogin,
+      passwordHistory: user.passwordHistory,
+    });
+
+    await dealer.save();
+
+    // Remove from User collection (optional)
+    await User.findByIdAndDelete(userId);
+
+    res.status(200).json({
+      success: true,
+      message: "User promoted to Dealer successfully",
+      dealer,
+    });
+  } catch (error) {
+    console.error("❌ Error promoting user:", error);
+    res.status(500).json({ success: false, message: "Failed to promote user", error: error.message });
+  }
+};
+
+/**
+ * Demote Dealer → User
+ */
+export const demoteDealerToUser = async (req, res) => {
+  try {
+    const { dealerId } = req.params;
+
+    const dealer = await Dealer.findById(dealerId);
+    if (!dealer) {
+      return res.status(404).json({ success: false, message: "Dealer not found" });
+    }
+
+    // Create User from Dealer data
+    const user = new User({
+      firstName: dealer.firstName,
+      lastName: dealer.lastName,
+      email: dealer.email,
+      password: dealer.password, // already hashed
+      phone: dealer.phone,
+      state: dealer.state,
+      city: dealer.city,
+      streetAddress: dealer.streetAddress,
+      zipCode: dealer.zipCode,
+      dateOfBirth: dealer.dateOfBirth,
+      profilePic: dealer.profilePic,
+      acceptedTerms: dealer.acceptedTerms,
+      acceptedPrivacy: dealer.acceptedPrivacy,
+      onboardingCompleted: dealer.onboardingCompleted,
+      onboardingStage: dealer.onboardingStage,
+      identityDocuments: dealer.identityDocuments,
+      isVerified: dealer.isVerified,
+      isApproved: dealer.isApproved,
+      requiresDocument: false,
+      loginStatus: dealer.loginStatus,
+      lastLogin: dealer.lastLogin,
+      passwordHistory: dealer.passwordHistory,
+    });
+
+    await user.save();
+
+    // Remove from Dealer collection (optional)
+    await Dealer.findByIdAndDelete(dealerId);
+
+    res.status(200).json({
+      success: true,
+      message: "Dealer demoted to User successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("❌ Error demoting dealer:", error);
+    res.status(500).json({ success: false, message: "Failed to demote dealer", error: error.message });
   }
 };
 

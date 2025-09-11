@@ -6,10 +6,10 @@ import bcrypt from "bcryptjs";
 const identityDocumentsSchema = new mongoose.Schema(
   {
     idCardFront: { type: String },
-    driverLicense: { type: String },
-    tin: { type: String },
-    bankStatement: { type: String },
-    cac: { type: String }, // optional
+    photo: { type: String },
+    // tin: { type: String },
+    // bankStatement: { type: String },
+    // cac: { type: String }, // optional
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
@@ -69,11 +69,11 @@ const userSchema = new mongoose.Schema(
     requiresDocument: { type: Boolean, default: false },
 
     // Role
-    role: {
-      type: String,
-      enum: ["user", "admin", "superadmin", "car_dealer", "retailer"],
-      default: "retailer",
-    },
+    // role: {
+    //   type: String,
+    //   enum: ["user", "admin", "superadmin", "car_dealer", "retailer"],
+    //   default: "retailer",
+    // },
 
     // Status & activity
     loginStatus: {
