@@ -31,7 +31,7 @@ cloudinary.config({
 // =============================
 // GET USER PROFILE
 // =============================
-const getUserProfile = async (req, res) => {
+const getDealerProfile = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -260,7 +260,7 @@ const verifyEmail = async (req, res) => {
     }
 };
 
-const updateUser = async (req, res) => {
+const updateDealer = async (req, res) => {
   const { firstName, lastName, email, phone, country, state, city, streetAddress, zipCode } = req.body;
   const dealerId = req.dealer._id; // from auth middleware
 
@@ -669,7 +669,7 @@ const getMyProfile = async (req, res) => {
   }
 };
 
-const getUserById = async (req, res) => {
+const getDealerById = async (req, res) => {
   try {
     const { dealerId } = req.params;
 
@@ -748,7 +748,7 @@ const getUserById = async (req, res) => {
       dealer: dealerDetails,
     });
   } catch (err) {
-    console.error("Error in getUserById:", err.message);
+    console.error("Error in getDealerById:", err.message);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
@@ -761,9 +761,9 @@ export {
     register,
     login,
     logoutUser,
-    updateUser,
-  getUserProfile,
-  getMyProfile,
+    updateDealer,
+    getDealerProfile,
+    getMyProfile,
     verifyEmail,
     resendCode,
     verifyResetCode,
@@ -773,6 +773,6 @@ export {
     acceptTerms,
   uploadDocuments,
   updateProfilePhoto,
-  getUserById
+  getDealerById
   // approveUser
 };

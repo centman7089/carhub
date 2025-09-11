@@ -1,5 +1,14 @@
 // @ts-nocheck
 // server.mjs or server.js with "type": "module"
+import process from "process";
+
+process.on("newListener", (event, listener) => {
+  if (event === "exit") {
+    console.log("New exit listener added:", listener.toString());
+    console.log("Total exit listeners:", process.listenerCount("exit"));
+  }
+});
+
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
@@ -23,6 +32,18 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import adminRouter from "./routes/adminRoute.js";
 import shipmentRouter from "./routes/shipmentRoute.js";
 import dealerRouter from "./routes/dealerRoutes.js";
+
+// import process from "process";
+
+// setInterval(() => {
+//   console.log("Exit listeners:", process.listenerCount("exit"));
+// }, 10000 );
+// import { EventEmitter } from "events";
+// EventEmitter.defaultMaxListeners = 0; // disables the warning
+
+// console.log(process.listenerCount("exit"));
+// console.log(process.listeners("exit"));
+
 
 dotenv.config();
 connectDB();

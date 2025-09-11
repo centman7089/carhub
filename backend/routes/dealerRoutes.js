@@ -6,9 +6,9 @@ import { keys } from "../db/Key.js";
 
 import {
     
-    getUserProfile,
+    getDealerProfile,
     logoutUser,
-    updateUser,
+    updateDealer,
     changePassword,
     forgotPassword,
     login,
@@ -19,10 +19,10 @@ import {
     verifyResetCode,
     uploadDocuments,
     acceptTerms,
-    getUserById,
+    getDealerById,
     getMyProfile,
     updateProfilePhoto
-    
+   
 } from "../controllers/dealerController.js";
 import protectDealer from "../middlewares/protectDealer.js";
 
@@ -37,7 +37,7 @@ import {uploadDocument,uploadProfilePhoto} from "../middlewares/upload.js";
 
 const dealerRouter = express.Router();
 
-dealerRouter.get("/profile/:query",protectDealer, getUserProfile);
+dealerRouter.get("/profile/:query",protectDealer, getDealerProfile);
 dealerRouter.post("/logout", protectDealer,logoutUser);
 dealerRouter.post("/register", register);
 dealerRouter.post("/verify", verifyEmail);
@@ -62,8 +62,8 @@ dealerRouter.post(
   ]),
   uploadDocuments
 );
-dealerRouter.patch( "/update/:id", protectDealer, updateUser );
-dealerRouter.get("/:dealerId", protectDealer, getUserById)
+dealerRouter.patch( "/update/:id", protectDealer, updateDealer );
+dealerRouter.get("/:dealerId", protectDealer, getDealerById)
 dealerRouter.patch(
   "/:userId/profile-photo",
   uploadProfilePhoto.single("profilePic"), // input name: profilePic
