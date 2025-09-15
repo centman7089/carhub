@@ -258,6 +258,12 @@ const vehicleSchema = new mongoose.Schema(
       ],
       required: true,
     },
+       // ✅ Link to Category
+    // category: {
+    //   type: mongoose.Schema.Types.ObjectId,
+    //   ref: "Category",
+    //   required: true,
+    // },
     // ✅ Images
     mainImage: { type: String },
     supportingImages: [{ type: String }],

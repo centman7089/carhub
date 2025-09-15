@@ -7,7 +7,7 @@ import {
   getVehicleById,
   updateVehicle,
   deleteVehicle,
-  exportVehiclesCSV, updateVehiclePriority, deleteAllVehicles
+  exportVehiclesCSV, updateVehiclePriority, deleteAllVehicles, getVehiclesByCategory
 } from "../controllers/vehicleController.js";
 
 
@@ -60,6 +60,8 @@ router.put(
 
 router.delete( "/:id", protectAdmin, deleteVehicle );
 // Admin updates vehicle priority
-router.patch("/:id/priority", protectAdmin, updateVehiclePriority);
+router.patch( "/:id/priority", protectAdmin, updateVehiclePriority );
+router.get("/category/:categoryId", getVehiclesByCategory);
+
 
 export default router;

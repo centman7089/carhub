@@ -583,3 +583,18 @@ export const deleteAllVehicles = async (req, res) => {
   }
 };
 
+// ✅ Get vehicles by category
+export const getVehiclesByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    const vehicles = await Vehicle.find({ category: categoryId })
+      .populate("category", "name icon")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, count: vehicles.length, vehicles });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
