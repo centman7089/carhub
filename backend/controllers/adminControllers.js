@@ -272,10 +272,10 @@ export const createAdmin = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // 2. Ensure logged-in user is superadmin
-    if (!req.user || req.user.role !== "superadmin") {
-      return res.status(403).json({ error: "Only superadmin can create admins" });
-    }
+ // 2. Ensure logged-in user is superadmin
+  if (!req.admin || req.admin.role !== "superadmin") {
+    return res.status(403).json({ error: "Only superadmin can create admins" });
+  }
 
     // 3. Prevent duplicate email
     const adminExists = await Admin.findOne({ email });

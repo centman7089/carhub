@@ -12,7 +12,7 @@ export const formatAdminResponse = (user) => {
     id: user._id || "",
     firstName: user.firstName || "",
     lastName: user.lastName || "",
-    fullName: `${user.firstName} ${user.lastName} || ""`,
+    fullName: `${user.firstName} ${user.lastName}`,
     email: user.email || "",
     phone: user.phone || "",
     state: user.state || "",
