@@ -22,6 +22,7 @@ import { pipeline } from 'stream/promises';
 import { createWriteStream } from 'fs';
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
+import { formatAdminResponse } from "../utils/formatAdminResponse.js";
 
 // Alternative: Use busboy for proper multipart streaming
 import busboy from 'busboy';
@@ -63,7 +64,7 @@ const formatAdminResponse = (admin) => ({
 // Auth Controllers
 // ========================
 
-export const createAdmin = async (req, res) => {
+export const createSuperadmin = async (req, res) => {
   try {
     const {
       firstName,
@@ -76,9 +77,9 @@ export const createAdmin = async (req, res) => {
       streetAddress,
       zipCode,
       dateOfBirth,
-      role,
     } = req.body;
 
+    // ✅ Validate required fields
     if (
       !firstName ||
       !lastName ||
@@ -93,12 +94,199 @@ export const createAdmin = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const adminExists = await Admin.findOne({ email });
-    if (adminExists) {
-      return res.status(400).json({ error: "Admin already exists" });
+    // ✅ Check if a superadmin already exists
+    const superadminExists = await Admin.findOne({ role: "superadmin" });
+    if (superadminExists) {
+      return res
+        .status(400)
+        .json({ error: "Superadmin already exists. You cannot create another one." });
     }
 
+    // ✅ Check if email already used
+    const adminExists = await Admin.findOne({ email });
+    if (adminExists) {
+      return res.status(400).json({ error: "Email already in use" });
+    }
+
+    // ✅ Generate verification code
     const code = generateCode();
+
+    // ✅ Force role = superadmin
+    const superadmin = new Admin({
+      firstName,
+      lastName,
+      email,
+      password,
+      phone,
+      state,
+      city,
+      streetAddress,
+      zipCode,
+      dateOfBirth,
+      role: "superadmin", // 👈 enforce
+      emailCode: code,
+      emailCodeExpires: Date.now() + 10 * 60 * 1000,
+      passwordHistory: [],
+      isVerified: false,
+    });
+
+    // ✅ Store initial password hash in history
+    superadmin.passwordHistory.push({
+      password: superadmin.password,
+      changedAt: new Date(),
+    });
+
+    await superadmin.save();
+
+    // ✅ Send verification email
+    await sendVerificationEmail(email, code);
+
+    // ✅ Generate login token
+    const token = generateTokenAndSetCookie(superadmin._id, res, "adminId");
+
+    res.status(201).json({
+      token,
+      ...formatAdminResponse(superadmin),
+      msg: "Superadmin registered. Verification code sent to email.",
+    });
+  } catch (err) {
+    console.error("Error creating superadmin:", err.message);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+//controller to create an admin user
+// export const createAdmin = async (req, res) => {
+//   try {
+//     const {
+//       firstName,
+//       lastName,
+//       email,
+//       password,
+//       phone,
+//       state,
+//       city,
+//       streetAddress,
+//       zipCode,
+//       dateOfBirth,
+//     } = req.body;
+
+//     // 1. Check required fields
+//     if (
+//       !firstName ||
+//       !lastName ||
+//       !email ||
+//       !password ||
+//       !phone ||
+//       !state ||
+//       !city ||
+//       !streetAddress ||
+//       !dateOfBirth
+//     ) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     // 2. Check if request user is superadmin
+//     if (!req.user || req.user.role !== "superadmin") {
+//       return res.status(403).json({ error: "Only superadmin can create admins" });
+//     }
+
+//     // 3. Prevent duplicate email
+//     const adminExists = await Admin.findOne({ email });
+//     if (adminExists) {
+//       return res.status(400).json({ error: "Admin already exists" });
+//     }
+
+//     // 4. Generate email verification code
+//     const code = generateCode();
+
+//     // 5. Force new admin to have role = 'admin'
+//     const admin = new Admin({
+//       firstName,
+//       lastName,
+//       email,
+//       password,
+//       phone,
+//       state,
+//       city,
+//       streetAddress,
+//       zipCode,
+//       dateOfBirth,
+//       role: "admin", // ✅ Always enforced here
+//       emailCode: code,
+//       emailCodeExpires: Date.now() + 10 * 60 * 1000,
+//       passwordHistory: [],
+//       isVerified: false,
+//     });
+
+//     // Store first password in history
+//     admin.passwordHistory.push({
+//       password: admin.password,
+//       changedAt: new Date(),
+//     });
+
+//     await admin.save();
+
+//     // Send verification mail
+//     await sendVerificationEmail(email, code);
+
+//     const token = generateTokenAndSetCookie(admin._id, res, "adminId");
+
+//     res.status(201).json({
+//       token,
+//       ...formatAdminResponse(admin),
+//       msg: "Admin created successfully. Verification code sent to email.",
+//     });
+//   } catch (err) {
+//     console.error("Error creating admin:", err.message);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+export const createAdmin = async (req, res) => {
+  try {
+    const {
+      firstName,
+      lastName,
+      email,
+      password,
+      phone,
+      state,
+      city,
+      streetAddress,
+      zipCode,
+      dateOfBirth,
+    } = req.body;
+
+    // 1. Required fields check
+    if (
+      !firstName ||
+      !lastName ||
+      !email ||
+      !password ||
+      !phone ||
+      !state ||
+      !city ||
+      !streetAddress ||
+      !dateOfBirth
+    ) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // 2. Ensure logged-in user is superadmin
+    if (!req.user || req.user.role !== "superadmin") {
+      return res.status(403).json({ error: "Only superadmin can create admins" });
+    }
+
+    // 3. Prevent duplicate email
+    const adminExists = await Admin.findOne({ email });
+    if (adminExists) {
+      return res.status(400).json({ error: "Admin with this email already exists" });
+    }
+
+    // 4. Generate email verification code
+    const code = generateCode();
+
+    // 5. Create admin (force role = admin)
     const admin = new Admin({
       firstName,
       lastName,
@@ -110,29 +298,31 @@ export const createAdmin = async (req, res) => {
       streetAddress,
       zipCode,
       dateOfBirth,
-      role,
+      role: "admin", // 🔒 enforce role
       emailCode: code,
       emailCodeExpires: Date.now() + 10 * 60 * 1000,
       passwordHistory: [],
       isVerified: false,
     });
 
-    // push hashed password into history (after save hook)
-    admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
+    // Track password history
+    admin.passwordHistory.push({
+      password: admin.password,
+      changedAt: new Date(),
+    });
 
     await admin.save();
-   // ✅ Use new helper
-await sendVerificationEmail(email, code);
 
-    const token = generateTokenAndSetCookie(admin._id, res, "adminId");
+    // Send email verification
+    await sendVerificationEmail(email, code);
 
+    // Optional: don’t log in new admins automatically
     res.status(201).json({
-      token,
       ...formatAdminResponse(admin),
-      msg: "Admin registered. Verification code sent to email.",
+      msg: "Admin created successfully. Verification code sent to email.",
     });
   } catch (err) {
-    console.error("Error registering admin:", err.message);
+    console.error("Error creating admin:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -141,7 +331,7 @@ await sendVerificationEmail(email, code);
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const admin = await Admin.findOne({ email }).select("+password");
+    const admin = await Admin.findOne( { email });
 
     if (!admin || !(await admin.correctPassword(password))) {
       return res.status(400).json({ msg: "Invalid credentials" });
@@ -164,7 +354,7 @@ export const login = async (req, res) => {
     res.status(200).json({
       token,
       ...formatAdminResponse(admin),
-      msg: "Login successful",
+      msg: `${admin.role} login successful`, // 👈 dynamic message
       isVerified: true,
     });
   } catch (error) {
@@ -294,6 +484,41 @@ await sendVerificationEmail(email, code);
   }
 };
 
+// export const changePassword = async (req, res) => {
+//   try {
+//     const adminId = req.admin._id;
+//     const { currentPassword, newPassword, confirmNewPassword } = req.body;
+
+//     if (newPassword !== confirmNewPassword) {
+//       return res.status(400).json({ msg: "Passwords do not match" });
+//     }
+
+//     const admin = await Admin.findById(adminId).select("-password");
+//     if (!admin) return res.status(404).json({ msg: "Admin not found" });
+
+//     if (!(await admin.correctPassword(currentPassword))) {
+//       return res.status(400).json({ msg: "Incorrect current password" });
+//     }
+
+//     // Prevent reuse
+//     const reused = await Promise.any(
+//       admin.passwordHistory.map(({ password }) =>
+//         admin.correctPassword(newPassword)
+//       )
+//     ).catch(() => false);
+
+//     if (reused) return res.status(400).json({ msg: "Password reused from history" });
+
+//     admin.password = newPassword;
+//     admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
+//     if (admin.passwordHistory.length > 5) admin.passwordHistory.shift();
+
+//     await admin.save();
+//     res.json({ msg: "Password changed successfully" });
+//   } catch (err) {
+//     res.status(500).json({ msg: "Server error" });
+//   }
+// };
 export const changePassword = async (req, res) => {
   try {
     const adminId = req.admin._id;
@@ -303,33 +528,68 @@ export const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const admin = await Admin.findById(adminId).select("-password");
+    // ⚠️ Need the password to verify
+    const admin = await Admin.findById(adminId);
     if (!admin) return res.status(404).json({ msg: "Admin not found" });
 
-    if (!(await admin.correctPassword(currentPassword))) {
+    // Verify current password
+    const isMatch = await admin.correctPassword(currentPassword);
+    if (!isMatch) {
       return res.status(400).json({ msg: "Incorrect current password" });
     }
 
-    // Prevent reuse
-    const reused = await Promise.any(
-      admin.passwordHistory.map(({ password }) =>
-        admin.correctPassword(newPassword)
-      )
-    ).catch(() => false);
+    // Prevent reuse (check against history)
+    for (let entry of admin.passwordHistory) {
+      const reused = await bcrypt.compare(newPassword, entry.password);
+      if (reused) {
+        return res.status(400).json({ msg: "Password reused from history" });
+      }
+    }
 
-    if (reused) return res.status(400).json({ msg: "Password reused from history" });
-
+    // Update password
     admin.password = newPassword;
+
+    // Push new password hash to history
     admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
     if (admin.passwordHistory.length > 5) admin.passwordHistory.shift();
 
     await admin.save();
     res.json({ msg: "Password changed successfully" });
   } catch (err) {
+    console.error("Error in changePassword:", err);
     res.status(500).json({ msg: "Server error" });
   }
 };
 
+
+// export const resetPassword = async (req, res) => {
+//   try {
+//     const { token, newPassword, confirmPassword } = req.body;
+//     if (newPassword !== confirmPassword) {
+//       return res.status(400).json({ message: "Passwords do not match" });
+//     }
+
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     if (decoded.purpose !== "password_reset") {
+//       return res.status(400).json({ message: "Invalid token" });
+//     }
+
+//     const admin = await Admin.findById(decoded.adminId);
+//     if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+//     admin.password = newPassword;
+//     admin.emailCode = undefined;
+//     admin.emailCodeExpires = undefined;
+//     await admin.save();
+
+//     res.json({ success: true, message: "Password updated" });
+//   } catch (err) {
+//     if (err.name === "TokenExpiredError") {
+//       return res.status(400).json({ message: "Token expired" });
+//     }
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
@@ -345,9 +605,23 @@ export const resetPassword = async (req, res) => {
     const admin = await Admin.findById(decoded.adminId);
     if (!admin) return res.status(404).json({ message: "Admin not found" });
 
+    // Prevent reuse (same logic as changePassword)
+    for (let entry of admin.passwordHistory) {
+      const reused = await bcrypt.compare(newPassword, entry.password);
+      if (reused) {
+        return res.status(400).json({ msg: "Password reused from history" });
+      }
+    }
+
     admin.password = newPassword;
-    admin.emailCode = undefined;
-    admin.emailCodeExpires = undefined;
+
+    // Add to password history
+    admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
+    if (admin.passwordHistory.length > 5) admin.passwordHistory.shift();
+
+    // Clear reset codes
+    admin.resetCode = undefined;
+    admin.resetCodeExpires = undefined;
     await admin.save();
 
     res.json({ success: true, message: "Password updated" });
@@ -355,6 +629,7 @@ export const resetPassword = async (req, res) => {
     if (err.name === "TokenExpiredError") {
       return res.status(400).json({ message: "Token expired" });
     }
+    console.error("Error in resetPassword:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
@@ -367,14 +642,35 @@ export const forgotPassword = async (req, res) => {
 
     const code = admin.setPasswordResetCode();
     await admin.save({ validateBeforeSave: false });
-    // ✅ Use new helper
-await sendPasswordResetEmail(email, code);
+
+    await sendPasswordResetEmail(email, code); // helper that sends email
+
     res.json({ msg: "Password reset code sent" });
   } catch (err) {
     res.status(500).json({ msg: err.message });
   }
 };
 
+
+// export const verifyResetCode = async (req, res) => {
+//   try {
+//     const { email, code } = req.body;
+//     const admin = await Admin.findOne({ email });
+
+//     if (!admin || !admin.validateResetCode(code))
+//       return res.status(400).json({ message: "Invalid/expired Code" });
+
+//     const token = jwt.sign(
+//       { adminId: admin._id, purpose: "password_reset" },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "15m" }
+//     );
+
+//     res.json({ success: true, token, message: "Code verified" });
+//   } catch (err) {
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 export const verifyResetCode = async (req, res) => {
   try {
     const { email, code } = req.body;
@@ -396,6 +692,7 @@ export const verifyResetCode = async (req, res) => {
 };
 
 
+
 export const getAdminUser = async (req, res) => {
   try {
     const admin = await Admin.find({ role: "admin" });
@@ -404,141 +701,6 @@ export const getAdminUser = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
-
-
-
-// ✅ Approve User
-// export const approveUser = async (req, res) => {
-//   try {
-//     const { userId } = req.params; // Get the target user's ID from the route param
-
-//     // 🔑 Find the user that admin wants to approve
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ error: "User not found" });
-
-//     // ✅ Approve user
-//     user.identityDocuments.status = "approved";
-//     user.identityDocuments.reviewedAt = new Date();
-//     user.identityDocuments.rejectionReason = null; // clear old rejection reason
-//     user.isApproved = true;
-//     user.onboardingStage = "completed";
-
-//     await user.save();
-
-//     res.json({
-//       message: "User approved successfully ✅",
-//       step: user.onboardingStage,
-//       user,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-// export const approveUserDocuments = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-
-//     // 🔑 Find the user
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ error: "User not found" });
-
-//     // ✅ Check if all required documents are uploaded before approval
-//     const { idCardFront, driverLicense, tin, bankStatement } =
-//       user.identityDocuments;
-
-//     if (!idCardFront || !driverLicense || !tin || !bankStatement) {
-//       return res.status(400).json({
-//         error:
-//           "Cannot approve user. All required documents must be uploaded before approval.",
-//       });
-//     }
-
-//     // ✅ Approve user
-//     user.identityDocuments.status = "approved";
-//     user.identityDocuments.reviewedAt = new Date();
-//     user.identityDocuments.rejectionReason = null;
-//     user.isApproved = true;
-//     user.onboardingStage = "completed";
-
-//     await user.save();
-
-//     res.json({
-//       message: "User approved successfully ✅",
-//       step: user.onboardingStage,
-//       user,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
-
-
-// export const rejectUser = async (req, res) => {
-//   try {
-//     const { userId } = req.params; // ✅ Get the target user from route params
-//     const { rejectionReason } = req.body; // Admin provides a reason
-
-//     // 🔑 Find the user that admin wants to reject
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ error: "User not found" });
-
-//     // ✅ Reject user
-//     user.identityDocuments.status = "rejected";
-//     user.identityDocuments.reviewedAt = new Date();
-//     user.identityDocuments.rejectionReason =
-//       rejectionReason || "Documents not valid";
-//     user.isApproved = false;
-//     user.onboardingStage = "rejected"; // mark stage as rejected
-
-//     await user.save();
-
-//     res.json({
-//       message: "User rejected ❌",
-//       reason: user.identityDocuments.rejectionReason,
-//       step: user.onboardingStage,
-//       user,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// export const rejectUserDocuments = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     const { rejectionReason } = req.body;
-
-//     // 🔑 Find the user
-//     const user = await User.findById(userId);
-//     if (!user) return res.status(404).json({ error: "User not found" });
-
-//     if (!rejectionReason) {
-//       return res.status(400).json({ error: "Rejection reason is required" });
-//     }
-
-//     // ✅ Reject user
-//     user.identityDocuments.status = "rejected";
-//     user.identityDocuments.reviewedAt = new Date();
-//     user.identityDocuments.rejectionReason = rejectionReason;
-//     user.isApproved = false;
-//     user.onboardingStage = "rejected";
-
-//     await user.save();
-
-//     res.json({
-//       message: "User rejected ❌",
-//       reason: user.identityDocuments.rejectionReason,
-//       step: user.onboardingStage,
-//       user,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-
 
 
 // ✅ Get all uploaded documents for a specific user
@@ -815,7 +977,7 @@ export const getAllUsers = async (req, res) => {
 
     // 🔍 Build filter
     let filter = {};
-    if (role) filter.role = role;
+    // if (role) filter.role = role;
     if (email) filter.email = { $regex: email, $options: "i" };
     if (name) {
       filter.$or = [
@@ -869,7 +1031,7 @@ export const getAllUsers = async (req, res) => {
         phone: user.phone || "",
         profilePic: user.profilePic || "",
         accountType: user.accountType || "",
-        role: user.role || "",
+        // role: user.role || "",
         country: user.country || "",
         state: user.state || "",
         city: user.city || "",

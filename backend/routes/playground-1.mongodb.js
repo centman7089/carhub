@@ -3,4 +3,4 @@
 
 // Delete all Dealers
 // @ts-ignore
-db.users.deleteMany({});
+db.admins.deleteMany({});

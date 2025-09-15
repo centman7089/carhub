@@ -240,7 +240,24 @@ const vehicleSchema = new mongoose.Schema(
     lotNumber: { type: String, trim: true },
     description: { type: String },
     features: [{ type: String, trim: true }],
-
+       // ✅ Category
+    category: {
+      type: String,
+      enum: [
+        "SUV",
+        "Sedan",
+        "Coupe",
+        "Truck",
+        "Hatchback",
+        "Convertible",
+        "Van",
+        "Electric",
+        "Hybrid",
+        "Luxury",
+        "Other"
+      ],
+      required: true,
+    },
     // ✅ Images
     mainImage: { type: String },
     supportingImages: [{ type: String }],

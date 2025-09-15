@@ -6,7 +6,7 @@ import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfi
   getPendingUsers,getAllUsers,updateUserRole, 
   getUserById,getDealerById,getAllDealers,getAllAccounts, exportAccountsCSV, exportAccountsExcel, promoteUserToDealer, demoteDealerToUser,
   rejectDealerDocuments,
-  approveDealerDocuments} from "../controllers/adminControllers.js";
+  approveDealerDocuments, createSuperadmin} from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
 import { vehicleImages } from "../middlewares/upload.js";
 // import { cacheMiddleware } from "../middlewares/cache.js";
@@ -17,7 +17,11 @@ import { vehicleImages } from "../middlewares/upload.js";
 const adminRouter = express.Router()
 
 adminRouter.post('/login', login)
-adminRouter.post('/create', createAdmin)
+// Only superadmin can create another superadmin
+adminRouter.post("/create-superadmin", protectAdmin, authorizeRoles("superadmin"), createSuperadmin);
+
+// Only superadmin can create admins
+adminRouter.post("/create-admin", protectAdmin, authorizeRoles("superadmin"), createAdmin);
 adminRouter.post('/logout', logoutUser)
 adminRouter.post('/resend-code', resendCode)
 adminRouter.post('/change-password',protectAdmin, changePassword)
