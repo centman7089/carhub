@@ -18,7 +18,7 @@ const adminRouter = express.Router()
 
 adminRouter.post('/login', login)
 // Only superadmin can create another superadmin
-adminRouter.post("/create-superadmin", protectAdmin, authorizeRoles("superadmin"), createSuperadmin);
+adminRouter.post("/create-superadmin", createSuperadmin);
 
 // Only superadmin can create admins
 adminRouter.post("/create-admin", protectAdmin, authorizeRoles("superadmin"), createAdmin);
