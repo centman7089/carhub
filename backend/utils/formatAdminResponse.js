@@ -9,21 +9,21 @@ export const formatAdminResponse = (user) => {
   if (!user) return null;
 
   return {
-    id: user._id,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    fullName: `${user.firstName} ${user.lastName}`,
-    email: user.email,
-    phone: user.phone,
-    state: user.state,
-    city: user.city,
-    streetAddress: user.streetAddress,
-    zipCode: user.zipCode,
-    dateOfBirth: user.dateOfBirth,
-    role: user.role,           // works for "admin", "superadmin", "moderator"
-    isVerified: user.isVerified,
-    createdAt: user.createdAt,
-    updatedAt: user.updatedAt,
+    id: user._id || "",
+    firstName: user.firstName || "",
+    lastName: user.lastName || "",
+    fullName: `${user.firstName} ${user.lastName} || ""`,
+    email: user.email || "",
+    phone: user.phone || "",
+    state: user.state || "",
+    city: user.city || "",
+    streetAddress: user.streetAddress || "",
+    zipCode: user.zipCode || "",
+    dateOfBirth: user.dateOfBirth || "",
+    role: user.role || "",           // works for "admin", "superadmin", "moderator"
+    isVerified: user.isVerified || "",
+    createdAt: user.createdAt || "",
+    updatedAt: user.updatedAt || "",
   };
 };
 

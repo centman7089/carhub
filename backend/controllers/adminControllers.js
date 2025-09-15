@@ -45,23 +45,23 @@ cloudinary.config({
 
 // Helper to safely format admin response
 // Utility to format safe response
-const formatAdminResponse = (admin) => ({
-  _id: admin._id,
-  firstName: admin.firstName || "",
-  lastName: admin.lastName || "",
-  email: admin.email || "",
-  phone: admin.phone || "",
-  state: admin.state || "",
-  city: admin.city || "",
-  streetAddress: admin.streetAddress || "",
-  zipCode: admin.zipCode || "",
-  dateOfBirth: admin.dateOfBirth || "",
-  role: admin.role || "",
-  profilePic: admin.profilePic || "",
-  isVerified: admin.isVerified || false,
-});
+// const formatAdminResponse = (admin) => ({
+//   _id: admin._id,
+//   firstName: admin.firstName || "",
+//   lastName: admin.lastName || "",
+//   email: admin.email || "",
+//   phone: admin.phone || "",
+//   state: admin.state || "",
+//   city: admin.city || "",
+//   streetAddress: admin.streetAddress || "",
+//   zipCode: admin.zipCode || "",
+//   dateOfBirth: admin.dateOfBirth || "",
+//   role: admin.role || "",
+//   profilePic: admin.profilePic || "",
+//   isVerified: admin.isVerified || false,
+// });
 
-// Auth Controllers
+// Auth Controllsers
 // ========================
 
 export const createSuperadmin = async (req, res) => {
