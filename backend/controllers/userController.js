@@ -340,9 +340,6 @@ const login = async (req, res) => {
     // if (user.role === "car_dealer") {
       if (!user.isApproved || user.identityDocuments.status !== "approved") {
         return res.status( 403 ).json( {
-          token,
-          _id: user._id,
-          email: user.email,
           msg: "Login Successfully. Awaiting admin approval",
           isVerified: true,
           isApproved: false,
