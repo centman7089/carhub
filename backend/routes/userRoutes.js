@@ -46,7 +46,7 @@ userRouter.post("/verify-reset-code", verifyResetCode);
 userRouter.post("/login", login);
 userRouter.post( "/forgot-password", forgotPassword );
 userRouter.post( "/reset-password", resetPassword );
-userRouter.patch( "/change-password", protectRoute, changePassword );
+userRouter.post( "/change-password", protectRoute, changePassword );
 userRouter.get("/me", protectRoute, getMyProfile )
 
 // Upload identity documents
