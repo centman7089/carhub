@@ -593,31 +593,29 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const user = await User.findById(userId).select("+password +passwordHistory");
-    if (!dealer) return res.status(404).json({ msg: "User not found" });
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ msg: "User not found" });
 
     // Verify current password
     if (!(await user.correctPassword(currentPassword))) {
       return res.status(400).json({ msg: "Incorrect current password" });
     }
 
-    // Prevent reuse
-    const reused = await Promise.any(
-      user.passwordHistory.map(({ password }) =>
-        bcrypt.compare(newPassword, password)
-      )
-    ).catch(() => false);
-
-    if (reused) {
-      return res.status(400).json({ msg: "Password reused from history" });
-    }
-
-    // Save new password
-    user.password = newPassword;
-    user.passwordHistory.push({ password: user.password, changedAt: new Date() });
-    if (user.passwordHistory.length > 5) user.passwordHistory.shift();
-
-    await user.save();
+   // Prevent reuse (check against history)
+           for (let entry of user.passwordHistory) {
+             const reused = await bcrypt.compare(newPassword, entry.password);
+             if (reused) {
+               return res.status(400).json({ msg: "Password reused from history" });
+             }
+           }
+           
+        user.password = newPassword;
+   
+       // Push new password hash to history
+       user.passwordHistory.push({ password: user.password, changedAt: new Date() });
+       if (user.passwordHistory.length > 5) user.passwordHistory.shift();
+   
+       await user.save();
     res.json({ msg: "Password changed successfully" });
   } catch (err) {
     console.error(err);
@@ -911,10 +909,10 @@ const acceptTerms = async (req, res) => {
     }
 
     // ✅ Check required docs
-    const { idCardFront, driverLicense, tin, bankStatement } =
+    const { idCardFront, photo } =
       user.identityDocuments;
 
-    if (!idCardFront || !driverLicense || !tin || !bankStatement) {
+    if (!idCardFront || !photo) {
       return res.status(400).json({
         error:
           "You must upload all required documents (ID card, Driver License, TIN, Bank Statement) before accepting terms.",
@@ -1095,11 +1093,7 @@ const getUserById = async (req, res) => {
       accountDetails: stats,
       identityDocuments: {
         idCardFront: user.identityDocuments?.idCardFront || "",
-        driverLicense: user.identityDocuments?.driverLicense || "",
-        tin: user.identityDocuments?.tin || "",
-        cac: user.identityDocuments?.cac || "",
-        bankStatement: user.identityDocuments?.bankStatement || "",
-        proofOfAddress: user.identityDocuments?.proofOfAddress || "",
+        photo: user.identityDocuments?.photo || "",
         status: user.identityDocuments?.status || "",
         rejectionReason: user.identityDocuments?.rejectionReason || "",
         reviewedAt: user.identityDocuments?.reviewedAt || "",

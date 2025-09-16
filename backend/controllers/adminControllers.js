@@ -391,10 +391,10 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-export const updateUser = async (req, res) => {
+export const updateAdmin = async (req, res) => {
   const { firstName, lastName, email, phone, country } = req.body;
-  let { logo } = req.body;
-  const userId = req.admin._id;
+  // let { logo } = req.body;
+  const adminId = req.admin._id;
 
   try {
     let admin = await Admin.findById(adminId);
@@ -404,13 +404,13 @@ export const updateUser = async (req, res) => {
       return res.status(403).json({ error: "Unauthorized update" });
     }
 
-    if (profilePic && admin.profilePic) {
-      await cloudinary.uploader.destroy(user.profilePic.split("/").pop().split(".")[0]);
-    }
+    // if (profilePic && admin.profilePic) {
+    //   await cloudinary.uploader.destroy(user.profilePic.split("/").pop().split(".")[0]);
+    // }
 
-    const uploadedPic = profilePic
-      ? (await cloudinary.uploader.upload(profilePic)).secure_url
-      : user.profilePic;
+    // const uploadedPic = profilePic
+    //   ? (await cloudinary.uploader.upload(profilePic)).secure_url
+    //   : user.profilePic;
 
     Object.assign(admin, {
       firstName: firstName || user.firstName,
@@ -418,10 +418,10 @@ export const updateUser = async (req, res) => {
       email: email || user.email,
       phone: phone || user.phone,
       country: country || user.country,
-      profilePic: uploadedPic,
+      // profilePic: uploadedPic,
     });
 
-    await user.save();
+    await admin.save();
     res.status( 200 ).json( {
         _id: admin._id,
   firstName: admin.firstName || "",
@@ -743,10 +743,10 @@ export const approveUserDocuments = async (req, res) => {
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const { idCardFront, driverLicense, tin, bankStatement } =
+    const { idCardFront, photo } =
       user.identityDocuments;
 
-    if (!idCardFront || !driverLicense || !tin || !bankStatement) {
+    if (!idCardFront || !photo) {
       return res.status(400).json({
         error:
           "Cannot approve user. All required documents must be uploaded before approval.",
@@ -781,10 +781,10 @@ export const approveDealerDocuments = async (req, res) => {
 
     if (!dealer) return res.status(404).json({ error: "Dealer not found" });
 
-    const { idCardFront, driverLicense } =
+    const { idCardFront, driverLicense, cac } =
       dealer.identityDocuments;
 
-    if (!idCardFront || !driverLicense) {
+    if (!idCardFront || !driverLicense || !cac) {
       return res.status(400).json({
         error:
           "Cannot approve dealer. All required documents must be uploaded before approval.",
@@ -912,6 +912,51 @@ export const getPendingDealers = async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+export const deleteAdminById = async (req, res) => {
+  try {
+    // ✅ Check if requester is superadmin
+    if (req.admin?.role !== "superadmin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only superadmins can delete admins",
+      });
+    }
+
+    const { id } = req.params;
+
+    // ✅ Prevent deleting another superadmin
+    const adminToDelete = await Admin.findById(id);
+    if (!adminToDelete) {
+      return res.status(404).json({
+        success: false,
+        message: "Admin not found",
+      });
+    }
+
+    if (adminToDelete.role === "superadmin") {
+      return res.status(403).json({
+        success: false,
+        message: "Superadmins cannot be deleted",
+      });
+    }
+
+    // ✅ Delete admin
+    await Admin.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin deleted successfully",
+    });
+  } catch (error) {
+    console.error("❌ Error deleting admin:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete admin",
+      error: error.message,
+    });
   }
 };
 
@@ -1044,10 +1089,10 @@ export const getAllUsers = async (req, res) => {
         status,
         identityDocuments: {
           idCardFront: user.identityDocuments?.idCardFront || "",
-          driverLicense: user.identityDocuments?.driverLicense || "",
-          tin: user.identityDocuments?.tin || "",
-          cac: user.identityDocuments?.cac || "",
-          bankStatement: user.identityDocuments?.bankStatement || "",
+          photo: user.identityDocuments?.photo || "",
+          // tin: user.identityDocuments?.tin || "",
+          // cac: user.identityDocuments?.cac || "",
+          // bankStatement: user.identityDocuments?.bankStatement || "",
           status: user.identityDocuments?.status || "",
           rejectionReason: user.identityDocuments?.rejectionReason || "",
           reviewedAt: user.identityDocuments?.reviewedAt || "",
@@ -1171,7 +1216,6 @@ export const getAllDealers = async (req, res) => {
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
-
 
 
 export const getAllAccounts = async (req, res) => {
@@ -1485,11 +1529,11 @@ export const getUserById = async (req, res) => {
       accountDetails: stats,
       identityDocuments: {
         idCardFront: user.identityDocuments?.idCardFront || "",
-        driverLicense: user.identityDocuments?.driverLicense || "",
-        tin: user.identityDocuments?.tin || "",
-        cac: user.identityDocuments?.cac || "",
-        bankStatement: user.identityDocuments?.bankStatement || "",
-        proofOfAddress: user.identityDocuments?.proofOfAddress || "",
+        photo: user.identityDocuments?.photo || "",
+        // tin: user.identityDocuments?.tin || "",
+        // cac: user.identityDocuments?.cac || "",
+        // bankStatement: user.identityDocuments?.bankStatement || "",
+        // proofOfAddress: user.identityDocuments?.proofOfAddress || "",
         status: user.identityDocuments?.status || "",
         rejectionReason: user.identityDocuments?.rejectionReason || "",
         reviewedAt: user.identityDocuments?.reviewedAt || "",
@@ -1572,10 +1616,10 @@ export const getDealerById = async (req, res) => {
       identityDocuments: {
         idCardFront: dealer.identityDocuments?.idCardFront || "",
         driverLicense: dealer.identityDocuments?.driverLicense || "",
-        tin: dealer.identityDocuments?.tin || "",
+        // tin: dealer.identityDocuments?.tin || "",
         cac: dealer.identityDocuments?.cac || "",
-        bankStatement: dealer.identityDocuments?.bankStatement || "",
-        proofOfAddress: dealer.identityDocuments?.proofOfAddress || "",
+        // bankStatement: dealer.identityDocuments?.bankStatement || "",
+        // proofOfAddress: dealer.identityDocuments?.proofOfAddress || "",
         status: dealer.identityDocuments?.status || "",
         rejectionReason: dealer.identityDocuments?.rejectionReason || "",
         reviewedAt: dealer.identityDocuments?.reviewedAt || "",
@@ -1598,39 +1642,39 @@ export const getDealerById = async (req, res) => {
 // =============================
 // UPDATE USER ROLE
 // =============================
-export const updateUserRole = async (req, res) => {
-  try {
-    const { userId } = req.params;
-    const { role } = req.body;
+// export const updateUserRole = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
+//     const { role } = req.body;
 
-    if (!["user", "admin", "car_dealer", "retailer"].includes(role)) {
-      return res.status(400).json({ success: false, message: "Invalid role" });
-    }
+//     if (!["user", "admin", "car_dealer", "retailer"].includes(role)) {
+//       return res.status(400).json({ success: false, message: "Invalid role" });
+//     }
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { role },
-      { new: true }
-    );
+//     const user = await User.findByIdAndUpdate(
+//       userId,
+//       { role },
+//       { new: true }
+//     );
 
-    if (!user) {
-      return res.status(404).json({ success: false, message: "User not found" });
-    }
+//     if (!user) {
+//       return res.status(404).json({ success: false, message: "User not found" });
+//     }
 
-    res.status(200).json({
-      success: true,
-      message: `User role updated to ${role}`,
-      user,
-    });
-  } catch (error) {
-    console.error("❌ Error updating user role:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update role",
-      error: error.message,
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       message: `User role updated to ${role}`,
+//       user,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error updating user role:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to update role",
+//       error: error.message,
+//     });
+//   }
+// };
 
 /**
  * Promote User → Dealer
@@ -1741,3 +1785,215 @@ export const demoteDealerToUser = async (req, res) => {
 };
 
 
+
+export const getAdminById = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+
+    const admin = await Admin.findById(adminId).select(
+      "-password -__v"
+    );
+
+    if (!admin) {
+      return res.status(404).json({ error: "Admin not found" });
+    }
+
+    // ✅ Ensure it's not a superadmin (so this route fetches only admins)
+    if (admin.role !== "admin") {
+      return res.status(403).json({
+        error: "Requested ID does not belong to an Admin",
+      });
+    }
+
+    const adminDetails = {
+      _id: admin._id,
+      adminId: `#ADM${String(admin._id).slice(-4).toUpperCase()}`,
+      firstName: admin.firstName || "",
+      lastName: admin.lastName || "",
+      fullName: `${admin.firstName || ""} ${admin.lastName || ""}`.trim(),
+      username: admin.username || "",
+      email: admin.email || "",
+      role: admin.role,
+      loginStatus: admin.loginStatus || "Inactive",
+      isVerified: admin.isVerified || false,
+      createdAt: admin.createdAt,
+      updatedAt: admin.updatedAt,
+    };
+
+    return res.status(200).json({
+      message: "Admin details fetched successfully",
+      admin: adminDetails,
+    });
+  } catch (err) {
+    console.error("Error in getAdminById:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+// controllers/adminController.js
+export const getSuperAdminById = async (req, res) => {
+  try {
+    const { superAdminId } = req.params;
+
+    const superAdmin = await Admin.findById(superAdminId).select(
+      "-password -__v"
+    );
+
+    if (!superAdmin) {
+      return res.status(404).json({ error: "Superadmin not found" });
+    }
+
+    // ✅ Ensure role is superadmin
+    if (superAdmin.role !== "superadmin") {
+      return res.status(403).json({
+        error: "Requested ID does not belong to a Superadmin",
+      });
+    }
+
+    const superAdminDetails = {
+      _id: superAdmin._id,
+      superAdminId: `#SUP${String(superAdmin._id).slice(-4).toUpperCase()}`,
+      firstName: superAdmin.firstName || "",
+      lastName: superAdmin.lastName || "",
+      fullName: `${superAdmin.firstName || ""} ${superAdmin.lastName || ""}`.trim(),
+      username: superAdmin.username || "",
+      email: superAdmin.email || "",
+      role: superAdmin.role,
+      loginStatus: superAdmin.loginStatus || "Inactive",
+      isVerified: superAdmin.isVerified || false,
+      createdAt: superAdmin.createdAt,
+      updatedAt: superAdmin.updatedAt,
+    };
+
+    return res.status(200).json({
+      message: "Superadmin details fetched successfully",
+      superAdmin: superAdminDetails,
+    });
+  } catch (err) {
+    console.error("Error in getSuperAdminById:", err.message);
+    res.status(500).json({ error: "Server error", details: err.message });
+  }
+};
+
+export const updateAdminProfileBySuperAdmin = async (req, res) => {
+  try {
+    const superAdminId = req.admin?._id?.toString(); // from auth middleware
+    const { adminId } = req.params;
+
+    // ✅ Ensure requester is a superadmin
+    const requester = await Admin.findById(superAdminId);
+    if (!requester || requester.role !== "superadmin") {
+      return res.status(403).json({
+        success: false,
+        message: "Only superadmins can update admin profiles",
+      });
+    }
+
+    // ✅ Ensure target exists
+    const admin = await Admin.findById(adminId);
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    // ❌ Prevent updating another superadmin
+    if (admin.role === "superadmin") {
+      return res.status(403).json({ message: "Cannot update another superadmin" });
+    }
+
+    // ✅ Allowed update fields
+    const {
+      firstName,
+      lastName,
+      email,
+      username,
+      phone,
+      country,
+      state,
+      city,
+      address,
+      loginStatus,
+      isVerified,
+    } = req.body;
+
+    const updatedFields = {};
+
+    if (firstName) updatedFields.firstName = firstName;
+    if (lastName) updatedFields.lastName = lastName;
+    if (email) updatedFields.email = email;
+    if (username) updatedFields.username = username;
+    if (phone) updatedFields.phone = phone;
+    if (country) updatedFields.country = country;
+    if (state) updatedFields.state = state;
+    if (city) updatedFields.city = city;
+    if (address) updatedFields.address = address;
+    if (loginStatus) updatedFields.loginStatus = loginStatus;
+    if (typeof isVerified === "boolean") updatedFields.isVerified = isVerified;
+
+    // ✅ Apply updates
+    if (Object.keys(updatedFields).length > 0) {
+      Object.assign(admin, updatedFields);
+      await admin.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin profile updated successfully",
+      updatedAdmin: {
+        _id: admin._id,
+        firstName: admin.firstName || "",
+        lastName: admin.lastName || "",
+        username: admin.username || "",
+        email: admin.email || "",
+        phone: admin.phone || "",
+        country: admin.country || "",
+        state: admin.state || "",
+        city: admin.city || "",
+        address: admin.address || "",
+        loginStatus: admin.loginStatus,
+        isVerified: admin.isVerified,
+        role: admin.role,
+        updatedAt: admin.updatedAt,
+      },
+    });
+  } catch (err) {
+    console.error("Error updating admin profile:", err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const updateOwnProfilePhoto = async (req, res) => {
+  try {
+    const { id } = req.params; // from route param
+    const requesterId = req.admin._id.toString(); // logged-in admin id
+    const requesterRole = req.admin.role; // "admin" or "superadmin"
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No profile photo uploaded!" });
+    }
+
+    // ✅ Check if the ID belongs to the logged-in user
+    if (id !== requesterId) {
+      return res.status(403).json({
+        message: "You can only update your own profile photo",
+      });
+    }
+
+    const admin = await Admin.findById(id);
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found" });
+    }
+
+    // ✅ Save Cloudinary URL
+    admin.profilePic = req.file.path;
+    await admin.save();
+
+    res.status(200).json({
+      success: true,
+      message: `${requesterRole} profile photo updated successfully`,
+      profilePic: admin.profilePic,
+    });
+  } catch (error) {
+    console.error("Error updating profile photo:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};

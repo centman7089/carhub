@@ -365,7 +365,7 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Passwords do not match" });
     }
 
-    const dealer = await Dealer.findById(dealerId).select("+password +passwordHistory");
+    const dealer = await Dealer.findById(dealerId);
     if (!dealer) return res.status(404).json({ msg: "Dealer not found" });
 
     // Verify current password
@@ -373,23 +373,42 @@ const changePassword = async (req, res) => {
       return res.status(400).json({ msg: "Incorrect current password" });
     }
 
-    // Prevent reuse
-    const reused = await Promise.any(
-      dealer.passwordHistory.map(({ password }) =>
-        bcrypt.compare(newPassword, password)
-      )
-    ).catch(() => false);
+    // // Prevent reuse
+    // const reused = await Promise.any(
+    //   dealer.passwordHistory.map(({ password }) =>
+    //     bcrypt.compare(newPassword, password)
+    //   )
+    // ).catch(() => false);
 
-    if (reused) {
-      return res.status(400).json({ msg: "Password reused from history" });
-    }
+    // if (reused) {
+    //   return res.status(400).json({ msg: "Password reused from history" });
+    // }
 
-    // Save new password
-    dealer.password = newPassword;
+    // Prevent reuse (check against history)
+        for (let entry of dealer.passwordHistory) {
+          const reused = await bcrypt.compare(newPassword, entry.password);
+          if (reused) {
+            return res.status(400).json({ msg: "Password reused from history" });
+          }
+        }
+        
+     dealer.password = newPassword;
+
+    // Push new password hash to history
     dealer.passwordHistory.push({ password: dealer.password, changedAt: new Date() });
     if (dealer.passwordHistory.length > 5) dealer.passwordHistory.shift();
 
     await dealer.save();
+
+    // Save new password
+    // dealer.password = newPassword;
+    // dealer.passwordHistory.push({ password: dealer.password, changedAt: new Date() });
+    // if (dealer.passwordHistory.length > 5) dealer.passwordHistory.shift();
+
+    // await dealer.save();
+    
+
+
     res.json({ msg: "Password changed successfully" });
   } catch (err) {
     console.error(err);
@@ -458,10 +477,24 @@ const resetPassword = async (req, res) => {
     const dealer = await Dealer.findById(decoded.dealerId);
     if (!dealer) return res.status(404).json({ message: "Dealer not found" });
 
-    dealer.password = newPassword;
-    dealer.emailCode = undefined;
-    dealer.emailCodeExpires = undefined;
-    await dealer.save();
+       // Prevent reuse (same logic as changePassword)
+        for (let entry of dealer.passwordHistory) {
+          const reused = await bcrypt.compare(newPassword, entry.password);
+          if (reused) {
+            return res.status(400).json({ msg: "Password reused from history" });
+          }
+        }
+    
+        dealer.password = newPassword;
+    
+        // Add to password history
+        dealer.passwordHistory.push({ password: dealer.password, changedAt: new Date() });
+        if (dealer.passwordHistory.length > 5) dealer.passwordHistory.shift();
+    
+        // Clear reset codes
+        dealer.resetCode = undefined;
+        dealer.resetCodeExpires = undefined;
+        await dealer.save();
 
     res.json({ success: true, message: "Password updated" });
   } catch (err) {
@@ -771,8 +804,8 @@ export {
     resetPassword,
     changePassword,
     acceptTerms,
-  uploadDocuments,
-  updateProfilePhoto,
-  getDealerById
+    uploadDocuments,
+    updateProfilePhoto,
+    getDealerById
   // approveUser
 };

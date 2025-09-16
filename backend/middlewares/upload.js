@@ -167,6 +167,21 @@ const profileStorage = new CloudinaryStorage({
       { quality: "auto:best" },
     ],
   }),
+} );
+
+// ✅ Cloudinary storage for admin profile photos
+const adminProfileStorage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => ({
+    folder: "admin-photos",
+    public_id: `${Date.now()}-${file.originalname.split(".")[0]}`,
+    resource_type: "image",
+    allowed_formats: ["jpg", "jpeg", "png", "webp"],
+    transformation: [
+      { width: 400, height: 400, crop: "fill", gravity: "face" }, // crop around face
+      { quality: "auto:best" },
+    ],
+  }),
 });
 
 // ✅ Multer uploader for documents
@@ -197,6 +212,16 @@ const uploadProfilePhoto = multer({
     else cb(new Error("Only JPG, PNG, WEBP images are allowed for profile photos!"), false);
   },
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
+} );
+
+//multer upload for admin profile photos
+const uploadAdminProfilePhoto = multer({
+  storage: adminProfileStorage,
+  fileFilter: (req, file, cb) => {
+    if (["image/jpeg", "image/png", "image/webp"].includes(file.mimetype)) cb(null, true);
+    else cb(new Error("Only JPG, PNG, WEBP images are allowed for profile photos!"), false);
+  },
+  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB max
 });
 
-export { uploadDocument, vehicleImages, uploadProfilePhoto };
+export { uploadDocument, vehicleImages, uploadProfilePhoto , uploadAdminProfilePhoto};

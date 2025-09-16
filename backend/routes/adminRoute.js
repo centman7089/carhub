@@ -1,14 +1,11 @@
 // @ts-nocheck
 import express from "express";
-import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateUser, verifyEmail, verifyResetCode,   getUserDocuments,
-  approveUserDocuments,
-  rejectUserDocuments,
-  getPendingUsers,getAllUsers,updateUserRole, 
-  getUserById,getDealerById,getAllDealers,getAllAccounts, exportAccountsCSV, exportAccountsExcel, promoteUserToDealer, demoteDealerToUser,
-  rejectDealerDocuments,
-  approveDealerDocuments, createSuperadmin} from "../controllers/adminControllers.js";
+import { changePassword, createAdmin, forgotPassword, getAdminUser, getUserProfile, login, logoutUser, resendCode, resetPassword, updateAdmin, verifyEmail, verifyResetCode,   getUserDocuments, approveUserDocuments,
+rejectUserDocuments,getPendingUsers,getAllUsers, getUserById,getDealerById,getAllDealers,getAllAccounts, exportAccountsCSV, exportAccountsExcel, promoteUserToDealer, demoteDealerToUser,
+rejectDealerDocuments,approveDealerDocuments, createSuperadmin, deleteAdminById, getAdminById, getSuperAdminById, updateAdminProfileBySuperAdmin, updateOwnProfilePhoto} from "../controllers/adminControllers.js";
 import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
-import { vehicleImages } from "../middlewares/upload.js";
+import { uploadAdminProfilePhoto } from "../middlewares/upload.js";
+
 // import { cacheMiddleware } from "../middlewares/cache.js";
 // import vehicleImages from "../middlewares/multer.js";
 
@@ -31,8 +28,11 @@ adminRouter.post( '/verify-reset-code', verifyResetCode )
 adminRouter.post( '/reset-password', resetPassword )
 
 adminRouter.get( '/get', protectAdmin,getUserProfile )
-adminRouter.get( '/admin-user', protectAdmin, getAdminUser )
+// adminRouter.get( '/pending-users', protectAdmin, authorizeRoles( "superadmin", "admin" ), getPendingUsers )
 
+// Admin-only routes
+adminRouter.get("/users",protectAdmin, authorizeRoles("superadmin", "admin"),getAllUsers);
+adminRouter.get("/dealers",protectAdmin, authorizeRoles("superadmin", "admin"),getAllDealers);
 adminRouter.get("/accounts", protectAdmin, authorizeRoles( "superadmin", "admin" ), getAllAccounts);
 
 /**
@@ -47,10 +47,11 @@ adminRouter.get("/accounts/export/csv", protectAdmin, authorizeRoles("superadmin
  */
 adminRouter.get("/accounts/export/excel", protectAdmin, authorizeRoles("superadmin", "admin"), exportAccountsExcel);
 
-// Admin-only routes
-adminRouter.get("/users",protectAdmin, authorizeRoles("superadmin", "admin"),getAllUsers);
 
-adminRouter.patch( "/update/:id", protectAdmin,updateUser );
+adminRouter.patch( "/update/:adminId", protectAdmin, updateAdmin );
+
+// ✅ Only superadmin can delete an admin
+adminRouter.delete("/:id", protectAdmin,authorizeRoles( "superadmin" ), deleteAdminById);
 
 
 // adminRouter.put('/verify-cac/:employerId',protectAdmin, authorizeRoles(["superadmin", "admin"],'superadmin'),verifyCac );
@@ -63,10 +64,25 @@ adminRouter.patch( "/:dealerId/reject", protectAdmin, authorizeRoles( "superadmi
 
 adminRouter.get("/users/:userId",protectAdmin, authorizeRoles("superadmin", "admin"),getUserById);
 adminRouter.get("/dealers/:dealerId",protectAdmin, authorizeRoles("superadmin", "admin"),getDealerById);
-adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( "superadmin", "admin"), updateUserRole );
+// adminRouter.put( "/users/:userId/role", protectAdmin, authorizeRoles( "superadmin", "admin"), updateUserRole );
 // Only superadmins should be allowed to do this
 adminRouter.post("/promote/:userId", protectAdmin, authorizeRoles("superadmin", "admin"), promoteUserToDealer);
-adminRouter.post("/demote/:dealerId", protectAdmin, authorizeRoles("superadmin", "admin"), demoteDealerToUser);
+adminRouter.post( "/demote/:dealerId", protectAdmin, authorizeRoles( "superadmin", "admin" ), demoteDealerToUser );
+adminRouter.get("/admin/:adminId", protectAdmin, getAdminById);
+adminRouter.get( "/superadmin/:superAdminId", protectAdmin, getSuperAdminById );
+
+adminRouter.patch(
+  "/admins/:adminId",
+  protectAdmin,authorizeRoles( "superadmin" ), // auth middleware
+  updateAdminProfileBySuperAdmin
+);
+
+adminRouter.patch(
+  "/admins/photo/:id",
+  protectAdmin,
+  uploadAdminProfilePhoto.single("profilePic"),
+  updateOwnProfilePhoto
+);
 
 // adminRouter.get( "/accounts", protectAdmin, authorizeRoles( ["superadmin", "admin"] ), cacheMiddleware( ( req ) => `accounts:${ JSON.stringify( req.query ) }`, 120 ), getAllAccounts );
 
