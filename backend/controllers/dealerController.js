@@ -140,6 +140,78 @@ const register = async (req, res) => {
 };
 
 
+// const login = async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const dealer = await Dealer.findOne({ email });
+//     if (!dealer) return res.status(400).json({ msg: "Invalid credentials" });
+
+//     const isPasswordCorrect = await dealer.correctPassword(password);
+//     if (!isPasswordCorrect) {
+//       return res.status(400).json({ error: "Invalid password" });
+//     }
+
+//     if (!dealer.isVerified) {
+//       const code = generateCode();
+//       dealer.emailCode = code;
+//       dealer.emailCodeExpires = Date.now() + 10 * 60 * 1000;
+//       await dealer.save();
+
+//       await sendVerificationEmail(email, code);
+
+//       return res.status(403).json({
+//         msg: "Account not verified. A new verification code has been sent.",
+//         isVerified: false,
+//       });
+//     }
+
+//     // if (dealer) {
+//       if (!dealer.isApproved || dealer.identityDocuments.status !== "approved") {
+//         return res.status( 403 ).json( {
+//           msg: "Awaiting admin approval",
+//           isVerified: true,
+//           isApproved: false,
+//           documentStatus: dealer.identityDocuments?.status || "pending",
+//         });
+//       }
+//     // }
+
+//     if (
+//       dealer.identityDocuments?.status === "approved" &&
+//       dealer.onboardingStage !== "completed"
+//     ) {
+//       dealer.onboardingStage = "completed";
+//       dealer.onboardingCompleted = true;
+//     }
+
+//     // ✅ Update last login + status
+//     dealer.lastLogin = new Date();
+//     dealer.loginStatus = "Active";
+
+//     await dealer.save(); // <-- you forgot this ✅
+
+//     const token = generateTokenAndSetCookie(dealer._id, res, "dealerId");
+
+//     res.status(200).json({
+//       token,
+//       _id: dealer._id,
+//       email: dealer.email,
+//       msg: "Login Successful",
+//       isVerified: true,
+//       role: dealer.role,
+//       lastLogin: dealer.lastLogin,
+//       loginStatus: dealer.loginStatus, // will now be "Active"
+//       isApproved: dealer.isApproved,
+//       documentStatus: dealer.identityDocuments?.status,
+//       onboardingCompleted: dealer.onboardingCompleted,
+//     });
+//   } catch (err) {
+//     console.error("Error in login:", err.message);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -152,6 +224,25 @@ const login = async (req, res) => {
       return res.status(400).json({ error: "Invalid password" });
     }
 
+    // always update login details
+    dealer.lastLogin = new Date();
+    dealer.loginStatus = "Active";
+
+    // onboarding completion check
+    if (
+      dealer.identityDocuments?.status === "approved" &&
+      dealer.onboardingStage !== "completed"
+    ) {
+      dealer.onboardingStage = "completed";
+      dealer.onboardingCompleted = true;
+    }
+
+    await dealer.save();
+
+    // ✅ generate token first (before any return)
+    const token = generateTokenAndSetCookie(dealer._id, res, "dealerId");
+
+    // not verified → send new code but still return token
     if (!dealer.isVerified) {
       const code = generateCode();
       dealer.emailCode = code;
@@ -163,37 +254,23 @@ const login = async (req, res) => {
       return res.status(403).json({
         msg: "Account not verified. A new verification code has been sent.",
         isVerified: false,
+        token, // still return token
       });
     }
 
-    // if (dealer) {
-      if (!dealer.isApproved || dealer.identityDocuments.status !== "approved") {
-        return res.status( 403 ).json( {
-          msg: "Awaiting admin approval",
-          isVerified: true,
-          isApproved: false,
-          documentStatus: dealer.identityDocuments?.status || "pending",
-        });
-      }
-    // }
-
-    if (
-      dealer.identityDocuments?.status === "approved" &&
-      dealer.onboardingStage !== "completed"
-    ) {
-      dealer.onboardingStage = "completed";
-      dealer.onboardingCompleted = true;
+    // not yet approved
+    if (!dealer.isApproved || dealer.identityDocuments.status !== "approved") {
+      return res.status(403).json({
+        msg: "Awaiting admin approval",
+        isVerified: true,
+        isApproved: false,
+        documentStatus: dealer.identityDocuments?.status || "pending",
+        token, // still return token
+      });
     }
 
-    // ✅ Update last login + status
-    dealer.lastLogin = new Date();
-    dealer.loginStatus = "Active";
-
-    await dealer.save(); // <-- you forgot this ✅
-
-    const token = generateTokenAndSetCookie(dealer._id, res, "dealerId");
-
-    res.status(200).json({
+    // fully approved
+    return res.status(200).json({
       token,
       _id: dealer._id,
       email: dealer.email,
@@ -201,7 +278,7 @@ const login = async (req, res) => {
       isVerified: true,
       role: dealer.role,
       lastLogin: dealer.lastLogin,
-      loginStatus: dealer.loginStatus, // will now be "Active"
+      loginStatus: dealer.loginStatus,
       isApproved: dealer.isApproved,
       documentStatus: dealer.identityDocuments?.status,
       onboardingCompleted: dealer.onboardingCompleted,
@@ -211,6 +288,7 @@ const login = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 // =============================

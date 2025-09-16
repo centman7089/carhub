@@ -166,80 +166,7 @@ const register = async (req, res) => {
 	}
 };
 
-// =============================
-// LOGIN
-// =============================
-// const login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
-
-//     // 🔎 Find user by email
-//     const user = await User.findOne({ email });
-//     if (!user) return res.status(400).json({ msg: "Invalid credentials" });
-
-//     // 🔒 Check password
-//     const isPasswordCorrect = await user.correctPassword(password);
-//     if (!isPasswordCorrect) {
-//       return res.status(400).json({ error: "Invalid password" });
-//     }
-
-//     // 📧 Check if email is verified
-//     if (!user.isVerified) {
-//       const code = generateCode();
-//       user.emailCode = code;
-//       user.emailCodeExpires = Date.now() + 10 * 60 * 1000;
-//       await user.save();
-//       await sendEmail(
-//         email,
-//         "New Verification Code",
-//         `Your new verification code is: ${code}`
-//       );
-//       return res.status(403).json({
-//         msg: "Account not verified. A new verification code has been sent.",
-//         isVerified: false,
-//       });
-//     }
-
-//     // 🚗 If role = car_dealer, ensure admin approval
-//     if (user.role === "car_dealer") {
-//       if (!user.isApproved || user.identityDocuments.status !== "approved") {
-//         return res.status(403).json({
-//           msg: "Awaiting admin approval",
-//           isVerified: true,
-//           isApproved: false,
-//           documentStatus: user.identityDocuments?.status || "pending",
-//         });
-//       }
-//     }
-
-//     // ✅ Auto-fix onboarding stage if approved
-//     if (
-//       user.identityDocuments?.status === "approved" &&
-//       user.onboardingStage !== "completed"
-//     ) {
-//       user.onboardingStage = "completed";
-//       user.onboardingCompleted = true;
-//       await user.save();
-//     }
-
-//     // 🎟 Generate token
-//     const token = generateTokenAndSetCookie(user._id, res);
-
-//     res.status(200).json({
-//       token,
-//       _id: user._id,
-//       email: user.email,
-//       msg: "Login Successful",
-//       isVerified: true,
-//       isApproved: user.isApproved,
-//       documentStatus: user.identityDocuments?.status,
-//       onboardingCompleted: user.onboardingCompleted,
-//     });
-//   } catch (err) {
-//     console.error("Error in login:", err.message);
-//     res.status(500).json({ error: err.message });
-//   }
-// };
+//Login Controller
 // const login = async (req, res) => {
 //   try {
 //     const { email, password } = req.body;
@@ -258,7 +185,6 @@ const register = async (req, res) => {
 //       user.emailCodeExpires = Date.now() + 10 * 60 * 1000;
 //       await user.save();
 
-//       // ✅ Branded resend
 //       await sendVerificationEmail(email, code);
 
 //       return res.status(403).json({
@@ -267,16 +193,16 @@ const register = async (req, res) => {
 //       });
 //     }
 
-//     if (user.role === "car_dealer") {
+//     // if (user.role === "car_dealer") {
 //       if (!user.isApproved || user.identityDocuments.status !== "approved") {
-//         return res.status(403).json({
-//           msg: "Awaiting admin approval",
+//         return res.status( 403 ).json( {
+//           msg: "Login Successfully. Awaiting admin approval",
 //           isVerified: true,
 //           isApproved: false,
 //           documentStatus: user.identityDocuments?.status || "pending",
 //         });
 //       }
-//     }
+//     // }
 
 //     if (
 //       user.identityDocuments?.status === "approved" &&
@@ -284,12 +210,13 @@ const register = async (req, res) => {
 //     ) {
 //       user.onboardingStage = "completed";
 //       user.onboardingCompleted = true;
-//       await user.save();
 //     }
 
-//       // ✅ Update last login + status
+//     // ✅ Update last login + status
 //     user.lastLogin = new Date();
 //     user.loginStatus = "Active";
+
+//     await user.save(); // <-- you forgot this ✅
 
 //     const token = generateTokenAndSetCookie(user._id, res, "userId");
 
@@ -301,7 +228,7 @@ const register = async (req, res) => {
 //       isVerified: true,
 //       role: user.role,
 //       lastLogin: user.lastLogin,
-//       loginStatus: user.loginStatus,
+//       loginStatus: user.loginStatus, // will now be "Active"
 //       isApproved: user.isApproved,
 //       documentStatus: user.identityDocuments?.status,
 //       onboardingCompleted: user.onboardingCompleted,
@@ -323,6 +250,7 @@ const login = async (req, res) => {
       return res.status(400).json({ error: "Invalid password" });
     }
 
+    // if not verified -> send code and token for limited actions
     if (!user.isVerified) {
       const code = generateCode();
       user.emailCode = code;
@@ -331,22 +259,18 @@ const login = async (req, res) => {
 
       await sendVerificationEmail(email, code);
 
+      const token = generateTokenAndSetCookie(user._id, res, "userId");
+
       return res.status(403).json({
         msg: "Account not verified. A new verification code has been sent.",
         isVerified: false,
+        token, // still return token
       });
     }
 
-    // if (user.role === "car_dealer") {
-      if (!user.isApproved || user.identityDocuments.status !== "approved") {
-        return res.status( 403 ).json( {
-          msg: "Login Successfully. Awaiting admin approval",
-          isVerified: true,
-          isApproved: false,
-          documentStatus: user.identityDocuments?.status || "pending",
-        });
-      }
-    // }
+    // always update login details
+    user.lastLogin = new Date();
+    user.loginStatus = "Active";
 
     if (
       user.identityDocuments?.status === "approved" &&
@@ -356,15 +280,24 @@ const login = async (req, res) => {
       user.onboardingCompleted = true;
     }
 
-    // ✅ Update last login + status
-    user.lastLogin = new Date();
-    user.loginStatus = "Active";
+    await user.save();
 
-    await user.save(); // <-- you forgot this ✅
-
+    // ✅ generate token before early returns
     const token = generateTokenAndSetCookie(user._id, res, "userId");
 
-    res.status(200).json({
+    // if dealer not approved yet
+    if (!user.isApproved || user.identityDocuments.status !== "approved") {
+      return res.status(403).json({
+        msg: "Login Successful. Awaiting admin approval",
+        isVerified: true,
+        isApproved: false,
+        documentStatus: user.identityDocuments?.status || "pending",
+        token, // return token here too
+      });
+    }
+
+    // ✅ approved user
+    return res.status(200).json({
       token,
       _id: user._id,
       email: user.email,
@@ -372,7 +305,7 @@ const login = async (req, res) => {
       isVerified: true,
       role: user.role,
       lastLogin: user.lastLogin,
-      loginStatus: user.loginStatus, // will now be "Active"
+      loginStatus: user.loginStatus,
       isApproved: user.isApproved,
       documentStatus: user.identityDocuments?.status,
       onboardingCompleted: user.onboardingCompleted,
@@ -382,6 +315,7 @@ const login = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 // =============================
