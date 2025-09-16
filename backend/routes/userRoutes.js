@@ -40,7 +40,7 @@ const userRouter = express.Router();
 userRouter.get("/profile/:query",protectRoute, getUserProfile);
 userRouter.post("/logout", protectRoute,logoutUser);
 userRouter.post("/register", register);
-userRouter.post("/verify", verifyEmail);
+userRouter.post("/verify-email", verifyEmail);
 userRouter.post("/resend-code", resendCode);
 userRouter.post("/verify-reset-code", verifyResetCode);
 userRouter.post("/login", login);

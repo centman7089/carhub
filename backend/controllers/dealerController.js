@@ -168,7 +168,8 @@ const login = async (req, res) => {
 
     // if (dealer) {
       if (!dealer.isApproved || dealer.identityDocuments.status !== "approved") {
-        return res.status(403).json({
+        return res.status( 403 ).json( {
+          token,
           msg: "Awaiting admin approval",
           isVerified: true,
           isApproved: false,
