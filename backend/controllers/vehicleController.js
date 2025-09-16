@@ -34,6 +34,7 @@ export const addVehicle = async (req, res) => {
       color,
       condition,
       lotNumber,
+      category,
       description,
       features,
       zipCode,
@@ -42,6 +43,16 @@ export const addVehicle = async (req, res) => {
       city,
       priority, // ✅ added priority
     } = req.body;
+
+    
+    // ✅ Validate category (must match enum)
+    const validCategories = ["SUV", "Sedan", "Coupe", "Hatchback", "Hybrid",  "Convertible","Van","Electric","Truck","Luxury", "Other"];
+    if (!validCategories.includes(category)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category. Must be one of: ${validCategories.join(", ")}`,
+      });
+    }
 
     // ✅ Extract Cloudinary URLs directly from multer-storage-cloudinary
     const image1 = req.files?.image1 ? req.files.image1[0].path : null;
@@ -66,6 +77,7 @@ export const addVehicle = async (req, res) => {
       color,
       condition,
       lotNumber,
+      category,
       description,
       features: features
         ? Array.isArray(features)
@@ -584,17 +596,219 @@ export const deleteAllVehicles = async (req, res) => {
 };
 
 // ✅ Get vehicles by category
+// export const getVehiclesByCategory = async (req, res) => {
+//   try {
+//     const { categoryId } = req.params;
+
+//     const vehicles = await Vehicle.find({ category: categoryId })
+//       .populate("category", "name icon")
+//       .sort({ createdAt: -1 });
+
+//     res.status(200).json({ success: true, count: vehicles.length, vehicles });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// };
+
+
+// export const getVehiclesByCategory = async (req, res) => {
+//   try {
+//     const { category } = req.params;
+
+//     const vehicles = await Vehicle.find({ category })
+//       .sort({ createdAt: -1 })
+//       .select("-__v");
+
+//     if (!vehicles.length) {
+//       return res.status(404).json({
+//         success: false,
+//         message: `No vehicles found in category: ${category}`,
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (err) {
+//     console.error("❌ Error fetching vehicles by category:", err);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: err.message,
+//     });
+//   }
+// };
+
 export const getVehiclesByCategory = async (req, res) => {
   try {
-    const { categoryId } = req.params;
+    const { category } = req.params;
 
-    const vehicles = await Vehicle.find({ category: categoryId })
-      .populate("category", "name icon")
-      .sort({ createdAt: -1 });
+    // Capitalize properly (SUV stays uppercase)
+    const normalizedCategory =
+      category.charAt(0).toUpperCase() + category.slice(1).toLowerCase();
 
-    res.status(200).json({ success: true, count: vehicles.length, vehicles });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    const vehicles = await Vehicle.find({ category: normalizedCategory });
+
+    return res.status(200).json({
+      success: true,
+      category: normalizedCategory,
+      count: vehicles.length,
+      vehicles,
+    });
+  } catch (error) {
+    console.error("Error fetching vehicles by category:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch vehicles by category",
+    });
   }
 };
+
+
+//Fetch Vehicle Category to display in the frontend
+export const getCategoriesFromVehicles = async ( req, res ) =>
+{
+  try {
+    const categories = await Vehicle.distinct("category");
+    res.status(200).json({ success: true, categories });
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch categories" });
+  }
+};
+
+// export const getVehiclesByCategory2 = async (req, res) => {
+//   try {
+//     const { category } = req.params;
+
+//     const vehicles = await Vehicle.find({
+//       category: { $regex: new RegExp("^" + category + "$", "i") },
+//     });
+
+//     if (!vehicles.length) {
+//       return res.status(404).json({
+//         success: false,
+//         message: `No vehicles found in category '${category}'`,
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       category,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching vehicles by category:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch vehicles by category",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+// ✅ Search vehicles with multiple filters
+// export const searchVehicles = async (req, res) => {
+//   try {
+//     const { make, model, minPrice, maxPrice, condition, category } = req.query;
+
+//     let filter = {};
+
+//     if (make && make !== "Any") {
+//       filter.make = new RegExp(`^${make}$`, "i"); // case-insensitive
+//     }
+
+//     if (model && model !== "Any") {
+//       filter.model = new RegExp(model, "i");
+//     }
+
+//     if (condition && condition !== "All") {
+//       filter.condition = condition;
+//     }
+
+//     if (category && category !== "All") {
+//       filter.category = category;
+//     }
+
+//     if (minPrice || maxPrice) {
+//       filter.price = {};
+//       if (minPrice) filter.price.$gte = Number(minPrice);
+//       if (maxPrice) filter.price.$lte = Number(maxPrice);
+//     }
+
+//     const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
+
+//     res.status(200).json({
+//       success: true,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error searching vehicles:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+
+export const searchVehicles = async (req, res) => {
+  try {
+    const { make, model, minPrice, maxPrice, condition, category } = req.query;
+
+    let filter = {};
+
+    // ✅ Match make (case-insensitive)
+    if (make && make !== "Any") {
+      filter.make = new RegExp(`^${make}$`, "i");
+    }
+
+    // ✅ Match model (case-insensitive, partial allowed)
+    if (model && model !== "Any") {
+      filter.model = new RegExp(model, "i");
+    }
+
+    // ✅ Match condition (New, Used, etc.)
+    if (condition && condition !== "All") {
+      filter.condition = condition;
+    }
+
+    // ✅ Match category (SUV, Sedan, etc.)
+    if (category && category !== "All") {
+      filter.category = new RegExp(`^${category}$`, "i"); 
+    }
+
+    // ✅ Match price range
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    // ✅ Fetch vehicles
+    const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: vehicles.length,
+      vehicles,
+    });
+  } catch (error) {
+    console.error("❌ Error searching vehicles:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
 

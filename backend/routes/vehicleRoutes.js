@@ -7,7 +7,7 @@ import {
   getVehicleById,
   updateVehicle,
   deleteVehicle,
-  exportVehiclesCSV, updateVehiclePriority, deleteAllVehicles, getVehiclesByCategory
+  exportVehiclesCSV, updateVehiclePriority, deleteAllVehicles, getVehiclesByCategory, searchVehicles
 } from "../controllers/vehicleController.js";
 
 
@@ -61,7 +61,10 @@ router.put(
 router.delete( "/:id", protectAdmin, deleteVehicle );
 // Admin updates vehicle priority
 router.patch( "/:id/priority", protectAdmin, updateVehiclePriority );
-router.get("/category/:categoryId", getVehiclesByCategory);
+// router.get( "/category/:categoryId", getVehiclesByCategory );
+router.get( "/category/:category", getVehiclesByCategory );
+// GET /api/vehicles/search?make=Toyota&model=Corolla&minPrice=5000&maxPrice=20000&condition=Used&category=SUV
+router.get("/search", searchVehicles);
 
 
 export default router;

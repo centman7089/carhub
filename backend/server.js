@@ -26,7 +26,7 @@ import auctionRoutes from "./routes/auctionRoutes.js";
 import deliveryRoutes from "./routes/deliveryRoutes.js";
 import customerRoutes from "./routes/customerRoutes.js";
 import reportRoutes from "./routes/reportRoutes.js";
-import reportRoutes from "./routes/categoryRoutes.js";
+import categoryRoutes from "./routes/categoryRoutes.js";
 import listingRoutes from "./routes/listingRoutes.js";
 import vehicleRoutes from "./routes/vehicleRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
