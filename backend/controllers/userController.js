@@ -264,7 +264,8 @@ const login = async (req, res) => {
       return res.status(403).json({
         msg: "Account not verified. A new verification code has been sent.",
         isVerified: false,
-        token, // still return token
+        token, // return token here too
+        userId: user._id, // still return userId
       });
     }
 
@@ -293,7 +294,8 @@ const login = async (req, res) => {
         isApproved: false,
         documentStatus: user.identityDocuments?.status || "pending",
         token, // return token here too
-      });
+        userId: user._id, // still return userId
+      } );
     }
 
     // ✅ approved user
