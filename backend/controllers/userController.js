@@ -839,13 +839,13 @@ const acceptTerms = async (req, res) => {
     }
 
     // ✅ Check required docs
-    const { idCardFront, photo } =
+    const { idCardFront } =
       user.identityDocuments;
 
     if (!idCardFront || !photo) {
       return res.status(400).json({
         error:
-          "You must upload all required documents (ID card, Driver License, TIN, Bank Statement) before accepting terms.",
+          "You must upload all required document (ID card) before accepting terms.",
       });
     }
 

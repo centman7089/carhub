@@ -665,7 +665,7 @@ const acceptTerms = async (req, res) => {
     }
 
     // ✅ Check required docs
-    const { idCardFront, driverLicense } =
+    const { idCardFront, dealerCertificate, cac } =
       dealer.identityDocuments;
 
     if (!idCardFront || !driverLicense) {
