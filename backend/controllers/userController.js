@@ -368,7 +368,7 @@ const verifyEmail = async (req, res) => {
 };
 
 const updateUser = async (req, res) => {
-  const { firstName, lastName, email, phone, country, state, city, streetAddress, zipCode } = req.body;
+  const { phone, state, city, streetAddress, zipCode } = req.body;
   const userId = req.user._id; // from auth middleware
 
   try {
@@ -382,11 +382,8 @@ const updateUser = async (req, res) => {
     }
 
     // Update fields → default to empty string if not provided
-    user.firstName = firstName !== undefined ? firstName : "";
-    user.lastName = lastName !== undefined ? lastName : "";
-    user.email = email !== undefined ? email : "";
+  
     user.phone = phone !== undefined ? phone : "";
-    user.country = country !== undefined ? country : "";
     user.state = state !== undefined ? state : "";
     user.city = city !== undefined ? city : "";
     user.streetAddress = streetAddress !== undefined ? streetAddress : "";
