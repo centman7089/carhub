@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 const dealerDocumentsSchema = new mongoose.Schema(
   {
     idCardFront: { type: String },
-    driverLicense: { type: String },
+    dealerCertificate: { type: String },
     // tin: { type: String },
     // bankStatement: { type: String },
     cac: { type: String }, // optional

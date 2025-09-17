@@ -594,8 +594,8 @@ const uploadDocuments = async (req, res) => {
     if (!dealer) return res.status(404).json({ error: "Dealer not found" });
 
     // Define required + optional fields
-    const requiredFields = ["idCardFront", "driverLicense"];
-    const optionalFields = ["cac"];
+    const requiredFields = ["idCardFront", "dealerCertificate","cac"];
+    // const optionalFields = ["cac"];
 
     let uploadedCount = 0;
 
@@ -608,11 +608,11 @@ const uploadDocuments = async (req, res) => {
     });
 
     // Save optional documents (if provided)
-    optionalFields.forEach((field) => {
-      if (req.files[field] && req.files[field][0]) {
-        dealer.identityDocuments[field] = req.files[field][0].path; // Cloudinary URL
-      }
-    });
+    // optionalFields.forEach((field) => {
+    //   if (req.files[field] && req.files[field][0]) {
+    //     dealer.identityDocuments[field] = req.files[field][0].path; // Cloudinary URL
+    //   }
+    // });
 
     // Check if all required docs uploaded
     const missingDocs = requiredFields.filter((field) => !dealer.identityDocuments[field]);

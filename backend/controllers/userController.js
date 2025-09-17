@@ -559,12 +559,6 @@ const changePassword = async (req, res) => {
   }
 };
 
-
-  
-
-
-
-
 // FORGOT PASSWORD
 // =============================
 const forgotPassword = async (req, res) => {

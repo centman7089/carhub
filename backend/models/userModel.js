@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 const identityDocumentsSchema = new mongoose.Schema(
   {
     idCardFront: { type: String },
-    photo: { type: String },
+    // photo: { type: String },
     // tin: { type: String },
     // bankStatement: { type: String },
     // cac: { type: String }, // optional

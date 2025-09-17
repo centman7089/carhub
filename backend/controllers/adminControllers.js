@@ -155,93 +155,7 @@ export const createSuperadmin = async (req, res) => {
   }
 };
 
-//controller to create an admin user
-// export const createAdmin = async (req, res) => {
-//   try {
-//     const {
-//       firstName,
-//       lastName,
-//       email,
-//       password,
-//       phone,
-//       state,
-//       city,
-//       streetAddress,
-//       zipCode,
-//       dateOfBirth,
-//     } = req.body;
 
-//     // 1. Check required fields
-//     if (
-//       !firstName ||
-//       !lastName ||
-//       !email ||
-//       !password ||
-//       !phone ||
-//       !state ||
-//       !city ||
-//       !streetAddress ||
-//       !dateOfBirth
-//     ) {
-//       return res.status(400).json({ message: "All fields are required" });
-//     }
-
-//     // 2. Check if request user is superadmin
-//     if (!req.user || req.user.role !== "superadmin") {
-//       return res.status(403).json({ error: "Only superadmin can create admins" });
-//     }
-
-//     // 3. Prevent duplicate email
-//     const adminExists = await Admin.findOne({ email });
-//     if (adminExists) {
-//       return res.status(400).json({ error: "Admin already exists" });
-//     }
-
-//     // 4. Generate email verification code
-//     const code = generateCode();
-
-//     // 5. Force new admin to have role = 'admin'
-//     const admin = new Admin({
-//       firstName,
-//       lastName,
-//       email,
-//       password,
-//       phone,
-//       state,
-//       city,
-//       streetAddress,
-//       zipCode,
-//       dateOfBirth,
-//       role: "admin", // ✅ Always enforced here
-//       emailCode: code,
-//       emailCodeExpires: Date.now() + 10 * 60 * 1000,
-//       passwordHistory: [],
-//       isVerified: false,
-//     });
-
-//     // Store first password in history
-//     admin.passwordHistory.push({
-//       password: admin.password,
-//       changedAt: new Date(),
-//     });
-
-//     await admin.save();
-
-//     // Send verification mail
-//     await sendVerificationEmail(email, code);
-
-//     const token = generateTokenAndSetCookie(admin._id, res, "adminId");
-
-//     res.status(201).json({
-//       token,
-//       ...formatAdminResponse(admin),
-//       msg: "Admin created successfully. Verification code sent to email.",
-//     });
-//   } catch (err) {
-//     console.error("Error creating admin:", err.message);
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 export const createAdmin = async (req, res) => {
   try {
     const {
@@ -484,41 +398,6 @@ await sendVerificationEmail(email, code);
   }
 };
 
-// export const changePassword = async (req, res) => {
-//   try {
-//     const adminId = req.admin._id;
-//     const { currentPassword, newPassword, confirmNewPassword } = req.body;
-
-//     if (newPassword !== confirmNewPassword) {
-//       return res.status(400).json({ msg: "Passwords do not match" });
-//     }
-
-//     const admin = await Admin.findById(adminId).select("-password");
-//     if (!admin) return res.status(404).json({ msg: "Admin not found" });
-
-//     if (!(await admin.correctPassword(currentPassword))) {
-//       return res.status(400).json({ msg: "Incorrect current password" });
-//     }
-
-//     // Prevent reuse
-//     const reused = await Promise.any(
-//       admin.passwordHistory.map(({ password }) =>
-//         admin.correctPassword(newPassword)
-//       )
-//     ).catch(() => false);
-
-//     if (reused) return res.status(400).json({ msg: "Password reused from history" });
-
-//     admin.password = newPassword;
-//     admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
-//     if (admin.passwordHistory.length > 5) admin.passwordHistory.shift();
-
-//     await admin.save();
-//     res.json({ msg: "Password changed successfully" });
-//   } catch (err) {
-//     res.status(500).json({ msg: "Server error" });
-//   }
-// };
 export const changePassword = async (req, res) => {
   try {
     const adminId = req.admin._id;
@@ -561,35 +440,6 @@ export const changePassword = async (req, res) => {
   }
 };
 
-
-// export const resetPassword = async (req, res) => {
-//   try {
-//     const { token, newPassword, confirmPassword } = req.body;
-//     if (newPassword !== confirmPassword) {
-//       return res.status(400).json({ message: "Passwords do not match" });
-//     }
-
-//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-//     if (decoded.purpose !== "password_reset") {
-//       return res.status(400).json({ message: "Invalid token" });
-//     }
-
-//     const admin = await Admin.findById(decoded.adminId);
-//     if (!admin) return res.status(404).json({ message: "Admin not found" });
-
-//     admin.password = newPassword;
-//     admin.emailCode = undefined;
-//     admin.emailCodeExpires = undefined;
-//     await admin.save();
-
-//     res.json({ success: true, message: "Password updated" });
-//   } catch (err) {
-//     if (err.name === "TokenExpiredError") {
-//       return res.status(400).json({ message: "Token expired" });
-//     }
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
 export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
@@ -651,26 +501,6 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-
-// export const verifyResetCode = async (req, res) => {
-//   try {
-//     const { email, code } = req.body;
-//     const admin = await Admin.findOne({ email });
-
-//     if (!admin || !admin.validateResetCode(code))
-//       return res.status(400).json({ message: "Invalid/expired Code" });
-
-//     const token = jwt.sign(
-//       { adminId: admin._id, purpose: "password_reset" },
-//       process.env.JWT_SECRET,
-//       { expiresIn: "15m" }
-//     );
-
-//     res.json({ success: true, token, message: "Code verified" });
-//   } catch (err) {
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
 export const verifyResetCode = async (req, res) => {
   try {
     const { email, code } = req.body;
@@ -962,53 +792,7 @@ export const deleteAdminById = async (req, res) => {
 
 
 
-// =============================
-// GET ALL USERS (with filters)
-// =============================
-// export const getAllUsers = async (req, res) => {
-//   try {
-//     const { role, status, sort, search } = req.query;
 
-//     let filter = {};
-
-//     // ✅ Filter by role
-//     if (role) filter.role = role;
-
-//     // ✅ Filter by verification/approval status
-//     if (status === "active") filter.isVerified = true;
-//     if (status === "inactive") filter.isVerified = false;
-//     if (status === "approved") filter.isApproved = true;
-//     if (status === "pending") filter.isApproved = false;
-
-//     // ✅ Search by name or email
-//     if (search) {
-//       filter.$or = [
-//         { firstName: new RegExp(search, "i") },
-//         { lastName: new RegExp(search, "i") },
-//         { email: new RegExp(search, "i") },
-//       ];
-//     }
-
-//     // ✅ Sorting
-//     let sortOption = { createdAt: -1 }; // default recent
-//     if (sort === "oldest") sortOption = { createdAt: 1 };
-
-//     const users = await User.find(filter).sort(sortOption);
-
-//     res.status(200).json({
-//       success: true,
-//       count: users.length,
-//       users,
-//     });
-//   } catch (error) {
-//     console.error("❌ Error fetching users:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to fetch users",
-//       error: error.message,
-//     });
-//   }
-// };
 export const getAllUsers = async (req, res) => {
   try {
     const {
@@ -1089,7 +873,7 @@ export const getAllUsers = async (req, res) => {
         status,
         identityDocuments: {
           idCardFront: user.identityDocuments?.idCardFront || "",
-          photo: user.identityDocuments?.photo || "",
+          // photo: user.identityDocuments?.photo || "",
           // tin: user.identityDocuments?.tin || "",
           // cac: user.identityDocuments?.cac || "",
           // bankStatement: user.identityDocuments?.bankStatement || "",
@@ -1190,7 +974,7 @@ export const getAllDealers = async (req, res) => {
         status,
         identityDocuments: {
           idCardFront: dealer.identityDocuments?.idCardFront || "",
-          driverLicense: dealer.identityDocuments?.driverLicense || "",
+          dealerCertificate: dealer.identityDocuments?.dealerCertificate || "",
           // tin: dealer.identityDocuments?.tin || "",
           cac: dealer.identityDocuments?.cac || "",
           // bankStatement: dealer.identityDocuments?.bankStatement || "",
@@ -1529,7 +1313,7 @@ export const getUserById = async (req, res) => {
       accountDetails: stats,
       identityDocuments: {
         idCardFront: user.identityDocuments?.idCardFront || "",
-        photo: user.identityDocuments?.photo || "",
+        // photo: user.identityDocuments?.photo || "",
         // tin: user.identityDocuments?.tin || "",
         // cac: user.identityDocuments?.cac || "",
         // bankStatement: user.identityDocuments?.bankStatement || "",
@@ -1615,7 +1399,7 @@ export const getDealerById = async (req, res) => {
       accountDetails: stats,
       identityDocuments: {
         idCardFront: dealer.identityDocuments?.idCardFront || "",
-        driverLicense: dealer.identityDocuments?.driverLicense || "",
+        dealerCertificate: dealer.identityDocuments?.dealerCertificate || "",
         // tin: dealer.identityDocuments?.tin || "",
         cac: dealer.identityDocuments?.cac || "",
         // bankStatement: dealer.identityDocuments?.bankStatement || "",
@@ -1638,43 +1422,6 @@ export const getDealerById = async (req, res) => {
   }
 };
 
-
-// =============================
-// UPDATE USER ROLE
-// =============================
-// export const updateUserRole = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-//     const { role } = req.body;
-
-//     if (!["user", "admin", "car_dealer", "retailer"].includes(role)) {
-//       return res.status(400).json({ success: false, message: "Invalid role" });
-//     }
-
-//     const user = await User.findByIdAndUpdate(
-//       userId,
-//       { role },
-//       { new: true }
-//     );
-
-//     if (!user) {
-//       return res.status(404).json({ success: false, message: "User not found" });
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       message: `User role updated to ${role}`,
-//       user,
-//     });
-//   } catch (error) {
-//     console.error("❌ Error updating user role:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to update role",
-//       error: error.message,
-//     });
-//   }
-// };
 
 /**
  * Promote User → Dealer
