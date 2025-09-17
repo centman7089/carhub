@@ -63,7 +63,7 @@ const getUserProfile = async (req, res) => {
       isApproved: user.isApproved || false,
       identityDocuments: {
         idCardFront: user.identityDocuments?.idCardFront || "",
-        photo: user.identityDocuments?.photo || "",
+        // photo: user.identityDocuments?.photo || "",
         status: user.identityDocuments?.status || "",
         rejectionReason: user.identityDocuments?.rejectionReason || "",
         reviewedAt: user.identityDocuments?.reviewedAt || "",
@@ -842,7 +842,7 @@ const acceptTerms = async (req, res) => {
     const { idCardFront } =
       user.identityDocuments;
 
-    if (!idCardFront || !photo) {
+    if (!idCardFront) {
       return res.status(400).json({
         error:
           "You must upload all required document (ID card) before accepting terms.",
@@ -1023,7 +1023,7 @@ const getUserById = async (req, res) => {
       accountDetails: stats,
       identityDocuments: {
         idCardFront: user.identityDocuments?.idCardFront || "",
-        photo: user.identityDocuments?.photo || "",
+        // photo: user.identityDocuments?.photo || "",
         status: user.identityDocuments?.status || "",
         rejectionReason: user.identityDocuments?.rejectionReason || "",
         reviewedAt: user.identityDocuments?.reviewedAt || "",

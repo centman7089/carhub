@@ -63,7 +63,7 @@ const getDealerProfile = async (req, res) => {
       isApproved: dealer.isApproved || false,
       identityDocuments: {
         idCardFront: dealer.identityDocuments?.idCardFront || "",
-        driverLicense: dealer.identityDocuments?.driverLicense || "",
+        dealerCertificate: dealer.identityDocuments?.dealerCertificate || "",
         cac: dealer.identityDocuments?.cac || "",
         status: dealer.identityDocuments?.status || "",
         rejectionReason: dealer.identityDocuments?.rejectionReason || "",
@@ -668,7 +668,7 @@ const acceptTerms = async (req, res) => {
     const { idCardFront, dealerCertificate, cac } =
       dealer.identityDocuments;
 
-    if (!idCardFront || !driverLicense) {
+    if (!idCardFront || !dealerCertificate || !cac) {
       return res.status(400).json({
         error:
           "You must upload all required documents (ID card, Driver License) before accepting terms.",
@@ -845,9 +845,9 @@ const getDealerById = async (req, res) => {
       accountDetails: stats,
       identityDocuments: {
         idCardFront: dealer.identityDocuments?.idCardFront || "",
-        driverLicense: dealer.identityDocuments?.driverLicense || "",
+        dealerCertificate: dealer.identityDocuments?.dealerCertificate || "",
         cac: dealer.identityDocuments?.cac || "",
-        proofOfAddress: dealer.identityDocuments?.proofOfAddress || "",
+        // proofOfAddress: dealer.identityDocuments?.proofOfAddress || "",
         status: dealer.identityDocuments?.status || "",
         rejectionReason: dealer.identityDocuments?.rejectionReason || "",
         reviewedAt: dealer.identityDocuments?.reviewedAt || "",
