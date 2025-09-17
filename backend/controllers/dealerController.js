@@ -818,7 +818,7 @@ const getDealerById = async (req, res) => {
     // Format response
     const dealerDetails = {
       _id: dealer._id,
-      dealerId: `#USR${String(dealer._id).slice(-4).toUpperCase()}`,
+      dealerId: `#DEA${String(dealer._id).slice(-4).toUpperCase()}`,
       firstName: dealer.firstName || "",
       lastName: dealer.lastName || "",
       fullName: `${dealer.firstName || ""} ${dealer.lastName || ""}`.trim(),
