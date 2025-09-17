@@ -55,7 +55,7 @@ dealerRouter.post(
   protectDealer,
   uploadDocument.fields([
     { name: "idCardFront", maxCount: 1 },
-    { name: "driverLicense", maxCount: 1 },
+    { name: "dealerCertificate", maxCount: 1 },
     // { name: "tin", maxCount: 1 },
     // { name: "bankStatement", maxCount: 1 },
     { name: "cac", maxCount: 1 }

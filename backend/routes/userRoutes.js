@@ -54,15 +54,11 @@ userRouter.post(
   "/:userId/documents",
   protectRoute,
   uploadDocument.fields([
-    { name: "idCardFront", maxCount: 1 },
-    { name: "photo", maxCount: 1 }
-    // { name: "tin", maxCount: 1 },
-    // { name: "bankStatement", maxCount: 1 },
-    // { name: "cac", maxCount: 1 },
+    { name: "idCardFront", maxCount: 1 }
   ]),
   uploadDocuments
 );
-userRouter.patch( "/update/:id", protectRoute, updateUser );
+userRouter.put( "/update/:id", protectRoute, updateUser );
 userRouter.get("/:userId", protectRoute, getUserById)
 userRouter.patch(
   "/:userId/profile-photo",
