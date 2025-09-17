@@ -65,7 +65,7 @@ dealerRouter.post(
 dealerRouter.put( "/update/:id", protectDealer, updateDealer );
 dealerRouter.get("/:dealerId", protectDealer, getDealerById)
 dealerRouter.patch(
-  "/:userId/profile-photo",
+  "/:dealerId/profile-photo",
   uploadProfilePhoto.single("profilePic"), // input name: profilePic
   updateProfilePhoto
 );
