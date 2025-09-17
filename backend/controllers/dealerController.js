@@ -341,7 +341,7 @@ const verifyEmail = async (req, res) => {
 };
 
 const updateDealer = async (req, res) => {
-  const { firstName, lastName, email, phone, country, state, city, streetAddress, zipCode } = req.body;
+  const { phone, state, city, streetAddress, zipCode } = req.body;
   const dealerId = req.dealer._id; // from auth middleware
 
   try {
@@ -355,11 +355,8 @@ const updateDealer = async (req, res) => {
     }
 
     // Update fields → default to empty string if not provided
-    dealer.firstName = firstName !== undefined ? firstName : "";
-    dealer.lastName = lastName !== undefined ? lastName : "";
-    dealer.email = email !== undefined ? email : "";
+  
     dealer.phone = phone !== undefined ? phone : "";
-    dealer.country = country !== undefined ? country : "";
     dealer.state = state !== undefined ? state : "";
     dealer.city = city !== undefined ? city : "";
     dealer.streetAddress = streetAddress !== undefined ? streetAddress : "";
@@ -379,10 +376,10 @@ const updateDealer = async (req, res) => {
 
     res.status(200).json({
       message: "Profile updated successfully",
-      dealer: dealerResponse,
+      user: dealerResponse,
     });
   } catch (err) {
-    console.error("Error in updating Dealer:", err.message);
+    console.error("Error in updateDealer:", err.message);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };

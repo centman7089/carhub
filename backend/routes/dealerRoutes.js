@@ -62,7 +62,7 @@ dealerRouter.post(
   ]),
   uploadDocuments
 );
-dealerRouter.patch( "/update/:id", protectDealer, updateDealer );
+dealerRouter.put( "/update/:id", protectDealer, updateDealer );
 dealerRouter.get("/:dealerId", protectDealer, getDealerById)
 dealerRouter.patch(
   "/:userId/profile-photo",
