@@ -40,7 +40,7 @@ const dealerRouter = express.Router();
 dealerRouter.get("/profile/:query",protectDealer, getDealerProfile);
 dealerRouter.post("/logout", protectDealer,logoutUser);
 dealerRouter.post("/register", register);
-dealerRouter.post("/verify", verifyEmail);
+dealerRouter.post("/verify-email", verifyEmail);
 dealerRouter.post("/resend-code", resendCode);
 dealerRouter.post("/verify-reset-code", verifyResetCode);
 dealerRouter.post("/login", login);
