@@ -691,7 +691,7 @@ export const approveDealerDocuments = async (req, res) => {
   }
 };
 
-// ✅ Reject user documents
+// ✅ Reject user documents by admin
 export const rejectUserDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
