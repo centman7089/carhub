@@ -1855,6 +1855,7 @@ export const updateAdminProfileBySuperAdmin = async (req, res) => {
   }
 };
 
+//update photo of either superadmi or admin
 export const updateOwnProfilePhoto = async (req, res) => {
   try {
     const { id } = req.params; // from route param
