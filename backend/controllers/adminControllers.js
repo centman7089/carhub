@@ -603,13 +603,13 @@ export const approveUserDocuments = async (req, res) => {
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
-    const { idCardFront, photo } =
+    const { idCardFront } =
       user.identityDocuments;
 
-    if (!idCardFront || !photo) {
+    if (!idCardFront) {
       return res.status(400).json({
         error:
-          "Cannot approve user. All required documents must be uploaded before approval.",
+          "Cannot approve user documents. All required documents must be uploaded before approval.",
       });
     }
 
@@ -641,13 +641,13 @@ export const approveDealerDocuments = async (req, res) => {
 
     if (!dealer) return res.status(404).json({ error: "Dealer not found" });
 
-    const { idCardFront, driverLicense, cac } =
+    const { idCardFront, dealerCertificate, cac } =
       dealer.identityDocuments;
 
-    if (!idCardFront || !driverLicense || !cac) {
+    if (!idCardFront || !dealerCertificate || !cac) {
       return res.status(400).json({
         error:
-          "Cannot approve dealer. All required documents must be uploaded before approval.",
+          "Cannot approve dealer documents. All required documents must be uploaded before approval.",
       });
     }
 
