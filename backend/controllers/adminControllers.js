@@ -621,13 +621,23 @@ export const approveUserDocuments = async (req, res) => {
 
     await user.save();
 
+    // ✅ Clean response object (remove sensitive fields)
+    const safeUser = user.toObject();
+    delete safeUser.password;
+    delete safeUser.passwordHistory;
+
     // ✅ Use uniform email helper
-    await sendApprovalEmail(user.email, user.firstName);
+    await sendApprovalEmail( user.email, user.firstName );
+    
+     // ✅ Clean response object (remove sensitive fields)
+    const safeUser = user.toObject();
+    delete safeUser.password;
+    delete safeUser.passwordHistory;
 
     res.json({
       message: "User documents approved successfully ✅",
-      step: user.onboardingStage,
-      user,
+      step: safeUser.onboardingStage,
+      user:safeUser,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -660,12 +670,17 @@ export const approveDealerDocuments = async (req, res) => {
     await dealer.save();
 
     // ✅ Use uniform email helper
-    await sendApprovalEmail(dealer.email, dealer.firstName);
+    await sendApprovalEmail( dealer.email, dealer.firstName );
+    
+    // ✅ Clean response object (remove sensitive fields)
+    const safeUser = dealer.toObject();
+    delete safeUser.password;
+    delete safeUser.passwordHistory;
 
     res.json({
       message: "Dealer documents approved successfully ✅",
-      step: dealer.onboardingStage,
-      dealer,
+      step: safeUser.onboardingStage,
+      dealer: safeUser,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
