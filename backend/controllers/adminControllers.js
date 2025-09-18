@@ -761,7 +761,7 @@ export const rejectDealerDocuments = async (req, res) => {
   }
 };
 
-// ✅ List all users with pending documents
+// ✅ List all users with pending documentss
 export const getPendingUsers = async (req, res) => {
   try {
     const pendingUsers = await User.find({
