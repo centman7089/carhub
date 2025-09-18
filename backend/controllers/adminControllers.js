@@ -599,7 +599,9 @@ export const getUserDocuments = async (req, res) => {
 export const approveUserDocuments = async (req, res) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId);
+    const user = await User.findById(userId).select(
+      "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+    );
 
     if (!user) return res.status(404).json({ error: "User not found" });
 
@@ -621,23 +623,23 @@ export const approveUserDocuments = async (req, res) => {
 
     await user.save();
 
-    // ✅ Clean response object (remove sensitive fields)
-    const safeUser = user.toObject();
-    delete safeUser.password;
-    delete safeUser.passwordHistory;
+    // // ✅ Clean response object (remove sensitive fields)
+    // const safeUser = user.toObject();
+    // delete safeUser.password;
+    // delete safeUser.passwordHistory;
 
     // ✅ Use uniform email helper
     await sendApprovalEmail( user.email, user.firstName );
     
-     // ✅ Clean response object (remove sensitive fields)
-    const safeUser = user.toObject();
-    delete safeUser.password;
-    delete safeUser.passwordHistory;
+    //  // ✅ Clean response object (remove sensitive fields)
+    // const safeUser = user.toObject();
+    // delete safeUser.password;
+    // delete safeUser.passwordHistory;
 
     res.json({
       message: "User documents approved successfully ✅",
-      step: safeUser.onboardingStage,
-      user:safeUser,
+      step: user.onboardingStage,
+      user,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -647,7 +649,9 @@ export const approveUserDocuments = async (req, res) => {
 export const approveDealerDocuments = async (req, res) => {
   try {
     const { dealerId } = req.params;
-    const dealer = await Dealer.findById(userId);
+    const dealer = await Dealer.findById(userId).select(
+      "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
+    );;
 
     if (!dealer) return res.status(404).json({ error: "Dealer not found" });
 
@@ -672,15 +676,15 @@ export const approveDealerDocuments = async (req, res) => {
     // ✅ Use uniform email helper
     await sendApprovalEmail( dealer.email, dealer.firstName );
     
-    // ✅ Clean response object (remove sensitive fields)
-    const safeUser = dealer.toObject();
-    delete safeUser.password;
-    delete safeUser.passwordHistory;
+    // // ✅ Clean response object (remove sensitive fields)
+    // const safeUser = dealer.toObject();
+    // delete safeUser.password;
+    // delete safeUser.passwordHistory;
 
     res.json({
       message: "Dealer documents approved successfully ✅",
-      step: safeUser.onboardingStage,
-      dealer: safeUser,
+      step: user.onboardingStage,
+      dealer,
     });
   } catch (err) {
     res.status(500).json({ error: err.message });
