@@ -649,7 +649,7 @@ export const approveUserDocuments = async (req, res) => {
 export const approveDealerDocuments = async (req, res) => {
   try {
     const { dealerId } = req.params;
-    const dealer = await Dealer.findById(userId).select(
+    const dealer = await Dealer.findById(dealerId).select(
       "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
     );;
 
