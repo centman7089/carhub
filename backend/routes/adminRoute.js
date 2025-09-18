@@ -58,9 +58,10 @@ adminRouter.delete("/:id", protectAdmin,authorizeRoles( "superadmin" ), deleteAd
 // Reject CAC
 // Get one user’s documents
 adminRouter.get("/users/:userId/documents",protectAdmin, authorizeRoles("superadmin", "admin"),getUserDocuments);
-adminRouter.patch("/:userId/approve",protectAdmin, authorizeRoles("superadmin", "admin"), approveUserDocuments);
-adminRouter.patch("/:dealerId/approve",protectAdmin, authorizeRoles("superadmin", "admin"), approveDealerDocuments);
-adminRouter.patch( "/:dealerId/reject", protectAdmin, authorizeRoles( "superadmin", "admin"), rejectDealerDocuments );
+adminRouter.patch("/users/:userId/approve",protectAdmin, authorizeRoles("superadmin", "admin"), approveUserDocuments);
+adminRouter.patch("/dealers/:dealerId/approve",protectAdmin, authorizeRoles("superadmin", "admin"), approveDealerDocuments);
+adminRouter.patch( "/users/:userId/reject", protectAdmin, authorizeRoles( "superadmin", "admin" ), rejectUserDocuments );
+adminRouter.patch( "/dealers/:dealerId/reject", protectAdmin, authorizeRoles( "superadmin", "admin"), rejectDealerDocuments );
 
 adminRouter.get("/users/:userId",protectAdmin, authorizeRoles("superadmin", "admin"),getUserById);
 adminRouter.get("/dealers/:dealerId",protectAdmin, authorizeRoles("superadmin", "admin"),getDealerById);
