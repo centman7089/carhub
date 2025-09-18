@@ -1605,7 +1605,7 @@ export const promoteUserToDealer = async (req, res) => {
       requiresDocument: true,
       loginStatus: user.loginStatus,
       lastLogin: user.lastLogin,
-      passwordHistory: user.passwordHistory,
+      // passwordHistory: user.passwordHistory,
     });
 
     await dealer.save();
@@ -1659,7 +1659,7 @@ export const demoteDealerToUser = async (req, res) => {
       requiresDocument: false,
       loginStatus: dealer.loginStatus,
       lastLogin: dealer.lastLogin,
-      passwordHistory: dealer.passwordHistory,
+      // passwordHistory: dealer.passwordHistory,
     });
 
     await user.save();
