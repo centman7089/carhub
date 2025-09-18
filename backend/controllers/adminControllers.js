@@ -930,7 +930,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-export const getDealers = async (req, res) => {
+export const getAllDealers = async (req, res) => {
   try {
     const {
       email,
@@ -941,9 +941,7 @@ export const getDealers = async (req, res) => {
       order = "desc",
     } = req.query;
 
-    // 🔍 Build filter
     let filter = {};
-    // if (role) filter.role = role;
     if (email) filter.email = { $regex: email, $options: "i" };
     if (name) {
       filter.$or = [
@@ -953,14 +951,10 @@ export const getDealers = async (req, res) => {
       ];
     }
 
-    // Pagination setup
     const skip = (Number(page) - 1) * Number(limit);
-
-    // Sorting setup
     const sortOrder = order === "asc" ? 1 : -1;
     const sortOptions = { [sortBy]: sortOrder };
 
-    // Fetch users
     const dealers = await Dealer.find(filter)
       .select(
         "-password -passwordHistory -resetCode -resetCodeExpires -emailCode -emailCodeExpires -__v"
@@ -975,15 +969,16 @@ export const getDealers = async (req, res) => {
       return res.status(404).json({ error: "No users found" });
     }
 
-    // Format response
-    const formattedDealers = dealers.map((user, index) => {
-      // Generate a simple userId like #USR001
+    // ✅ Fix: use `dealer` instead of `user`
+    const formattedDealers = dealers.map((dealer, index) => {
       const dealerId = `#DEA${String(skip + index + 1).padStart(3, "0")}`;
 
-      // Compute status
       let status = "Inactive";
       if (dealer.isApproved) status = "Active";
-      else if (!dealer.isApproved && dealer.identityDocuments?.status === "pending") {
+      else if (
+        !dealer.isApproved &&
+        dealer.identityDocuments?.status === "pending"
+      ) {
         status = "Pending";
       }
 
@@ -991,13 +986,12 @@ export const getDealers = async (req, res) => {
         _id: dealer._id,
         dealerId,
         firstName: dealer.firstName || "",
-        lastName:dealer.lastName || "",
+        lastName: dealer.lastName || "",
         username: dealer.username || "",
         email: dealer.email || "",
         phone: dealer.phone || "",
         profilePic: dealer.profilePic || "",
         accountType: dealer.accountType || "",
-        // role: dealer.role || "",
         country: dealer.country || "",
         state: dealer.state || "",
         city: dealer.city || "",
@@ -1010,10 +1004,6 @@ export const getDealers = async (req, res) => {
         status,
         identityDocuments: {
           idCardFront: dealer.identityDocuments?.idCardFront || "",
-          // photo: dealer.identityDocuments?.photo || "",
-          // tin: dealer.identityDocuments?.tin || "",
-          // cac: dealer.identityDocuments?.cac || "",
-          // bankStatement: dealer.identityDocuments?.bankStatement || "",
           status: dealer.identityDocuments?.status || "",
           rejectionReason: dealer.identityDocuments?.rejectionReason || "",
           reviewedAt: dealer.identityDocuments?.reviewedAt || "",
@@ -1032,10 +1022,11 @@ export const getDealers = async (req, res) => {
       dealers: formattedDealers,
     });
   } catch (err) {
-    console.error("Error in getAllDealerss:", err.message);
+    console.error("Error in getAllDealers:", err.message);
     res.status(500).json({ error: "Server error", details: err.message });
   }
 };
+
 
 // export const getAllDealers = async (req, res) => {
 //   try {
