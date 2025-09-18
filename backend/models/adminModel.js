@@ -57,27 +57,25 @@ adminSchema.pre("save", async function (next) {
 });
 
 // Compare password method
-adminSchema.methods.correctPassword = async function (candPwd) {
-  return bcrypt.compare(candPwd, this.password);
+adminSchema.methods.correctPassword = async function (inputPassword) {
+  return await bcrypt.compare(inputPassword, this.password);
 };
 
-// Generate reset code
-adminSchema.methods.setPasswordResetCode = function () {
-  const code = Math.floor(1000 + Math.random() * 9000).toString();
-  this.resetCode = crypto.createHash("sha256").update(code).digest("hex");
-  this.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
-  return code;
+adminSchema.methods.setPasswordResetCode = function ()
+{
+	const code = Math.floor( 1000 + Math.random() * 9000 ).toString();
+	this.resetCode = crypto.createHash( "sha256" ).update( code ).digest( "hex" )
+	this.resetCodeExpires = Date.now() + 10 * 60 * 1000; // 10minute
+	return code; // we will email this
 };
 
-// Validate reset code
-adminSchema.methods.validateResetCode = function (code) {
-  const hash = crypto.createHash("sha256").update(code).digest("hex");
-  return (
-    hash === this.resetCode &&
-    this.resetCodeExpires &&
-    this.resetCodeExpires > Date.now()
-  );
-};
+adminSchema.methods.validateResetCode = function ( code )
+{
+	const hash = crypto.createHash( "sha256" ).update( code ).digest( "hex" );
+	return (
+		hash === this.resetCode && this.resetCodeExpires && this.resetCodeExpires > Date.now()
+	);
+}
 
 const Admin = mongoose.model( "Admin", adminSchema)
 

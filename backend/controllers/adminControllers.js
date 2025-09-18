@@ -440,117 +440,124 @@ export const changePassword = async (req, res) => {
   }
 };
 
-// FORGOT PASSWORD
+
 // =============================
-const forgotPassword = async (req, res) => {
+// 1. Forgot Password
+// =============================
+export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+
     const admin = await Admin.findOne({ email });
+    if (!admin) return res.status(400).json({ message: "Email not found" });
 
-    if (!user) return res.status(400).json({ msg: "Email not found" });
-
+    // generate and hash reset code
     const code = admin.setPasswordResetCode();
     await admin.save({ validateBeforeSave: false });
 
-    // ✅ Branded reset email
+    // send via email
     await sendPasswordResetEmail(email, code);
 
-    res.json({ msg: "Password reset code sent" });
+    res.status(200).json({ success: true, message: "Password reset code sent" });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("forgotPassword error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
-  
 
-  const verifyResetCode = async (req, res) => {
-    try {
-      const { email, code} = req.body;
-      const admin = await Admin.findOne({ email });
-  
-      if (!admin || !admin.validateResetCode(code)) {
-        return res.status(400).json({ message: "Invalid/expired OTP" });
-      }
-  
-      // Generate short-lived JWT (15 mins expiry)
-      const token = jwt.sign(
-        { adminId: admin._id, purpose: "password_reset" },
-        process.env.JWT_SECRET,
-        { expiresIn: "15m" }
-      );
-  
-      res.json({ success: true, token, message: "OTP verified" });
-    } catch (error) {
-      res.status(500).json({ message: "Server error" });
+// =============================
+// 2. Verify Reset Code
+// =============================
+export const verifyResetCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+
+    const admin = await Admin.findOne({ email });
+    if (!admin || !admin.validateResetCode(code)) {
+      return res.status(400).json({ message: "Invalid or expired reset code" });
     }
-  };
-// Step 3 – change the password with the JWT
 
+    // generate short-lived token
+    const token = jwt.sign(
+      { adminId: admin._id, purpose: "password_reset" },
+      process.env.JWT_SECRET,
+      { expiresIn: "15m" }
+    );
 
-const resetPassword = async (req, res) => {
+    res.status(200).json({
+      success: true,
+      token,
+      message: "Reset code verified",
+    });
+  } catch (err) {
+    console.error("verifyResetCode error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// =============================
+// 3. Reset Password
+// =============================
+export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
+
     if (!token || !newPassword || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
-
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // 🔑 Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.purpose !== "password_reset") {
+    // verify token
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.JWT_SECRET);
+    } catch (err) {
+      if (err.name === "TokenExpiredError") {
+        return res.status(400).json({ message: "Token expired" });
+      }
       return res.status(400).json({ message: "Invalid token" });
     }
 
-    // 🔍 Find user
-    const admin = await Admin.findById(decoded.adminId);
-    if (!admin) return res.status(404).json({ message: "admin not found" });
-
-    // ⛔ Prevent reusing current password
-    if (await bcrypt.compare(newPassword, admin.password)) {
-      return res
-        .status(400)
-        .json({ message: "New password cannot be the same as the old password" });
+    if (decoded.purpose !== "password_reset") {
+      return res.status(400).json({ message: "Invalid token purpose" });
     }
 
-    // ⛔ Prevent reusing passwords from history
+    const admin = await Admin.findById(decoded.adminId);
+    if (!admin) return res.status(404).json({ message: "Admin not found" });
+
+    // check old password reuse
+    if (await bcrypt.compare(newPassword, admin.password)) {
+      return res.status(400).json({ message: "New password cannot be the same as old password" });
+    }
     for (const entry of admin.passwordHistory || []) {
       if (await bcrypt.compare(newPassword, entry.password)) {
-        return res
-          .status(400)
-          .json({ message: "You have already used this password before" });
+        return res.status(400).json({ message: "You have already used this password before" });
       }
     }
 
-    // ✅ Save current hashed password into history
+    // store old password in history
     admin.passwordHistory = admin.passwordHistory || [];
     admin.passwordHistory.push({
-      password: admin.password, // already hashed
+      password: admin.password, // hashed already
       changedAt: new Date(),
     });
-
-    // Keep only the last 5 passwords
     if (admin.passwordHistory.length > 5) {
       admin.passwordHistory.shift();
     }
 
-    // ✅ Assign new password (plain) — pre-save hook will hash it
+    // assign new password (will be hashed by pre-save hook)
     admin.password = newPassword;
 
-    // 🔄 Clear reset tokens
-    admin.emailCode = undefined;
-    admin.emailCodeExpires = undefined;
+    // clear reset fields only
     admin.resetCode = undefined;
     admin.resetCodeExpires = undefined;
 
     await admin.save();
 
-    res.json({ success: true, message: "Password updated successfully ✅" });
+    res.status(200).json({ success: true, message: "Password reset successful" });
   } catch (err) {
-    if (err.name === "TokenExpiredError") {
-      return res.status(400).json({ message: "Token expired" });
-    }
     console.error("resetPassword error:", err);
     res.status(500).json({ message: "Server error" });
   }
