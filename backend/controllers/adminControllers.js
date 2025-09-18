@@ -442,126 +442,115 @@ export const changePassword = async (req, res) => {
 
 
 // =============================
-// 1. Forgot Password
-// =============================
+// FORGOT PASSWORD
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
-
     const admin = await Admin.findOne({ email });
+
     if (!admin) return res.status(400).json({ message: "Email not found" });
 
-    // generate and hash reset code
     const code = admin.setPasswordResetCode();
     await admin.save({ validateBeforeSave: false });
 
-    // send via email
-    await sendPasswordResetEmail(email, code);
+    // Send the raw code via email
+    await sendPasswordResetEmail(admin.email, code);
 
-    res.status(200).json({ success: true, message: "Password reset code sent" });
+    res.json({ success: true, message: "Password reset code sent" });
   } catch (err) {
     console.error("forgotPassword error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// =============================
-// 2. Verify Reset Code
-// =============================
+// VERIFY RESET CODE
 export const verifyResetCode = async (req, res) => {
   try {
     const { email, code } = req.body;
-
     const admin = await Admin.findOne({ email });
-    if (!admin || !admin.validateResetCode(code)) {
+
+    if (!admin) {
+      return res.status(400).json({ message: "Invalid email" });
+    }
+
+    const isValid = admin.validateResetCode(code);
+    if (!isValid) {
       return res.status(400).json({ message: "Invalid or expired reset code" });
     }
 
-    // generate short-lived token
+    // Generate short-lived JWT (15 mins expiry)
     const token = jwt.sign(
       { adminId: admin._id, purpose: "password_reset" },
       process.env.JWT_SECRET,
       { expiresIn: "15m" }
     );
 
-    res.status(200).json({
-      success: true,
-      token,
-      message: "Reset code verified",
-    });
+    res.json({ success: true, token, message: "OTP verified" });
   } catch (err) {
     console.error("verifyResetCode error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
 
-// =============================
-// 3. Reset Password
-// =============================
+// RESET PASSWORD
 export const resetPassword = async (req, res) => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
-
     if (!token || !newPassword || !confirmPassword) {
       return res.status(400).json({ message: "All fields are required" });
     }
+
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // verify token
-    let decoded;
-    try {
-      decoded = jwt.verify(token, process.env.JWT_SECRET);
-    } catch (err) {
-      if (err.name === "TokenExpiredError") {
-        return res.status(400).json({ message: "Token expired" });
-      }
+    // Verify token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.purpose !== "password_reset") {
       return res.status(400).json({ message: "Invalid token" });
     }
 
-    if (decoded.purpose !== "password_reset") {
-      return res.status(400).json({ message: "Invalid token purpose" });
-    }
-
+    // Find admin
     const admin = await Admin.findById(decoded.adminId);
     if (!admin) return res.status(404).json({ message: "Admin not found" });
 
-    // check old password reuse
+    // Prevent password reuse
     if (await bcrypt.compare(newPassword, admin.password)) {
       return res.status(400).json({ message: "New password cannot be the same as old password" });
     }
+
     for (const entry of admin.passwordHistory || []) {
       if (await bcrypt.compare(newPassword, entry.password)) {
         return res.status(400).json({ message: "You have already used this password before" });
       }
     }
 
-    // store old password in history
+    // Save old password to history
     admin.passwordHistory = admin.passwordHistory || [];
-    admin.passwordHistory.push({
-      password: admin.password, // hashed already
-      changedAt: new Date(),
-    });
+    admin.passwordHistory.push({ password: admin.password, changedAt: new Date() });
     if (admin.passwordHistory.length > 5) {
       admin.passwordHistory.shift();
     }
 
-    // assign new password (will be hashed by pre-save hook)
+    // Assign new password
     admin.password = newPassword;
 
-    // clear reset fields only
+    // Clear reset codes
     admin.resetCode = undefined;
     admin.resetCodeExpires = undefined;
 
     await admin.save();
 
-    res.status(200).json({ success: true, message: "Password reset successful" });
+    res.json({ success: true, message: "Password updated successfully ✅" });
   } catch (err) {
+    if (err.name === "TokenExpiredError") {
+      return res.status(400).json({ message: "Token expired" });
+    }
     console.error("resetPassword error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 //get all admin users
 export const getAdminUser = async (req, res) => {
