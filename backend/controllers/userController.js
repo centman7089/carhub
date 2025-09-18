@@ -335,8 +335,8 @@ const login = async (req, res) => {
 const logoutUser = async (req, res) => {
   try {
     const userId = req.user.id; // assuming you attach user from token middleware
-    await User.findByIdAndUpdate(userId, { loginStatus: "Inactive" });
-
+    await User.findByIdAndUpdate( userId, { loginStatus: "Inactive" } );
+    res.cookie("jwt", "", { maxAge: 1 });
     res.clearCookie("userId"); // remove token cookie
     res.status(200).json({ msg: "Logged out successfully", loginStatus: "Inactive" });
   } catch (err) {

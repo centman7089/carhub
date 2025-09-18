@@ -277,12 +277,24 @@ export const login = async (req, res) => {
   }
 };
 
-export const logoutUser = (req, res) => {
+// export const logoutUser = (req, res) => {
+//   try {
+//     res.cookie("jwt", "", { maxAge: 1 });
+//     res.status(200).json({ message: "User logged out successfully" });
+//   } catch (err) {
+//     console.error("Logout error:", err.message);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+const logoutUser = async (req, res) => {
   try {
+    const admiId = req.admin._id; // assuming you attach user from token middleware
+    await Admin.findByIdAndUpdate( adminId, { loginStatus: "Inactive" } );
     res.cookie("jwt", "", { maxAge: 1 });
-    res.status(200).json({ message: "User logged out successfully" });
+    res.clearCookie("adminId"); // remove token cookie
+    res.status(200).json({ msg: "Logged out successfully", loginStatus: "Inactive" });
   } catch (err) {
-    console.error("Logout error:", err.message);
+    console.error("Error in logout:", err.message);
     res.status(500).json({ error: err.message });
   }
 };
@@ -1752,6 +1764,7 @@ export const getSuperAdminById = async (req, res) => {
       fullName: `${superAdmin.firstName || ""} ${superAdmin.lastName || ""}`.trim(),
       username: superAdmin.username || "",
       email: superAdmin.email || "",
+      profilePic: superAdmin.profilePic || "",
       role: superAdmin.role,
       loginStatus: superAdmin.loginStatus || "Inactive",
       isVerified: superAdmin.isVerified || false,
