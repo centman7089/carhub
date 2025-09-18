@@ -484,30 +484,76 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// export const forgotPassword = async (req, res) => {
+//   try {
+//     const { email } = req.body;
+//     const admin = await Admin.findOne({ email });
+//     if (!admin) return res.status(400).json({ msg: "Email not found" });
+
+//     const code = admin.setPasswordResetCode();
+//     await admin.save({ validateBeforeSave: false });
+
+//     await sendPasswordResetEmail(email, code); // helper that sends email
+
+//     res.json({ msg: "Password reset code sent" });
+//   } catch (err) {
+//     res.status(500).json({ msg: err.message });
+//   }
+// };
+// Step 1: Request reset code
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
+
     const admin = await Admin.findOne({ email });
-    if (!admin) return res.status(400).json({ msg: "Email not found" });
+    if (!admin) {
+      return res.status(400).json({ message: "Email not found" });
+    }
 
     const code = admin.setPasswordResetCode();
     await admin.save({ validateBeforeSave: false });
 
-    await sendPasswordResetEmail(email, code); // helper that sends email
+    // send code by email
+    await sendPasswordResetEmail(email, code);
 
-    res.json({ msg: "Password reset code sent" });
+    res.status(200).json({
+      success: true,
+      message: "Password reset code sent to email",
+    });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    console.error("Error in forgotPassword:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
 
+// export const verifyResetCode = async (req, res) => {
+//   try {
+//     const { email, code } = req.body;
+//     const admin = await Admin.findOne({ email });
+
+//     if (!admin || !admin.validateResetCode(code))
+//       return res.status(400).json({ message: "Invalid/expired Code" });
+
+//     const token = jwt.sign(
+//       { adminId: admin._id, purpose: "password_reset" },
+//       process.env.JWT_SECRET,
+//       { expiresIn: "15m" }
+//     );
+
+//     res.json({ success: true, token, message: "Code verified" });
+//   } catch (err) {
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+// Step 2: Verify reset code
 export const verifyResetCode = async (req, res) => {
   try {
     const { email, code } = req.body;
-    const admin = await Admin.findOne({ email });
 
-    if (!admin || !admin.validateResetCode(code))
-      return res.status(400).json({ message: "Invalid/expired Code" });
+    const admin = await Admin.findOne({ email });
+    if (!admin || !admin.validateResetCode(code)) {
+      return res.status(400).json({ message: "Invalid or expired code" });
+    }
 
     const token = jwt.sign(
       { adminId: admin._id, purpose: "password_reset" },
@@ -515,11 +561,17 @@ export const verifyResetCode = async (req, res) => {
       { expiresIn: "15m" }
     );
 
-    res.json({ success: true, token, message: "Code verified" });
+    res.status(200).json({
+      success: true,
+      token,
+      message: "Code verified, you may now reset your password",
+    });
   } catch (err) {
+    console.error("Error in verifyResetCode:", err);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 
 
