@@ -563,7 +563,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-
+//get all admin users
 export const getAdminUser = async (req, res) => {
   try {
     const admin = await Admin.find({ role: "admin" });
