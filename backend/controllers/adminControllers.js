@@ -991,7 +991,7 @@ export const getDealers = async (req, res) => {
         _id: dealer._id,
         dealerId,
         firstName: dealer.firstName || "",
-        lastNamdealer.dealer.lastName || "",
+        lastName:dealer.lastName || "",
         username: dealer.username || "",
         email: dealer.email || "",
         phone: dealer.phone || "",
