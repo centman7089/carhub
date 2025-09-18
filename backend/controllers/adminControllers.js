@@ -683,7 +683,7 @@ export const approveDealerDocuments = async (req, res) => {
 
     res.json({
       message: "Dealer documents approved successfully ✅",
-      step: user.onboardingStage,
+      step: dealer.onboardingStage,
       dealer,
     });
   } catch (err) {
