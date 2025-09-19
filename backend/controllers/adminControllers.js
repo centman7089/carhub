@@ -64,6 +64,97 @@ cloudinary.config({
 // Auth Controllsers
 // ========================
 
+// export const createSuperadmin = async (req, res) => {
+//   try {
+//     const {
+//       firstName,
+//       lastName,
+//       email,
+//       password,
+//       phone,
+//       state,
+//       city,
+//       streetAddress,
+//       zipCode,
+//       dateOfBirth,
+//     } = req.body;
+
+//     // ✅ Validate required fields
+//     if (
+//       !firstName ||
+//       !lastName ||
+//       !email ||
+//       !password ||
+//       !phone ||
+//       !state ||
+//       !city ||
+//       !streetAddress ||
+//       !dateOfBirth
+//     ) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     // ✅ Check if a superadmin already exists
+//     const superadminExists = await Admin.findOne({ role: "superadmin" });
+//     if (superadminExists) {
+//       return res
+//         .status(400)
+//         .json({ error: "Superadmin already exists. You cannot create another one." });
+//     }
+
+//     // ✅ Check if email already used
+//     const adminExists = await Admin.findOne({ email });
+//     if (adminExists) {
+//       return res.status(400).json({ error: "Email already in use" });
+//     }
+
+//     // ✅ Generate verification code
+//     const code = generateCode();
+
+//     // ✅ Force role = superadmin
+//     const superadmin = new Admin({
+//       firstName,
+//       lastName,
+//       email,
+//       password,
+//       phone,
+//       state,
+//       city,
+//       streetAddress,
+//       zipCode,
+//       dateOfBirth,
+//       role: "superadmin", // 👈 enforce
+//       emailCode: code,
+//       emailCodeExpires: Date.now() + 10 * 60 * 1000,
+//       passwordHistory: [],
+//       isVerified: false,
+//     });
+
+//     // ✅ Store initial password hash in history
+//     superadmin.passwordHistory.push({
+//       password: superadmin.password,
+//       changedAt: new Date(),
+//     });
+
+//     await superadmin.save();
+
+//     // ✅ Send verification email
+//     await sendVerificationEmail(email, code);
+
+//     // ✅ Generate login token
+//     const token = generateTokenAndSetCookie(superadmin._id, res, "adminId");
+
+//     res.status(201).json({
+//       token,
+//       ...formatAdminResponse(superadmin),
+//       msg: "Superadmin registered. Verification code sent to email.",
+//     });
+//   } catch (err) {
+//     console.error("Error creating superadmin:", err.message);
+//     res.status(500).json({ error: err.message });
+//   }
+// };
+
 export const createSuperadmin = async (req, res) => {
   try {
     const {
@@ -94,13 +185,13 @@ export const createSuperadmin = async (req, res) => {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    // ✅ Check if a superadmin already exists
-    const superadminExists = await Admin.findOne({ role: "superadmin" });
-    if (superadminExists) {
-      return res
-        .status(400)
-        .json({ error: "Superadmin already exists. You cannot create another one." });
-    }
+    // ❌ REMOVE this check (was blocking multiple superadmins)
+    // const superadminExists = await Admin.findOne({ role: "superadmin" });
+    // if (superadminExists) {
+    //   return res
+    //     .status(400)
+    //     .json({ error: "Superadmin already exists. You cannot create another one." });
+    // }
 
     // ✅ Check if email already used
     const adminExists = await Admin.findOne({ email });
@@ -111,7 +202,7 @@ export const createSuperadmin = async (req, res) => {
     // ✅ Generate verification code
     const code = generateCode();
 
-    // ✅ Force role = superadmin
+    // ✅ Always assign role = superadmin
     const superadmin = new Admin({
       firstName,
       lastName,
@@ -286,7 +377,7 @@ export const login = async (req, res) => {
 //     res.status(500).json({ error: err.message });
 //   }
 // };
-const logoutUser = async (req, res) => {
+export const logoutUser = async (req, res) => {
   try {
     const admiId = req.admin._id; // assuming you attach user from token middleware
     await Admin.findByIdAndUpdate( adminId, { loginStatus: "Inactive" } );
