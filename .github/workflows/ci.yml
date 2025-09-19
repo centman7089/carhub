@@ -1,0 +1,38 @@
+name: MERN CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout repo
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Set up Node.js
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Install and test backend
+      - name: Install backend deps
+        run: |
+          cd backend
+          npm install
+          npm test
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI }}
+
+      # Install and build frontend
+      - name: Install frontend deps
+        run: |
+          cd frontend
+          npm install
+          npm run build
