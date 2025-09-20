@@ -1,4 +1,4 @@
-name: MERN CI
+name: CARHUB CI
 
 on:
   push:
