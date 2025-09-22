@@ -6,7 +6,7 @@ export const createCategory = async (req, res) => {
   try {
     const { name, description, icon } = req.body;
 
-    const exists = await Category.findOne({ name });
+    const exists = await Category.findOne({ name }).select("name _id");
     if (exists) {
       return res.status(400).json({ success: false, message: "Category already exists" });
     }

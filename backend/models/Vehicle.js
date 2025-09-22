@@ -226,7 +226,12 @@ const vehicleSchema = new mongoose.Schema(
       sparse: true, // ✅ allows multiple null VINs if not provided
       trim: true,
     },
-    bodyType: { type: String, trim: true },
+    // bodyType: { type: String, trim: true },
+      bodyType: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "BodyType",
+    required: true
+  },
     fuelType: { type: String, trim: true },
     transmission: { type: String, trim: true },
     price: { type: Number, required: true },
@@ -241,29 +246,25 @@ const vehicleSchema = new mongoose.Schema(
     description: { type: String },
     features: [{ type: String, trim: true }],
        // ✅ Category
-    category: {
-      type: String,
-      enum: [
-        "SUV",
-        "Sedan",
-        "Coupe",
-        "Truck",
-        "Hatchback",
-        "Convertible",
-        "Van",
-        "Electric",
-        "Hybrid",
-        "Luxury",
-        "Other"
-      ],
-      required: true,
-    },
-       // ✅ Link to Category
     // category: {
-    //   type: mongoose.Schema.Types.ObjectId,
-    //   ref: "Category",
+    //   type: String,
+    //   enum: [
+    //     "SUV",
+    //     "Sedan",
+    //     "Coupe",
+    //     "Truck",
+    //     "Hatchback",
+    //     "Convertible",
+    //     "Van",
+    //     "Electric",
+    //     "Hybrid",
+    //     "Luxury",
+    //     "Other"
+    //   ],
     //   required: true,
     // },
+    // ✅ Reference Category by ID
+    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
     // ✅ Images
     mainImage: { type: String },
     supportingImages: [{ type: String }],

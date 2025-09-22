@@ -1,6 +1,8 @@
 import Vehicle from "../models/Vehicle.js";
 import { Parser } from "json2csv";
-
+import Category from "../models/categoryModel.js";
+import BodyType from "../models/bodytypeModel.js";
+import ExcelJS from "exceljs";
 /**
  * @desc Add a new vehicle (Admin only)
  * @route POST /api/vehicles
@@ -10,8 +12,7 @@ import { Parser } from "json2csv";
 
 // controllers/vehicleController.js
 
-
-// 
+// ✅ Add Vehicle (Admin only, Category by name)
 export const addVehicle = async (req, res) => {
   try {
     // ✅ Ensure only admins can add vehicles
@@ -26,7 +27,7 @@ export const addVehicle = async (req, res) => {
       model,
       year,
       vin,
-      bodyType,
+      bodyType, // bodyType NAME
       fuelType,
       transmission,
       price,
@@ -34,27 +35,33 @@ export const addVehicle = async (req, res) => {
       color,
       condition,
       lotNumber,
-      category,
+      category, // category NAME
       description,
       features,
       zipCode,
       address,
       state,
       city,
-      priority, // ✅ added priority
+      priority,
     } = req.body;
 
-    
-    // ✅ Validate category (must match enum)
-    const validCategories = ["SUV", "Sedan", "Coupe", "Hatchback", "Hybrid",  "Convertible","Van","Electric","Truck","Luxury", "Other"];
-    if (!validCategories.includes(category)) {
-      return res.status(400).json({
-        success: false,
-        message: `Invalid category. Must be one of: ${validCategories.join(", ")}`,
-      });
+    // ✅ Find category by name
+    const categoryDoc = await Category.findOne({ name: category });
+    if (!categoryDoc) {
+      return res
+        .status(400)
+        .json({ success: false, message: `Category '${category}' not found` });
     }
 
-    // ✅ Extract Cloudinary URLs directly from multer-storage-cloudinary
+    // ✅ Find bodyType by name
+    const bodyTypeDoc = await BodyType.findOne({ name: bodyType });
+    if (!bodyTypeDoc) {
+      return res
+        .status(400)
+        .json({ success: false, message: `BodyType '${bodyType}' not found` });
+    }
+
+    // ✅ Handle images (Cloudinary / multer-storage-cloudinary)
     const image1 = req.files?.image1 ? req.files.image1[0].path : null;
     const image2 = req.files?.image2 ? req.files.image2[0].path : null;
     const image3 = req.files?.image3 ? req.files.image3[0].path : null;
@@ -63,13 +70,13 @@ export const addVehicle = async (req, res) => {
     const images = [image1, image2, image3, image4].filter(Boolean);
     const [mainImage, ...supportingImages] = images;
 
-    // ✅ Create vehicle object
-    const vehicleData = {
+    // ✅ Create Vehicle
+    const vehicle = await Vehicle.create({
       make,
       model,
       year,
       vin,
-      bodyType,
+      bodyType: bodyTypeDoc._id, // store ObjectId
       fuelType,
       transmission,
       price,
@@ -77,178 +84,39 @@ export const addVehicle = async (req, res) => {
       color,
       condition,
       lotNumber,
-      category,
       description,
       features: features
         ? Array.isArray(features)
           ? features
-          : String(features)
-              .split(",")
-              .map((f) => f.trim())
-              .filter(Boolean)
+          : String(features).split(",").map((f) => f.trim())
         : [],
       mainImage: mainImage || null,
       supportingImages,
+      category: categoryDoc._id, // store ObjectId
       zipCode,
       address,
       state,
       city,
-      priority: ["Low", "Medium", "High"].includes(priority) ? priority : "",
-      createdBy: req.admin.id, // ✅ attach the admin who created it
-    };
-
-    const vehicle = await Vehicle.create(vehicleData);
-
-    // ✅ Format response (ensure no null/undefined)
-    const formattedVehicle = {
-      ...vehicle.toObject(),
-      make: vehicle.make || "",
-      model: vehicle.model || "",
-      year: vehicle.year || "",
-      vin: vehicle.vin || "",
-      bodyType: vehicle.bodyType || "",
-      fuelType: vehicle.fuelType || "",
-      transmission: vehicle.transmission || "",
-      price: vehicle.price || "",
-      mileage: vehicle.mileage || "",
-      color: vehicle.color || "",
-      condition: vehicle.condition || "",
-      lotNumber: vehicle.lotNumber || "",
-      description: vehicle.description || "",
-      features: vehicle.features?.length ? vehicle.features : [],
-      zipCode: vehicle.zipCode || "",
-      address: vehicle.address || "",
-      state: vehicle.state || "",
-      city: vehicle.city || "",
-      priority: vehicle.priority || "",
-      mainImage: vehicle.mainImage || "",
-      supportingImages: vehicle.supportingImages?.length
-        ? vehicle.supportingImages
-        : [],
-      createdBy: vehicle.createdBy || "",
-    };
-
-    return res.status(201).json({
-      success: true,
-      message: "Vehicle added successfully",
-      vehicle: formattedVehicle,
+      priority,
+      createdBy: req.admin.id,
     });
+
+    // ✅ Populate category + bodyType names
+    const populatedVehicle = await Vehicle.findById(vehicle._id)
+      .populate("category", "name")
+      .populate("bodyType", "name");
+
+    return res
+      .status(201)
+      .json({ success: true, vehicle: populatedVehicle });
   } catch (error) {
     console.error("Error adding vehicle:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Failed to add vehicle",
-    });
+    return res
+      .status(500)
+      .json({ success: false, message: error.message });
   }
 };
 
-// export const addVehicle = async (req, res) => {
-//   try {
-//     // ✅ Ensure only admins can add vehicles
-//     if (!req.admin || !req.admin.id) {
-//       return res
-//         .status(403)
-//         .json({ success: false, message: "Only admins can add vehicles" });
-//     }
-
-//     const {
-//       make,
-//       model,
-//       year,
-//       vin,
-//       bodyType,
-//       fuelType,
-//       transmission,
-//       price,
-//       mileage,
-//       color,
-//       condition,
-//       lotNumber,
-//       description,
-//       features,
-//       zipCode,
-//       address,
-//       state,
-//       city,
-//       priority, // ✅ added priority
-//       shipment, // ✅ optional shipment info
-//     } = req.body;
-
-//     // ✅ Extract Cloudinary URLs directly from multer-storage-cloudinary
-//     const image1 = req.files?.image1 ? req.files.image1[0].path : null;
-//     const image2 = req.files?.image2 ? req.files.image2[0].path : null;
-//     const image3 = req.files?.image3 ? req.files.image3[0].path : null;
-//     const image4 = req.files?.image4 ? req.files.image4[0].path : null;
-
-//     const images = [image1, image2, image3, image4].filter(Boolean);
-//     const [mainImage, ...supportingImages] = images;
-
-//     // ✅ Prepare base vehicle data
-//     const vehicleData = {
-//       make,
-//       model,
-//       year,
-//       vin,
-//       bodyType,
-//       fuelType,
-//       transmission,
-//       price,
-//       mileage,
-//       color,
-//       condition,
-//       lotNumber,
-//       description,
-//       features: features
-//         ? Array.isArray(features)
-//           ? features
-//           : String(features)
-//               .split(",")
-//               .map((f) => f.trim())
-//               .filter(Boolean)
-//         : [],
-//       mainImage: mainImage || null,
-//       supportingImages,
-//       zipCode,
-//       address,
-//       state,
-//       city,
-//       priority: ["Low", "Medium", "High"].includes(priority) ? priority : "Low",
-//       createdBy: req.admin.id, // ✅ attach the admin who created it
-//     };
-
-//     // ✅ Only add shipment if provided & trackingNumber is not empty
-//     if (shipment && shipment.trackingNumber) {
-//       vehicleData.shipment = {
-//         trackingNumber: shipment.trackingNumber,
-//         carrierCompany: shipment.carrierCompany || "",
-//         pickupDate: shipment.pickupDate || null,
-//         deliveryDate: shipment.deliveryDate || null,
-//         expectedDelivery: shipment.expectedDelivery || null,
-//         pickupAddress: shipment.pickupAddress || {},
-//         deliveryAddress: shipment.deliveryAddress || {},
-//         shippingCost: shipment.shippingCost || 0,
-//         insuranceValue: shipment.insuranceValue || 0,
-//         priorityLevel: shipment.priorityLevel || "Standard",
-//         specialInstructions: shipment.specialInstructions || "",
-//         shippingStatus: shipment.shippingStatus || "Pending",
-//       };
-//     }
-
-//     const vehicle = await Vehicle.create(vehicleData);
-
-//     return res.status(201).json({
-//       success: true,
-//       message: "Vehicle added successfully",
-//       vehicle,
-//     });
-//   } catch (error) {
-//     console.error("Error adding vehicle:", error);
-//     return res.status(500).json({
-//       success: false,
-//       message: error.message || "Failed to add vehicle",
-//     });
-//   }
-// };
 
 
 
@@ -258,41 +126,25 @@ export const addVehicle = async (req, res) => {
  * @route GET /api/vehicles
  * @access Public
  */
-// ✅ Get all vehicles with filters
-// export const getAllVehicles = async (req, res) => {
-//   try {
-//     const { status, priority, sort } = req.query;
 
-//     let filter = {};
-//     if (status) filter.status = status;
-//     if (priority) filter.priority = priority;
 
-//     let query = Vehicle.find(filter);
-
-//     // Sorting (recent, price, views)
-//     if (sort === "recent") query = query.sort({ dateListed: -1 });
-//     if (sort === "views") query = query.sort({ views: -1 });
-//     if (sort === "price") query = query.sort({ price: -1 });
-
-//     const vehicles = await query.exec();
-
-//     res.json({ success: true, count: vehicles.length, vehicles });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
 
 export const getAllVehicles = async (req, res) => {
   try {
     const { status, priority, sort } = req.query;
 
+    // ✅ Build filter
     let filter = {};
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
 
-    let query = Vehicle.find(filter);
+    // ✅ Query with population
+    let query = Vehicle.find(filter)
+      .populate("category", "name")
+      .populate("bodyType", "name")
+      .populate("createdBy", "firstName lastName email");
 
-    // ✅ Default: recent first
+    // ✅ Sorting
     if (!sort || sort === "recent") {
       query = query.sort({ dateListed: -1 });
     } else if (sort === "views") {
@@ -303,12 +155,45 @@ export const getAllVehicles = async (req, res) => {
 
     const vehicles = await query.exec();
 
+    // ✅ Format response
+    const formatted = vehicles.map((v) => ({
+      id: v._id,
+      title: `${v.year} ${v.make} ${v.model}`,
+      make: v.make,
+      model: v.model,
+      year: v.year,
+      vin: v.vin || "",
+      lotNumber: v.lotNumber || "",
+      price: v.price,
+      mileage: v.mileage,
+      color: v.color,
+      condition: v.condition || "",
+      fuelType: v.fuelType || "",
+      transmission: v.transmission || "",
+      location: `${v.city}, ${v.state}, ${v.zipCode || ""}`,
+      saleDate: v.dateListed,
+      performance: {
+        views: v.views || 0,
+        interested: v.interested?.length || 0,
+      },
+      priority: v.priority || "Low",
+      status: v.status || "Inactive",
+      category: v.category?.name || "Uncategorized",
+      bodyType: v.bodyType?.name || "Unspecified",
+      description: v.description || "",
+      features: v.features?.length ? v.features : [],
+      mainImage: v.mainImage || "",
+      supportingImages: v.supportingImages?.length ? v.supportingImages : [],
+      createdBy: v.createdBy || {},
+    }));
+
     res.json({
       success: true,
-      count: vehicles.length,
-      vehicles,
+      count: formatted.length,
+      vehicles: formatted,
     });
   } catch (err) {
+    console.error("Error fetching vehicles:", err);
     res.status(500).json({
       success: false,
       message: err.message,
@@ -324,7 +209,10 @@ export const getAllVehicles = async (req, res) => {
  */
 export const getVehicleById = async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById( req.params.id );
+    const vehicle = await Vehicle.findById(req.params.id)
+      .populate("category", "name")
+      .populate("bodyType", "name")
+      .populate("createdBy", "firstName lastName email");
 
     if (!vehicle) {
       return res.status(404).json({
@@ -333,7 +221,46 @@ export const getVehicleById = async (req, res) => {
       });
     }
 
-    res.status(200).json({ success: true, vehicle });
+    // ✅ Format vehicle to match UI structure
+    const formattedVehicle = {
+      id: vehicle._id,
+      title: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+      make: vehicle.make,
+      model: vehicle.model,
+      year: vehicle.year,
+      vin: vehicle.vin,
+      price: vehicle.price,
+      mileage: vehicle.mileage,
+      color: vehicle.color,
+      condition: vehicle.condition,
+      transmission: vehicle.transmission,
+      fuelType: vehicle.fuelType,
+      lotNumber: vehicle.lotNumber,
+      location: {
+        address: vehicle.address || "",
+        city: vehicle.city || "",
+        state: vehicle.state || "",
+        zipCode: vehicle.zipCode || "",
+      },
+      description: vehicle.description || "",
+      features: vehicle.features || [],
+      mainImage: vehicle.mainImage || "",
+      supportingImages: vehicle.supportingImages || [],
+      category: vehicle.category?.name || "Uncategorized",
+      bodyType: vehicle.bodyType?.name || "Unspecified",
+      status: vehicle.status || "Inactive",
+      priority: vehicle.priority || "Low",
+      saleDate: vehicle.dateListed,
+      performance: {
+        views: vehicle.views || 0,
+        interested: vehicle.interested?.length || 0,
+      },
+      createdBy: vehicle.createdBy || {},
+      createdAt: vehicle.createdAt,
+      updatedAt: vehicle.updatedAt,
+    };
+
+    res.status(200).json({ success: true, vehicle: formattedVehicle });
   } catch (error) {
     console.error("Error fetching vehicle:", error);
     res.status(500).json({
@@ -355,18 +282,18 @@ export const updateVehicle = async (req, res) => {
   try {
     const vehicle = await Vehicle.findById(req.params.id);
     if (!vehicle) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Vehicle not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found",
+      });
     }
 
-    // ✅ Destructure incoming fields
     const {
       make,
       model,
       year,
       vin,
-      bodyType,
+      bodyType, // bodyType NAME
       fuelType,
       transmission,
       price,
@@ -381,39 +308,63 @@ export const updateVehicle = async (req, res) => {
       state,
       city,
       priority,
+      category, // category NAME
     } = req.body;
 
-    // ✅ Update fields only if provided, else keep existing
-    Object.assign(vehicle, {
-      make: make ?? vehicle.make,
-      model: model ?? vehicle.model,
-      year: year ?? vehicle.year,
-      vin: vin ?? vehicle.vin,
-      bodyType: bodyType ?? vehicle.bodyType,
-      fuelType: fuelType ?? vehicle.fuelType,
-      transmission: transmission ?? vehicle.transmission,
-      price: price ?? vehicle.price,
-      mileage: mileage ?? vehicle.mileage,
-      color: color ?? vehicle.color,
-      condition: condition ?? vehicle.condition,
-      lotNumber: lotNumber ?? vehicle.lotNumber,
-      description: description ?? vehicle.description,
-      features: features
-        ? Array.isArray(features)
-          ? features
-          : String(features)
-              .split(",")
-              .map((f) => f.trim())
-              .filter(Boolean)
-        : vehicle.features,
-      zipCode: zipCode ?? vehicle.zipCode,
-      address: address ?? vehicle.address,
-      state: state ?? vehicle.state,
-      city: city ?? vehicle.city,
-      priority: priority ?? vehicle.priority,
-    });
+    // ✅ Handle category update by name (optional)
+    if (category) {
+      const categoryDoc = await Category.findOne({ name: category });
+      if (!categoryDoc) {
+        return res.status(400).json({
+          success: false,
+          message: `Category '${category}' not found`,
+        });
+      }
+      vehicle.category = categoryDoc._id;
+    }
 
-    // ✅ Handle images (main + supporting)
+    // ✅ Handle bodyType update by name (optional)
+    if (bodyType) {
+      const bodyTypeDoc = await BodyType.findOne({ name: bodyType });
+      if (!bodyTypeDoc) {
+        return res.status(400).json({
+          success: false,
+          message: `BodyType '${bodyType}' not found`,
+        });
+      }
+      vehicle.bodyType = bodyTypeDoc._id;
+    }
+
+    // ✅ Update simple fields
+    vehicle.make = make ?? vehicle.make;
+    vehicle.model = model ?? vehicle.model;
+    vehicle.year = year ?? vehicle.year;
+    vehicle.vin = vin ?? vehicle.vin;
+    vehicle.fuelType = fuelType ?? vehicle.fuelType;
+    vehicle.transmission = transmission ?? vehicle.transmission;
+    vehicle.price = price ?? vehicle.price;
+    vehicle.mileage = mileage ?? vehicle.mileage;
+    vehicle.color = color ?? vehicle.color;
+    vehicle.condition = condition ?? vehicle.condition;
+    vehicle.lotNumber = lotNumber ?? vehicle.lotNumber;
+    vehicle.description = description ?? vehicle.description;
+    vehicle.zipCode = zipCode ?? vehicle.zipCode;
+    vehicle.address = address ?? vehicle.address;
+    vehicle.state = state ?? vehicle.state;
+    vehicle.city = city ?? vehicle.city;
+    vehicle.priority = priority ?? vehicle.priority;
+
+    // ✅ Handle features
+    if (features) {
+      vehicle.features = Array.isArray(features)
+        ? features
+        : String(features)
+            .split(",")
+            .map((f) => f.trim())
+            .filter(Boolean);
+    }
+
+    // ✅ Handle images (Cloudinary / multer)
     const image1 = req.files?.image1 ? req.files.image1[0].path : null;
     const image2 = req.files?.image2 ? req.files.image2[0].path : null;
     const image3 = req.files?.image3 ? req.files.image3[0].path : null;
@@ -431,32 +382,45 @@ export const updateVehicle = async (req, res) => {
 
     await vehicle.save();
 
-    // ✅ Force all fields in response to string ("" if empty)
+    // ✅ Populate category + bodyType names in response
+    const populatedVehicle = await Vehicle.findById(vehicle._id)
+      .populate("category", "name")
+      .populate("bodyType", "name")
+      .populate("createdBy", "firstName lastName email");
+
+    // ✅ Format response
     const formattedVehicle = {
-      ...vehicle.toObject(),
-      make: vehicle.make || "",
-      model: vehicle.model || "",
-      year: vehicle.year || "",
-      vin: vehicle.vin || "",
-      bodyType: vehicle.bodyType || "",
-      fuelType: vehicle.fuelType || "",
-      transmission: vehicle.transmission || "",
-      price: vehicle.price || "",
-      mileage: vehicle.mileage || "",
-      color: vehicle.color || "",
-      condition: vehicle.condition || "",
-      lotNumber: vehicle.lotNumber || "",
-      description: vehicle.description || "",
-      features: vehicle.features?.length ? vehicle.features : [],
-      zipCode: vehicle.zipCode || "",
-      address: vehicle.address || "",
-      state: vehicle.state || "",
-      city: vehicle.city || "",
-      priority: vehicle.priority || "",
-      mainImage: vehicle.mainImage || "",
-      supportingImages: vehicle.supportingImages?.length
-        ? vehicle.supportingImages
+      id: populatedVehicle._id,
+      title: `${populatedVehicle.year} ${populatedVehicle.make} ${populatedVehicle.model}`,
+      make: populatedVehicle.make || "",
+      model: populatedVehicle.model || "",
+      year: populatedVehicle.year || "",
+      vin: populatedVehicle.vin || "",
+      bodyType: populatedVehicle.bodyType?.name || "",
+      fuelType: populatedVehicle.fuelType || "",
+      transmission: populatedVehicle.transmission || "",
+      price: populatedVehicle.price || "",
+      mileage: populatedVehicle.mileage || "",
+      color: populatedVehicle.color || "",
+      condition: populatedVehicle.condition || "",
+      lotNumber: populatedVehicle.lotNumber || "",
+      description: populatedVehicle.description || "",
+      features: populatedVehicle.features?.length
+        ? populatedVehicle.features
         : [],
+      location: {
+        address: populatedVehicle.address || "",
+        city: populatedVehicle.city || "",
+        state: populatedVehicle.state || "",
+        zipCode: populatedVehicle.zipCode || "",
+      },
+      priority: populatedVehicle.priority || "",
+      category: populatedVehicle.category?.name || "",
+      mainImage: populatedVehicle.mainImage || "",
+      supportingImages: populatedVehicle.supportingImages || [],
+      createdBy: populatedVehicle.createdBy || {},
+      createdAt: populatedVehicle.createdAt,
+      updatedAt: populatedVehicle.updatedAt,
     };
 
     return res.status(200).json({
@@ -481,63 +445,156 @@ export const updateVehicle = async (req, res) => {
  */
 export const deleteVehicle = async (req, res) => {
   try {
-  
+    const { id } = req.params;
 
-    const vehicle = await Vehicle.findById(req.params.id);
+    // ✅ Find vehicle
+    const vehicle = await Vehicle.findById(id);
     if (!vehicle) {
-      return res.status(404).json({ success: false, message: "Vehicle not found" });
+      return res.status(404).json({
+        success: false,
+        message: "Vehicle not found",
+      });
     }
 
-    await vehicle.deleteOne();
+    // ✅ Delete vehicle
+    await Vehicle.findByIdAndDelete(id);
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
-      message: "Vehicle deleted successfully",
+      message: `Vehicle '${vehicle.make} ${vehicle.model}' deleted successfully`,
+      deletedId: id,
     });
   } catch (error) {
     console.error("Error deleting vehicle:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to delete vehicle",
+      message: error.message || "Failed to delete vehicle",
     });
   }
 };
 
 
 
+// ================== CSV EXPORT ==================
 export const exportVehiclesCSV = async (req, res) => {
   try {
-    const vehicles = await Vehicle.find();
+    const vehicles = await Vehicle.find()
+      .populate("category", "name")
+      .populate("bodyType", "name")
+      .populate("createdBy", "firstName lastName email");
 
     if (!vehicles.length) {
-      return res.status(404).json({ message: "No vehicles found" });
+      return res.status(404).json({ success: false, message: "No vehicles found" });
     }
 
-    // Pick fields to export
     const fields = [
       { label: "Vehicle ID", value: "_id" },
       { label: "Make", value: "make" },
       { label: "Model", value: "model" },
       { label: "Year", value: "year" },
       { label: "Price", value: "price" },
-      { label: "Vin Number", value: "vin" },
+      { label: "VIN", value: "vin" },
       { label: "Lot Number", value: "lotNumber" },
       { label: "Condition", value: "condition" },
       { label: "Mileage", value: "mileage" },
+      { label: "Color", value: "color" },
+      { label: "Fuel Type", value: "fuelType" },
+      { label: "Transmission", value: "transmission" },
+      { label: "Category", value: (row) => row.category?.name || "" },
+      { label: "Body Type", value: (row) => row.bodyType?.name || "" },
       { label: "Priority", value: "priority" },
       { label: "Status", value: "status" },
-      { label: "Created At", value: "createdAt" }
+      { label: "Location", value: (row) => `${row.city || ""}, ${row.state || ""}, ${row.zipCode || ""}` },
+      { label: "Created By", value: (row) => row.createdBy ? `${row.createdBy.firstName} ${row.createdBy.lastName}` : "" },
+      { label: "Created At", value: (row) => row.createdAt?.toISOString() || "" },
     ];
 
     const parser = new Parser({ fields });
     const csv = parser.parse(vehicles);
 
     res.header("Content-Type", "text/csv");
-    res.attachment("vehicles.csv");
+    res.attachment(`vehicles_export_${Date.now()}.csv`);
     return res.send(csv);
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Failed to export vehicles", error: error.message });
+    console.error("Error exporting CSV:", error);
+    return res.status(500).json({ success: false, message: "Failed to export CSV", error: error.message });
+  }
+};
+
+// ================== EXCEL EXPORT ==================
+export const exportVehiclesExcel = async (req, res) => {
+  try {
+    const vehicles = await Vehicle.find()
+      .populate("category", "name")
+      .populate("bodyType", "name")
+      .populate("createdBy", "firstName lastName email");
+
+    if (!vehicles.length) {
+      return res.status(404).json({ success: false, message: "No vehicles found" });
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet("Vehicles");
+
+    // ✅ Define headers
+    worksheet.columns = [
+      { header: "Vehicle ID", key: "_id", width: 25 },
+      { header: "Make", key: "make", width: 15 },
+      { header: "Model", key: "model", width: 15 },
+      { header: "Year", key: "year", width: 10 },
+      { header: "Price", key: "price", width: 15 },
+      { header: "VIN", key: "vin", width: 20 },
+      { header: "Lot Number", key: "lotNumber", width: 20 },
+      { header: "Condition", key: "condition", width: 15 },
+      { header: "Mileage", key: "mileage", width: 15 },
+      { header: "Color", key: "color", width: 15 },
+      { header: "Fuel Type", key: "fuelType", width: 15 },
+      { header: "Transmission", key: "transmission", width: 15 },
+      { header: "Category", key: "category", width: 15 },
+      { header: "Body Type", key: "bodyType", width: 15 },
+      { header: "Priority", key: "priority", width: 12 },
+      { header: "Status", key: "status", width: 12 },
+      { header: "Location", key: "location", width: 25 },
+      { header: "Created By", key: "createdBy", width: 20 },
+      { header: "Created At", key: "createdAt", width: 20 },
+    ];
+
+    // ✅ Add rows
+    vehicles.forEach((v) => {
+      worksheet.addRow({
+        _id: v._id.toString(),
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        price: v.price,
+        vin: v.vin,
+        lotNumber: v.lotNumber,
+        condition: v.condition,
+        mileage: v.mileage,
+        color: v.color,
+        fuelType: v.fuelType,
+        transmission: v.transmission,
+        category: v.category?.name || "",
+        bodyType: v.bodyType?.name || "",
+        priority: v.priority,
+        status: v.status,
+        location: `${v.city || ""}, ${v.state || ""}, ${v.zipCode || ""}`,
+        createdBy: v.createdBy ? `${v.createdBy.firstName} ${v.createdBy.lastName}` : "",
+        createdAt: v.createdAt?.toISOString() || "",
+      });
+    });
+
+    // ✅ Set response headers
+    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", `attachment; filename=vehicles_export_${Date.now()}.xlsx`);
+
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error("Error exporting Excel:", error);
+    return res.status(500).json({ success: false, message: "Failed to export Excel", error: error.message });
   }
 };
 
@@ -595,51 +652,7 @@ export const deleteAllVehicles = async (req, res) => {
   }
 };
 
-// ✅ Get vehicles by category
-// export const getVehiclesByCategory = async (req, res) => {
-//   try {
-//     const { categoryId } = req.params;
 
-//     const vehicles = await Vehicle.find({ category: categoryId })
-//       .populate("category", "name icon")
-//       .sort({ createdAt: -1 });
-
-//     res.status(200).json({ success: true, count: vehicles.length, vehicles });
-//   } catch (err) {
-//     res.status(500).json({ success: false, error: err.message });
-//   }
-// };
-
-
-// export const getVehiclesByCategory = async (req, res) => {
-//   try {
-//     const { category } = req.params;
-
-//     const vehicles = await Vehicle.find({ category })
-//       .sort({ createdAt: -1 })
-//       .select("-__v");
-
-//     if (!vehicles.length) {
-//       return res.status(404).json({
-//         success: false,
-//         message: `No vehicles found in category: ${category}`,
-//       });
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       count: vehicles.length,
-//       vehicles,
-//     });
-//   } catch (err) {
-//     console.error("❌ Error fetching vehicles by category:", err);
-//     res.status(500).json({
-//       success: false,
-//       message: "Server error",
-//       error: err.message,
-//     });
-//   }
-// };
 
 export const getVehiclesByCategory = async (req, res) => {
   try {
@@ -679,121 +692,80 @@ export const getCategoriesFromVehicles = async ( req, res ) =>
   }
 };
 
-// export const getVehiclesByCategory2 = async (req, res) => {
-//   try {
-//     const { category } = req.params;
-
-//     const vehicles = await Vehicle.find({
-//       category: { $regex: new RegExp("^" + category + "$", "i") },
-//     });
-
-//     if (!vehicles.length) {
-//       return res.status(404).json({
-//         success: false,
-//         message: `No vehicles found in category '${category}'`,
-//       });
-//     }
-
-//     res.status(200).json({
-//       success: true,
-//       category,
-//       count: vehicles.length,
-//       vehicles,
-//     });
-//   } catch (error) {
-//     console.error("Error fetching vehicles by category:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Failed to fetch vehicles by category",
-//       error: error.message,
-//     });
-//   }
-// };
-
-
-// ✅ Search vehicles with multiple filters
-// export const searchVehicles = async (req, res) => {
-//   try {
-//     const { make, model, minPrice, maxPrice, condition, category } = req.query;
-
-//     let filter = {};
-
-//     if (make && make !== "Any") {
-//       filter.make = new RegExp(`^${make}$`, "i"); // case-insensitive
-//     }
-
-//     if (model && model !== "Any") {
-//       filter.model = new RegExp(model, "i");
-//     }
-
-//     if (condition && condition !== "All") {
-//       filter.condition = condition;
-//     }
-
-//     if (category && category !== "All") {
-//       filter.category = category;
-//     }
-
-//     if (minPrice || maxPrice) {
-//       filter.price = {};
-//       if (minPrice) filter.price.$gte = Number(minPrice);
-//       if (maxPrice) filter.price.$lte = Number(maxPrice);
-//     }
-
-//     const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
-
-//     res.status(200).json({
-//       success: true,
-//       count: vehicles.length,
-//       vehicles,
-//     });
-//   } catch (error) {
-//     console.error("❌ Error searching vehicles:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Server error",
-//       error: error.message,
-//     });
-//   }
-// };
-
-
 
 export const searchVehicles = async (req, res) => {
   try {
-    const { make, model, minPrice, maxPrice, condition, category } = req.query;
+    const {
+      make,
+      model,
+      minPrice,
+      maxPrice,
+      condition,
+      category,
+      bodyType,
+      fuelType,
+      transmission,
+      minYear,
+      maxYear,
+    } = req.query;
 
-    let filter = {};
+    const filter = {};
 
-    // ✅ Match make (case-insensitive)
+    // ✅ Make (case-insensitive exact)
     if (make && make !== "Any") {
-      filter.make = new RegExp(`^${make}$`, "i");
+      filter.make = { $regex: new RegExp(`^${make}$`, "i") };
     }
 
-    // ✅ Match model (case-insensitive, partial allowed)
+    // ✅ Model (case-insensitive partial)
     if (model && model !== "Any") {
-      filter.model = new RegExp(model, "i");
+      filter.model = { $regex: new RegExp(model, "i") };
     }
 
-    // ✅ Match condition (New, Used, etc.)
+    // ✅ Condition
     if (condition && condition !== "All") {
       filter.condition = condition;
     }
 
-    // ✅ Match category (SUV, Sedan, etc.)
+    // ✅ Category (case-insensitive exact)
     if (category && category !== "All") {
-      filter.category = new RegExp(`^${category}$`, "i"); 
+      filter.category = { $regex: new RegExp(`^${category}$`, "i") };
     }
 
-    // ✅ Match price range
+    // ✅ BodyType (case-insensitive exact)
+    if (bodyType && bodyType !== "All") {
+      filter.bodyType = { $regex: new RegExp(`^${bodyType}$`, "i") };
+    }
+
+    // ✅ FuelType
+    if (fuelType && fuelType !== "All") {
+      filter.fuelType = { $regex: new RegExp(`^${fuelType}$`, "i") };
+    }
+
+    // ✅ Transmission
+    if (transmission && transmission !== "All") {
+      filter.transmission = { $regex: new RegExp(`^${transmission}$`, "i") };
+    }
+
+    // ✅ Price range
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    // ✅ Fetch vehicles
-    const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
+    // ✅ Year range
+    if (minYear || maxYear) {
+      filter.year = {};
+      if (minYear) filter.year.$gte = Number(minYear);
+      if (maxYear) filter.year.$lte = Number(maxYear);
+    }
+
+    // ✅ Fetch with relations
+    const vehicles = await Vehicle.find(filter)
+      .populate("category", "name")
+      .populate("bodyType", "name")
+      .populate("createdBy", "firstName lastName email")
+      .sort({ createdAt: -1 });
 
     return res.status(200).json({
       success: true,
@@ -804,11 +776,42 @@ export const searchVehicles = async (req, res) => {
     console.error("❌ Error searching vehicles:", error);
     return res.status(500).json({
       success: false,
-      message: "Server error",
+      message: "Failed to search vehicles",
       error: error.message,
     });
   }
 };
 
+export const getVehiclesByBodyType = async (req, res) => {
+  try {
+    const { name } = req.params;
+    const bodyType = await BodyType.findOne({ name });
+    if (!bodyType) return res.status(404).json({ message: "BodyType not found" });
 
+    const vehicles = await Vehicle.find({ bodyType: bodyType._id })
+      .populate("bodyType", "name")
+      .populate("category", "name");
+
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+export const getVehiclesCategory = async (req, res) => {
+  try {
+    const { name } = req.params;
+    const category = await Category.findOne({ name });
+    if (!category) return res.status(404).json({ message: "Category not found" });
+
+    const vehicles = await Vehicle.find({ category: category._id })
+      .populate("bodyType", "name")
+      .populate("category", "name");
+
+    res.json(vehicles);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 

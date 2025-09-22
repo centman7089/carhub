@@ -1,0 +1,398 @@
+
+// export const getVehiclesByCategory2 = async (req, res) => {
+//   try {
+//     const { category } = req.params;
+
+//     const vehicles = await Vehicle.find({
+//       category: { $regex: new RegExp("^" + category + "$", "i") },
+//     });
+
+//     if (!vehicles.length) {
+//       return res.status(404).json({
+//         success: false,
+//         message: `No vehicles found in category '${category}'`,
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       category,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (error) {
+//     console.error("Error fetching vehicles by category:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Failed to fetch vehicles by category",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+// ✅ Search vehicles with multiple filters
+// export const searchVehicles = async (req, res) => {
+//   try {
+//     const { make, model, minPrice, maxPrice, condition, category } = req.query;
+
+//     let filter = {};
+
+//     if (make && make !== "Any") {
+//       filter.make = new RegExp(`^${make}$`, "i"); // case-insensitive
+//     }
+
+//     if (model && model !== "Any") {
+//       filter.model = new RegExp(model, "i");
+//     }
+
+//     if (condition && condition !== "All") {
+//       filter.condition = condition;
+//     }
+
+//     if (category && category !== "All") {
+//       filter.category = category;
+//     }
+
+//     if (minPrice || maxPrice) {
+//       filter.price = {};
+//       if (minPrice) filter.price.$gte = Number(minPrice);
+//       if (maxPrice) filter.price.$lte = Number(maxPrice);
+//     }
+
+//     const vehicles = await Vehicle.find(filter).sort({ createdAt: -1 });
+
+//     res.status(200).json({
+//       success: true,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error searching vehicles:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: error.message,
+//     });
+//   }
+// };
+
+// ✅ Get vehicles by category
+// export const getVehiclesByCategory = async (req, res) => {
+//   try {
+//     const { categoryId } = req.params;
+
+//     const vehicles = await Vehicle.find({ category: categoryId })
+//       .populate("category", "name icon")
+//       .sort({ createdAt: -1 });
+
+//     res.status(200).json({ success: true, count: vehicles.length, vehicles });
+//   } catch (err) {
+//     res.status(500).json({ success: false, error: err.message });
+//   }
+// };
+
+
+// export const getVehiclesByCategory = async (req, res) => {
+//   try {
+//     const { category } = req.params;
+
+//     const vehicles = await Vehicle.find({ category })
+//       .sort({ createdAt: -1 })
+//       .select("-__v");
+
+//     if (!vehicles.length) {
+//       return res.status(404).json({
+//         success: false,
+//         message: `No vehicles found in category: ${category}`,
+//       });
+//     }
+
+//     res.status(200).json({
+//       success: true,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (err) {
+//     console.error("❌ Error fetching vehicles by category:", err);
+//     res.status(500).json({
+//       success: false,
+//       message: "Server error",
+//       error: err.message,
+//     });
+//   }
+// };
+
+//
+// export const addVehicle = async (req, res) => {
+//   try {
+//     // ✅ Ensure only admins can add vehicles
+//     if (!req.admin || !req.admin.id) {
+//       return res
+//         .status(403)
+//         .json({ success: false, message: "Only admins can add vehicles" });
+//     }
+
+//     const {
+//       make,
+//       model,
+//       year,
+//       vin,
+//       bodyType,
+//       fuelType,
+//       transmission,
+//       price,
+//       mileage,
+//       color,
+//       condition,
+//       lotNumber,
+//       category,
+//       description,
+//       features,
+//       zipCode,
+//       address,
+//       state,
+//       city,
+//       priority, // ✅ added priority
+//     } = req.body;
+
+    
+//     // ✅ Validate category (must match enum)
+//     const validCategories = ["SUV", "Sedan", "Coupe", "Hatchback", "Hybrid",  "Convertible","Van","Electric","Truck","Luxury", "Other"];
+//     if (!validCategories.includes(category)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: `Invalid category. Must be one of: ${validCategories.join(", ")}`,
+//       });
+//     }
+
+//     // ✅ Extract Cloudinary URLs directly from multer-storage-cloudinary
+//     const image1 = req.files?.image1 ? req.files.image1[0].path : null;
+//     const image2 = req.files?.image2 ? req.files.image2[0].path : null;
+//     const image3 = req.files?.image3 ? req.files.image3[0].path : null;
+//     const image4 = req.files?.image4 ? req.files.image4[0].path : null;
+
+//     const images = [image1, image2, image3, image4].filter(Boolean);
+//     const [mainImage, ...supportingImages] = images;
+
+//     // ✅ Create vehicle object
+//     const vehicleData = {
+//       make,
+//       model,
+//       year,
+//       vin,
+//       bodyType,
+//       fuelType,
+//       transmission,
+//       price,
+//       mileage,
+//       color,
+//       condition,
+//       lotNumber,
+//       category,
+//       description,
+//       features: features
+//         ? Array.isArray(features)
+//           ? features
+//           : String(features)
+//               .split(",")
+//               .map((f) => f.trim())
+//               .filter(Boolean)
+//         : [],
+//       mainImage: mainImage || null,
+//       supportingImages,
+//       zipCode,
+//       address,
+//       state,
+//       city,
+//       priority: ["Low", "Medium", "High"].includes(priority) ? priority : "",
+//       createdBy: req.admin.id, // ✅ attach the admin who created it
+//     };
+
+//     const vehicle = await Vehicle.create(vehicleData);
+
+//     // ✅ Format response (ensure no null/undefined)
+//     const formattedVehicle = {
+//       ...vehicle.toObject(),
+//       make: vehicle.make || "",
+//       model: vehicle.model || "",
+//       year: vehicle.year || "",
+//       vin: vehicle.vin || "",
+//       bodyType: vehicle.bodyType || "",
+//       fuelType: vehicle.fuelType || "",
+//       transmission: vehicle.transmission || "",
+//       price: vehicle.price || "",
+//       mileage: vehicle.mileage || "",
+//       color: vehicle.color || "",
+//       condition: vehicle.condition || "",
+//       lotNumber: vehicle.lotNumber || "",
+//       description: vehicle.description || "",
+//       features: vehicle.features?.length ? vehicle.features : [],
+//       zipCode: vehicle.zipCode || "",
+//       address: vehicle.address || "",
+//       state: vehicle.state || "",
+//       city: vehicle.city || "",
+//       priority: vehicle.priority || "",
+//       mainImage: vehicle.mainImage || "",
+//       supportingImages: vehicle.supportingImages?.length
+//         ? vehicle.supportingImages
+//         : [],
+//       createdBy: vehicle.createdBy || "",
+//     };
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Vehicle added successfully",
+//       vehicle: formattedVehicle,
+//     });
+//   } catch (error) {
+//     console.error("Error adding vehicle:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message || "Failed to add vehicle",
+//     });
+//   }
+// };
+
+// export const addVehicle = async (req, res) => {
+//   try {
+//     // ✅ Ensure only admins can add vehicles
+//     if (!req.admin || !req.admin.id) {
+//       return res
+//         .status(403)
+//         .json({ success: false, message: "Only admins can add vehicles" });
+//     }
+
+//     const {
+//       make,
+//       model,
+//       year,
+//       vin,
+//       bodyType,
+//       fuelType,
+//       transmission,
+//       price,
+//       mileage,
+//       color,
+//       condition,
+//       lotNumber,
+//       description,
+//       features,
+//       zipCode,
+//       address,
+//       state,
+//       city,
+//       priority, // ✅ added priority
+//       shipment, // ✅ optional shipment info
+//     } = req.body;
+
+//     // ✅ Extract Cloudinary URLs directly from multer-storage-cloudinary
+//     const image1 = req.files?.image1 ? req.files.image1[0].path : null;
+//     const image2 = req.files?.image2 ? req.files.image2[0].path : null;
+//     const image3 = req.files?.image3 ? req.files.image3[0].path : null;
+//     const image4 = req.files?.image4 ? req.files.image4[0].path : null;
+
+//     const images = [image1, image2, image3, image4].filter(Boolean);
+//     const [mainImage, ...supportingImages] = images;
+
+//     // ✅ Prepare base vehicle data
+//     const vehicleData = {
+//       make,
+//       model,
+//       year,
+//       vin,
+//       bodyType,
+//       fuelType,
+//       transmission,
+//       price,
+//       mileage,
+//       color,
+//       condition,
+//       lotNumber,
+//       description,
+//       features: features
+//         ? Array.isArray(features)
+//           ? features
+//           : String(features)
+//               .split(",")
+//               .map((f) => f.trim())
+//               .filter(Boolean)
+//         : [],
+//       mainImage: mainImage || null,
+//       supportingImages,
+//       zipCode,
+//       address,
+//       state,
+//       city,
+//       priority: ["Low", "Medium", "High"].includes(priority) ? priority : "Low",
+//       createdBy: req.admin.id, // ✅ attach the admin who created it
+//     };
+
+//     // ✅ Only add shipment if provided & trackingNumber is not empty
+//     if (shipment && shipment.trackingNumber) {
+//       vehicleData.shipment = {
+//         trackingNumber: shipment.trackingNumber,
+//         carrierCompany: shipment.carrierCompany || "",
+//         pickupDate: shipment.pickupDate || null,
+//         deliveryDate: shipment.deliveryDate || null,
+//         expectedDelivery: shipment.expectedDelivery || null,
+//         pickupAddress: shipment.pickupAddress || {},
+//         deliveryAddress: shipment.deliveryAddress || {},
+//         shippingCost: shipment.shippingCost || 0,
+//         insuranceValue: shipment.insuranceValue || 0,
+//         priorityLevel: shipment.priorityLevel || "Standard",
+//         specialInstructions: shipment.specialInstructions || "",
+//         shippingStatus: shipment.shippingStatus || "Pending",
+//       };
+//     }
+
+//     const vehicle = await Vehicle.create(vehicleData);
+
+//     return res.status(201).json({
+//       success: true,
+//       message: "Vehicle added successfully",
+//       vehicle,
+//     });
+//   } catch (error) {
+//     console.error("Error adding vehicle:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: error.message || "Failed to add vehicle",
+//     });
+//   }
+// };// export const getAllVehicles = async (req, res) => {
+//   try {
+//     const { status, priority, sort } = req.query;
+
+//     let filter = {};
+//     if (status) filter.status = status;
+//     if (priority) filter.priority = priority;
+
+//     let query = Vehicle.find(filter);
+
+//     // ✅ Default: recent first
+//     if (!sort || sort === "recent") {
+//       query = query.sort({ dateListed: -1 });
+//     } else if (sort === "views") {
+//       query = query.sort({ views: -1 });
+//     } else if (sort === "price") {
+//       query = query.sort({ price: -1 });
+//     }
+
+//     const vehicles = await query.exec();
+
+//     res.json({
+//       success: true,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (err) {
+//     res.status(500).json({
+//       success: false,
+//       message: err.message,
+//     });
+//   }
+// };
+
+
+

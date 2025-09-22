@@ -7,7 +7,7 @@ import {
   getVehicleById,
   updateVehicle,
   deleteVehicle,
-  exportVehiclesCSV, updateVehiclePriority, deleteAllVehicles, getVehiclesByCategory, searchVehicles
+  exportVehiclesCSV, updateVehiclePriority, deleteAllVehicles, getVehiclesByCategory, searchVehicles, getVehiclesCategory, getVehiclesByBodyType
 } from "../controllers/vehicleController.js";
 
 
@@ -20,7 +20,9 @@ const router = express.Router();
  * Public routes (anyone can view)
  */
 // Export CSV route
-router.get("/export/csv", exportVehiclesCSV);
+router.get( "/export/csv", exportVehiclesCSV );
+router.get("/category/:name", getVehiclesCategory);
+router.get("/bodyType/:name", getVehiclesByBodyType);
 router.get( "/", getAllVehicles );
 router.get("/:id", getVehicleById);
 
