@@ -6,6 +6,7 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import connectDB from "./db/connectDB.js";
 import cloudinaryModule from "cloudinary";
+import { socketAuth } from "./middleware/socketAuth.js";
 
 // routes
 import authRouter from "./routes/authRoutes.js";
