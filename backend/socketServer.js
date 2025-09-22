@@ -5,8 +5,9 @@ import Auction from "./models/Auction.js";
 import Notification from "./models/Notification.js"; // optional if you created
 // notifications
 // optional: import a function to validate JWT if you want secure register
-import { socketAuth } from "./middleware/socketAuth.js";
 
+import notificationRoutes from "./routes/notificationRoutes.js";
+import { socketAuth } from "./middlewares/socketAuth.js";
 export let io = null;
 // Map dealerId -> Set(socketIds)
 export const userSocketMap = new Map();
@@ -15,7 +16,9 @@ export const initSocket = (server) => {
   io = new Server(server, {
     cors: { origin: "*" },
   } );
- socketAuth(io);
+socketAuth( io );
+    
+// app.use("/api/notifications", notificationRoutes);
 
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
