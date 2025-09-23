@@ -29,11 +29,12 @@
 
 
 import express from "express";
-import { createAuction, getAuctions, placeBidRest } from "../controllers/auctionController.js";
+import { createAuction, getAuctions, placeBidRest, getPopularAuctions } from "../controllers/auctionController.js";
 const router = express.Router();
 
 router.post("/", createAuction);
-router.get("/", getAuctions);
+router.get( "/", getAuctions );
+router.get("/popular", getPopularAuctions);
 router.post("/:auctionId/bid", placeBidRest);
 
 export default router;

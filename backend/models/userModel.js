@@ -49,6 +49,10 @@ const userSchema = new mongoose.Schema(
       default:
         "https://res.cloudinary.com/dq5puvtne/image/upload/v1740648447/next_crib_avatar_jled2z.jpg",
     },
+       // OAuth fields (NEW)
+    googleId: { type: String, index: true, sparse: true },
+    facebookId: { type: String, index: true, sparse: true },
+    provider: { type: String, enum: ["local", "google", "facebook"], default: "local" },
 
     // ✅ Policy acceptance
     acceptedTerms: { type: Boolean, required: true, default: false },

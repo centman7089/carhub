@@ -211,3 +211,66 @@ export const placeBidRest = async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 };
+
+
+
+export const getPopularAuctions = async (req, res) => {
+  try {
+    // Aggregate auctions with bid counts
+    const auctions = await Auction.aggregate([
+      {
+        $lookup: {
+          from: "vehicles",
+          localField: "vehicles",
+          foreignField: "_id",
+          as: "vehicles",
+        },
+      },
+      {
+        $addFields: {
+          bidsCount: { $size: "$bids" },
+        },
+      },
+      {
+        $sort: {
+          bidsCount: -1,  // most active auctions first
+          currentBid: -1, // then highest price
+          createdAt: -1,  // then most recent
+        },
+      },
+      { $limit: 10 },
+      {
+        $project: {
+          title: 1,
+          startAt: 1,
+          endAt: 1,
+          status: 1,
+          startingPrice: 1,
+          currentBid: 1,
+          bidsCount: 1,
+          "vehicles._id": 1,
+          "vehicles.make": 1,
+          "vehicles.model": 1,
+          "vehicles.year": 1,
+          "vehicles.price": 1,
+          "vehicles.mainImage": 1,
+          "vehicles.mileage": 1,     // ✅ Added for Low Mileage badge
+          "vehicles.condition": 1,   // ✅ Added for Excellent Condition badge
+        },
+      },
+    ]);
+
+    return res.json({
+      success: true,
+      count: auctions.length,
+      data: auctions,
+    });
+  } catch (error) {
+    console.error("❌ getPopularAuctions error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch popular auctions",
+      error: error.message,
+    });
+  }
+};

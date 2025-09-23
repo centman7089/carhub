@@ -1,3 +1,126 @@
+import mongoose from "mongoose";
+
+const shipmentSchema = new mongoose.Schema({
+  trackingNumber: {
+    type: String,
+    unique: true,
+    sparse: true, // ✅ allows multiple null values
+    trim: true,
+  },
+  carrierCompany: { type: String },
+  pickupDate: { type: Date },
+  deliveryDate: { type: Date },
+  expectedDelivery: { type: Date },
+  shippingStatus: {
+    type: String,
+    enum: ["Pending", "In Transit", "Delivered", "Cancelled"],
+    default: "Pending",
+  },
+  pickupAddress: {
+    street: String,
+    state: String,
+    city: String,
+    zipCode: String,
+  },
+  deliveryAddress: {
+    street: String,
+    state: String,
+    city: String,
+    zipCode: String,
+  },
+  shippingCost: Number,
+  insuranceValue: Number,
+  priorityLevel: { type: String, enum: ["Standard", "Express", "Overnight"] },
+  specialInstructions: String,
+});
+
+const vehicleSchema = new mongoose.Schema(
+  {
+    make: { type: String, required: true, trim: true },
+    model: { type: String, required: true, trim: true },
+    year: { type: Number, required: true },
+    vin: {
+      type: String,
+      unique: true,
+      sparse: true, // ✅ allows multiple null VINs if not provided
+      trim: true,
+    },
+    // bodyType: { type: String, trim: true },
+      bodyType: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "BodyType",
+    required: true
+  },
+    // fuelType: { type: String, trim: true },
+    fuelType: {  type: String,
+      enum: ["Petrol", "Gasoline", "Electric", "Hybrid", "Diesel", "Other"],
+      default: "Petrol" },
+    transmission: {    type: String,
+      enum: ["Automatic", "Manual", "Semi-Automatic", "CVT", "Other"],
+      default: "Automatic"  },
+    price: { type: Number, required: true },
+    mileage: { type: Number },
+    color: { type: String },
+    condition: {
+      type: String,
+      enum: ["New", "Used", "Salvage", "Other", "InStock"],
+      default: "New",
+    },
+    lotNumber: { type: String, trim: true },
+    description: { type: String },
+    features: [{ type: String, trim: true }],
+ 
+    // ✅ Reference Category by ID
+    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
+    // ✅ Images
+    mainImage: { type: String },
+    supportingImages: [{ type: String }],
+
+    // ✅ Location info
+    zipCode: String,
+    address: String,
+    state: String,
+    city: String,
+
+    // Listing Info
+    location: { state: String, city: String },
+    dateListed: { type: Date, default: Date.now },
+    status: {
+      type: String,
+      enum: ["Active", "Inactive", "Sold"],
+      default: "Active",
+    },
+    priority: {
+      type: String,
+      enum: ["Low", "Medium", "High"],
+      default: "Low",
+    },
+
+    // Performance
+    views: { type: Number, default: 0 },
+    interestedBuyers: { type: Number, default: 0 },
+
+    // Shipment
+    shipment: shipmentSchema,
+
+    // Relation to Admin/User
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
+
+const Vehicle = mongoose.models.Vehicle || mongoose.model("Vehicle", vehicleSchema);
+
+export default Vehicle;
+
+
+
+
+
 // // models/vehicleModel.js
 // import mongoose from "mongoose";
 
@@ -179,135 +302,3 @@
 // export default Vehicle;
 
 // models/vehicleModel.js
-import mongoose from "mongoose";
-
-const shipmentSchema = new mongoose.Schema({
-  trackingNumber: {
-    type: String,
-    unique: true,
-    sparse: true, // ✅ allows multiple null values
-    trim: true,
-  },
-  carrierCompany: { type: String },
-  pickupDate: { type: Date },
-  deliveryDate: { type: Date },
-  expectedDelivery: { type: Date },
-  shippingStatus: {
-    type: String,
-    enum: ["Pending", "In Transit", "Delivered", "Cancelled"],
-    default: "Pending",
-  },
-  pickupAddress: {
-    street: String,
-    state: String,
-    city: String,
-    zipCode: String,
-  },
-  deliveryAddress: {
-    street: String,
-    state: String,
-    city: String,
-    zipCode: String,
-  },
-  shippingCost: Number,
-  insuranceValue: Number,
-  priorityLevel: { type: String, enum: ["Standard", "Express", "Overnight"] },
-  specialInstructions: String,
-});
-
-const vehicleSchema = new mongoose.Schema(
-  {
-    make: { type: String, required: true, trim: true },
-    model: { type: String, required: true, trim: true },
-    year: { type: Number, required: true },
-    vin: {
-      type: String,
-      unique: true,
-      sparse: true, // ✅ allows multiple null VINs if not provided
-      trim: true,
-    },
-    // bodyType: { type: String, trim: true },
-      bodyType: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "BodyType",
-    required: true
-  },
-    fuelType: { type: String, trim: true },
-    transmission: { type: String, trim: true },
-    price: { type: Number, required: true },
-    mileage: { type: Number },
-    color: { type: String },
-    condition: {
-      type: String,
-      enum: ["New", "Used", "Salvage", "Other", "InStock"],
-      default: "New",
-    },
-    lotNumber: { type: String, trim: true },
-    description: { type: String },
-    features: [{ type: String, trim: true }],
-       // ✅ Category
-    // category: {
-    //   type: String,
-    //   enum: [
-    //     "SUV",
-    //     "Sedan",
-    //     "Coupe",
-    //     "Truck",
-    //     "Hatchback",
-    //     "Convertible",
-    //     "Van",
-    //     "Electric",
-    //     "Hybrid",
-    //     "Luxury",
-    //     "Other"
-    //   ],
-    //   required: true,
-    // },
-    // ✅ Reference Category by ID
-    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
-    // ✅ Images
-    mainImage: { type: String },
-    supportingImages: [{ type: String }],
-
-    // ✅ Location info
-    zipCode: String,
-    address: String,
-    state: String,
-    city: String,
-
-    // Listing Info
-    location: { state: String, city: String },
-    dateListed: { type: Date, default: Date.now },
-    status: {
-      type: String,
-      enum: ["Active", "Inactive", "Sold"],
-      default: "Active",
-    },
-    priority: {
-      type: String,
-      enum: ["Low", "Medium", "High"],
-      default: "Low",
-    },
-
-    // Performance
-    views: { type: Number, default: 0 },
-    interestedBuyers: { type: Number, default: 0 },
-
-    // Shipment
-    shipment: shipmentSchema,
-
-    // Relation to Admin/User
-    createdBy: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin",
-      required: true,
-    },
-  },
-  { timestamps: true }
-);
-
-const Vehicle =
-  mongoose.models.Vehicle || mongoose.model("Vehicle", vehicleSchema);
-
-export default Vehicle;
-

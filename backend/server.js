@@ -6,6 +6,9 @@ import http from "http";
 import cookieParser from "cookie-parser";
 import connectDB from "./db/connectDB.js";
 import cloudinaryModule from "cloudinary";
+import passport from "passport";
+import configurePassport from "./config/passport.js";
+import socialRoutes from "./routes/socialRoutes.js";
 
 
 // routes
@@ -27,6 +30,7 @@ import dealerRouter from "./routes/dealerRoutes.js";
 // socket & scheduler
 import { initSocket } from "./socketServer.js";
 import { startAuctionScheduler } from "./services/auctionScheduler.js";
+import session from "express-session";
 
 dotenv.config();
 connectDB();
@@ -62,7 +66,22 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/bodytypes", bodyTypeRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/notifications", notificationRoutes);
-app.use("/api/shipment", shipmentRouter);
+app.use( "/api/shipment", shipmentRouter );
+
+app.use(session({
+  secret: process.env.SESSION_SECRET || "replace-with-secure-secret",
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: process.env.NODE_ENV === "production" }
+}));
+
+// init passport
+configurePassport();
+app.use(passport.initialize());
+app.use( passport.session() );
+// routes
+app.use("/auth", socialRoutes);
+
 
 app.get("/", (req, res) => res.send("Welcome 🚀"));
 
