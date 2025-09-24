@@ -39,6 +39,25 @@ export const getCategoryById = async (req, res) => {
   }
 };
 
+// ✅ Get Category by Name
+export const getCategoryByName = async (req, res) => {
+  try {
+    const category = await Category.findOne({ name: req.params.name });
+
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    res.status(200).json({ success: true, category });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+
 // ✅ Update Category
 export const updateCategory = async (req, res) => {
   try {

@@ -166,7 +166,7 @@ const register = async (req, res) => {
 	}
 };
 
-//Login Controller
+
 // const login = async (req, res) => {
 //   try {
 //     const { email, password } = req.body;
@@ -179,6 +179,7 @@ const register = async (req, res) => {
 //       return res.status(400).json({ error: "Invalid password" });
 //     }
 
+//     // if not verified -> send code and token for limited actions
 //     if (!user.isVerified) {
 //       const code = generateCode();
 //       user.emailCode = code;
@@ -187,22 +188,19 @@ const register = async (req, res) => {
 
 //       await sendVerificationEmail(email, code);
 
+//       const token = generateTokenAndSetCookie(user._id, res, "userId");
+
 //       return res.status(403).json({
 //         msg: "Account not verified. A new verification code has been sent.",
 //         isVerified: false,
+//         token, // return token here too
+//         userId: user._id, // still return userId
 //       });
 //     }
 
-//     // if (user.role === "car_dealer") {
-//       if (!user.isApproved || user.identityDocuments.status !== "approved") {
-//         return res.status( 403 ).json( {
-//           msg: "Login Successfully. Awaiting admin approval",
-//           isVerified: true,
-//           isApproved: false,
-//           documentStatus: user.identityDocuments?.status || "pending",
-//         });
-//       }
-//     // }
+//     // always update login details
+//     user.lastLogin = new Date();
+//     user.loginStatus = "Active";
 
 //     if (
 //       user.identityDocuments?.status === "approved" &&
@@ -212,15 +210,25 @@ const register = async (req, res) => {
 //       user.onboardingCompleted = true;
 //     }
 
-//     // ✅ Update last login + status
-//     user.lastLogin = new Date();
-//     user.loginStatus = "Active";
+//     await user.save();
 
-//     await user.save(); // <-- you forgot this ✅
-
+//     // ✅ generate token before early returns
 //     const token = generateTokenAndSetCookie(user._id, res, "userId");
 
-//     res.status(200).json({
+//     // if dealer not approved yet
+//     if (!user.isApproved || user.identityDocuments.status !== "approved") {
+//       return res.status(403).json({
+//         msg: "Login Successful. Awaiting admin approval",
+//         isVerified: true,
+//         isApproved: false,
+//         documentStatus: user.identityDocuments?.status || "pending",
+//         token, // return token here too
+//         userId: user._id, // still return userId
+//       } );
+//     }
+
+//     // ✅ approved user
+//     return res.status(200).json({
 //       token,
 //       _id: user._id,
 //       email: user.email,
@@ -228,7 +236,7 @@ const register = async (req, res) => {
 //       isVerified: true,
 //       role: user.role,
 //       lastLogin: user.lastLogin,
-//       loginStatus: user.loginStatus, // will now be "Active"
+//       loginStatus: user.loginStatus,
 //       isApproved: user.isApproved,
 //       documentStatus: user.identityDocuments?.status,
 //       onboardingCompleted: user.onboardingCompleted,
@@ -261,11 +269,11 @@ const login = async (req, res) => {
 
       const token = generateTokenAndSetCookie(user._id, res, "userId");
 
-      return res.status(403).json({
+      return res.status(200).json({
         msg: "Account not verified. A new verification code has been sent.",
         isVerified: false,
-        token, // return token here too
-        userId: user._id, // still return userId
+        token,
+        userId: user._id,
       });
     }
 
@@ -288,14 +296,14 @@ const login = async (req, res) => {
 
     // if dealer not approved yet
     if (!user.isApproved || user.identityDocuments.status !== "approved") {
-      return res.status(403).json({
+      return res.status(200).json({
         msg: "Login Successful. Awaiting admin approval",
         isVerified: true,
         isApproved: false,
         documentStatus: user.identityDocuments?.status || "pending",
-        token, // return token here too
-        userId: user._id, // still return userId
-      } );
+        token,
+        userId: user._id,
+      });
     }
 
     // ✅ approved user
@@ -317,6 +325,7 @@ const login = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 

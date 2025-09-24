@@ -1,12 +1,14 @@
 // @ts-nocheck
 import express from "express";
-import { createBodytype, getBodyTypeById, getBodyTypes, updateBodyType, deleteBodyType } from "../controllers/bodyTypeController.js";
+import { createBodytype, getBodyTypeById, getBodyTypes, updateBodyType, deleteBodyType , getBodyTypeByName} from "../controllers/bodyTypeController.js";
 
 
 const router = express.Router();
 
 // Public
-router.get("/", getBodyTypes);
+router.get( "/", getBodyTypes );
+// GET /api/bodytypes/name/:name
+router.get("/name/:name", getBodyTypeByName);
 router.get("/:id", getBodyTypeById);
 
 // Admin (you can protect with middleware later)

@@ -5,13 +5,16 @@ import {
   getCategories,
   getCategoryById,
   updateCategory,
-  deleteCategory,
+  deleteCategory,getCategoryByName
 } from "../controllers/categoryController.js";
 
 const router = express.Router();
 
 // Public
-router.get("/", getCategories);
+router.get( "/", getCategories );
+// GET /api/categories/name/:name
+router.get("/name/:name", getCategoryByName);
+
 router.get("/:id", getCategoryById);
 
 // Admin (you can protect with middleware later)

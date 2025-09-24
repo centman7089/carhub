@@ -38,6 +38,24 @@ export const getBodyTypeById = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+// Get BodyType by name
+export const getBodyTypeByName = async (req, res) => {
+  try {
+    const bodytype = await BodyType.findOne({ name: req.params.name }); // 👈 search by name
+
+    if (!bodytype) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "BodyType not found" 
+      });
+    }
+
+    res.status(200).json({ success: true, bodytype });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+};
+
 
 // ✅ Update Category
 export const updateBodyType = async (req, res) => {
