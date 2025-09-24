@@ -238,7 +238,7 @@ export const createSuperadmin = async (req, res) => {
     res.status(201).json({
       token,
       ...formatAdminResponse(superadmin),
-      msg: "Superadmin registered. Verification code sent to email.",
+      msg: "Superadmin registered successfully. Verification code sent to email.",
     });
   } catch (err) {
     console.error("Error creating superadmin:", err.message);
