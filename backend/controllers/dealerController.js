@@ -824,6 +824,8 @@ const getDealerById = async (req, res) => {
       fullName: `${dealer.firstName || ""} ${dealer.lastName || ""}`.trim(),
       username: dealer.username || "",
       email: dealer.email || "",
+      acceptTerms: dealer.acceptTerms || "",
+      acceptedPrivacy: dealer.acceptedPrivacy || "",
       phone: dealer.phone || "",
       dateOfBirth: dealer.dateOfBirth || "",
       profilePic: dealer.profilePic || "",

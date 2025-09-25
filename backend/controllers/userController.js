@@ -1011,6 +1011,8 @@ const getUserById = async (req, res) => {
       fullName: `${user.firstName || ""} ${user.lastName || ""}`.trim(),
       username: user.username || "",
       email: user.email || "",
+      acceptTerms: user.acceptTerms || "",
+      acceptedPrivacy: user.acceptedPrivacy || "",
       phone: user.phone || "",
       dateOfBirth: user.dateOfBirth || "",
       profilePic: user.profilePic || "",
