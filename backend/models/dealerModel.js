@@ -69,11 +69,11 @@ const dealerSchema = new mongoose.Schema(
     requiresDocument: { type: Boolean, default: false },
 
     // // Role
-    // role: {
-    //   type: String,
-    //   enum: ["retailer", "admin", "superadmin", "car_dealer", "retailer"],
-    //   default: "retailer",
-    // },
+    role: {
+      type: String,
+      enum: ["Dealer", "admin", "superadmin", "car_dealer", "retailer"],
+      default: "Dealer",
+    },
 
     // Status & activity
     loginStatus: {

@@ -73,11 +73,11 @@ const userSchema = new mongoose.Schema(
     requiresDocument: { type: Boolean, default: false },
 
     // Role
-    // role: {
-    //   type: String,
-    //   enum: ["user", "admin", "superadmin", "car_dealer", "retailer"],
-    //   default: "retailer",
-    // },
+    role: {
+      type: String,
+      enum: ["user", "admin", "superadmin", "car_dealer", "Retailer"],
+      default: "Retailer",
+    },
 
     // Status & activity
     loginStatus: {
