@@ -8,7 +8,9 @@ const connectDB = async () => {
 
   const options = {
     maxPoolSize: 10, // connection pool (helps with concurrency)
-    serverSelectionTimeoutMS: 5000, // fail fast if MongoDB not reachable
+     useNewUrlParser: true, 
+  useUnifiedTopology: true,
+  serverSelectionTimeoutMS: 300000 // 30 seconds
   };
 
   const connectWithRetry = async () => {

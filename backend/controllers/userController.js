@@ -578,11 +578,13 @@ const forgotPassword = async (req, res) => {
     await user.save({ validateBeforeSave: false });
 
     // ✅ Branded reset email
-    await sendPasswordResetEmail(email, code);
+    await sendPasswordResetEmail( email, code );
+    console.log("Email sent successfully");
 
     res.json({ msg: "Password reset code sent" });
   } catch (err) {
-    res.status(500).json({ msg: err.message });
+    res.status( 500 ).json( { msg: err.message } );
+    console.error("Email sending failed:", err);
   }
 };
   
