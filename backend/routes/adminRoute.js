@@ -85,7 +85,7 @@ adminRouter.patch(
   updateOwnProfilePhoto
 );
 
-// adminRouter.get( "/accounts", protectAdmin, authorizeRoles( ["superadmin", "admin"] ), cacheMiddleware( ( req ) => `accounts:${ JSON.stringify( req.query ) }`, 120 ), getAllAccounts );
+
 
 
 export default adminRouter
