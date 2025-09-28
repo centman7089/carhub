@@ -7,8 +7,8 @@ import Notification from "../models/Notification.js";
 
 /**
  * Cron schedule:
-//  * - For development: run every 30 seconds -> "*/30 * * * * *"
-//  * - For production (every minute): "*/1 * * * *" (without seconds when not using seconds)
+//  * - For development: run every 30 seconds -> 
+//  * - For production (every minute): 1m (without seconds when not using seconds)
 //  */
 export const startAuctionScheduler = () => {
   cron.schedule(
