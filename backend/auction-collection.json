@@ -1,0 +1,84 @@
+{
+  "info": {
+    "name": "Auction API",
+    "_postman_id": "c21e1b45-2f9e-4b63-bbc0-1c3ab9cafe9f",
+    "description": "Postman collection for testing Auction API endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Create Auction (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{adminToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/auctions/{{vehicleId}}",
+          "host": ["{{baseUrl}}"],
+          "path": ["api", "auctions", "{{vehicleId}}"]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"BMW X6 Auction\",\n  \"startAt\": \"2025-09-28T10:00:00Z\",\n  \"endAt\": \"2025-09-30T10:00:00Z\",\n  \"startingPrice\": 50000\n}"
+        }
+      }
+    },
+    {
+      "name": "Get All Auctions",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/auctions", "host": ["{{baseUrl}}"], "path": ["api", "auctions"] }
+      }
+    },
+    {
+      "name": "Get Auction by ID",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/auctions/{{auctionId}}", "host": ["{{baseUrl}}"], "path": ["api", "auctions", "{{auctionId}}"] }
+      }
+    },
+    {
+      "name": "Place Bid (Dealer)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{dealerToken}}" },
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "url": { "raw": "{{baseUrl}}/api/auctions/{{auctionId}}/bid", "host": ["{{baseUrl}}"], "path": ["api","auctions","{{auctionId}}","bid"] },
+        "body": { "mode": "raw", "raw": "{\n  \"amount\": 55000\n}" }
+      }
+    },
+    {
+      "name": "Get Highest Bid",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/auctions/{{auctionId}}/highest-bid", "host": ["{{baseUrl}}"], "path": ["api","auctions","{{auctionId}}","highest-bid"] }
+      }
+    },
+    {
+      "name": "Close Auction (Admin)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }],
+        "url": { "raw": "{{baseUrl}}/api/auctions/{{auctionId}}/close", "host": ["{{baseUrl}}"], "path": ["api","auctions","{{auctionId}}","close"] }
+      }
+    },
+    {
+      "name": "Get Popular Auctions",
+      "request": {
+        "method": "GET",
+        "url": { "raw": "{{baseUrl}}/api/auctions/popular", "host": ["{{baseUrl}}"], "path": ["api","auctions","popular"] }
+      }
+    }
+  ],
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5000" },
+    { "key": "adminToken", "value": "your_admin_jwt_here" },
+    { "key": "dealerToken", "value": "your_dealer_jwt_here" },
+    { "key": "vehicleId", "value": "replace_with_vehicle_id" },
+    { "key": "auctionId", "value": "replace_with_auction_id" }
+  ]
+}

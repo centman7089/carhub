@@ -1,145 +1,40 @@
 // @ts-nocheck
-// import Auction from "../models/Auction.js";
-// import Vehicle from "../models/Vehicle.js";
-
-// // Create Auction for a Vehicle
-// export const createAuction = async (req, res) => {
-//   try {
-//     const { vehicleId } = req.params;
-//     const { startingPrice, reservePrice, startTime, endTime } = req.body;
-
-//     const vehicle = await Vehicle.findById(vehicleId);
-//     if (!vehicle) return res.status(404).json({ success: false, message: "Vehicle not found" });
-
-//     const auction = new Auction({
-//       vehicle: vehicleId,
-//       startingPrice,
-//       currentPrice: startingPrice,
-//       reservePrice,
-//       startTime,
-//       endTime,
-//       status: "Ongoing",
-//     });
-
-//     await auction.save();
-
-//     res.json({ success: true, message: "Auction created", auction });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// // Place a Bid
-// export const placeBid = async (req, res) => {
-//   try {
-//     const { auctionId } = req.params;
-//     const { amount, autoBid, maxAutoBidAmount } = req.body;
-//     const dealerId = req.user._id; // requires protect middleware
-
-//     const auction = await Auction.findById(auctionId);
-//     if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
-
-//     if (auction.status !== "Ongoing") {
-//       return res.status(400).json({ success: false, message: "Auction not active" });
-//     }
-
-//     if (amount <= auction.currentPrice) {
-//       return res.status(400).json({ success: false, message: "Bid must be higher than current price" });
-//     }
-
-//     const bid = {
-//       bidder: dealerId,
-//       amount,
-//       autoBid: autoBid || false,
-//       maxAutoBidAmount: autoBid ? maxAutoBidAmount : null,
-//     };
-
-//     auction.bids.push(bid);
-//     auction.currentPrice = amount;
-
-//     await auction.save();
-
-//     res.json({ success: true, message: "Bid placed", auction });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// // Get All Auctions
-// export const getAllAuctions = async (req, res) => {
-//   try {
-//     const auctions = await Auction.find()
-//       .populate("vehicle", "make model year price")
-//       .populate("winner", "name email")
-//       .populate("bids.bidder", "name email")
-//       .sort({ createdAt: -1 });
-
-//     res.json({ success: true, count: auctions.length, auctions });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// // Get Single Auction
-// export const getAuctionById = async (req, res) => {
-//   try {
-//     const { auctionId } = req.params;
-//     const auction = await Auction.findById(auctionId)
-//       .populate("vehicle", "make model year price")
-//       .populate("bids.bidder", "name email");
-
-//     if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
-
-//     res.json({ success: true, auction });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-
-// // Close Auction
-// export const closeAuction = async (req, res) => {
-//   try {
-//     const { auctionId } = req.params;
-//     const auction = await Auction.findById(auctionId);
-
-//     if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
-
-//     auction.status = "Ended";
-
-//     // Pick highest bidder
-//     if (auction.bids.length > 0) {
-//       const highestBid = auction.bids.reduce((prev, curr) =>
-//         curr.amount > prev.amount ? curr : prev
-//       );
-//       auction.winner = highestBid.bidder;
-//     }
-
-//     await auction.save();
-
-//     res.json({ success: true, message: "Auction closed", auction });
-//   } catch (err) {
-//     res.status(500).json({ success: false, message: err.message });
-//   }
-// };
-// controllers/auctionController.js
 import Auction from "../models/Auction.js";
+import Vehicle from "../models/Vehicle.js";
 import Notification from "../models/Notification.js";
 import { io, userSocketMap } from "../socketServer.js";
 
+/**
+ * ✅ Create Auction (Admin only)
+ * Route: POST /api/auctions/:vehicleId
+ */
 export const createAuction = async (req, res) => {
   try {
-    if (!req.admin) return res.status(403).json({ success: false, message: "Admins only" });
-    const { title, startAt, endAt, vehicles, startingPrice } = req.body;
-    if (!title || !startAt || !endAt || !vehicles?.length) return res.status(400).json({ success: false, message: "Missing fields" });
+    if (!req.admin) {
+      return res.status(403).json({ success: false, message: "Admins only" });
+    }
+
+    const { vehicleId } = req.params;
+    const { title, startAt, endAt, startingPrice } = req.body;
+
+    if (!title || !startAt || !endAt || !vehicleId) {
+      return res.status(400).json({ success: false, message: "Missing fields" });
+    }
+
+    const vehicle = await Vehicle.findById(vehicleId);
+    if (!vehicle) {
+      return res.status(404).json({ success: false, message: "Vehicle not found" });
+    }
 
     const auction = await Auction.create({
       title,
       startAt,
       endAt,
-      vehicles,
+      vehicle: vehicleId, // ✅ single vehicle
       startingPrice: startingPrice || 0,
       currentBid: startingPrice || 0,
       createdBy: req.admin.id,
+      status: "live",
     });
 
     return res.status(201).json({ success: true, auction });
@@ -149,10 +44,14 @@ export const createAuction = async (req, res) => {
   }
 };
 
+/**
+ * ✅ Get all auctions
+ * Route: GET /api/auctions
+ */
 export const getAuctions = async (req, res) => {
   try {
     const auctions = await Auction.find()
-      .populate("vehicles", "make model year price mainImage")
+      .populate("vehicle", "make model year price mainImage")
       .populate("highestBidder", "firstName lastName email")
       .sort({ createdAt: -1 });
 
@@ -162,14 +61,41 @@ export const getAuctions = async (req, res) => {
   }
 };
 
-// Place bid via REST (validates & emits)
-export const placeBidRest = async (req, res) => {
+/**
+ * ✅ Get auction by ID
+ * Route: GET /api/auctions/:id
+ */
+export const getAuctionById = async (req, res) => {
+  try {
+    const auction = await Auction.findById(req.params.id)
+      .populate("vehicle", "make model year price mainImage")
+      .populate("highestBidder", "firstName lastName email");
+
+    if (!auction) {
+      return res.status(404).json({ success: false, message: "Auction not found" });
+    }
+
+    return res.json({ success: true, auction });
+  } catch (err) {
+    console.error("getAuctionById err:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * ✅ Place bid (REST) + Socket.IO + Notifications
+ * Route: POST /api/auctions/:auctionId/bid
+ */
+export const placeBid = async (req, res) => {
   try {
     const { auctionId } = req.params;
-    const { dealerId, amount } = req.body; // ensure you validate/authenticate user on server
+    const { amount } = req.body;
+    const dealerId = req.dealer?.id; // assumes JWT
 
     const auction = await Auction.findById(auctionId);
-    if (!auction) return res.status(404).json({ success: false, message: "Auction not found" });
+    if (!auction) {
+      return res.status(404).json({ success: false, message: "Auction not found" });
+    }
 
     const now = new Date();
     if (!(auction.startAt <= now && auction.endAt > now && auction.status === "live")) {
@@ -188,54 +114,119 @@ export const placeBidRest = async (req, res) => {
     auction.highestBidder = dealerId;
     await auction.save();
 
-    // broadcast new bid to room
-    io?.to(`auction:${auctionId}`).emit("newBid", { auctionId, amount, highestBidder: dealerId });
+    // 🔊 Broadcast to all connected clients in this auction room
+    io?.to(`auction:${auctionId}`).emit("newBid", {
+      auctionId,
+      amount,
+      highestBidder: dealerId,
+    });
 
-    // notify previous highest bidder (if any)
+    // 📩 Notify previous highest bidder
     if (prevHighestBidder && prevHighestBidder !== dealerId) {
       try {
         const note = await Notification.create({
-          user: prevHighestBidder,
+          dealer: prevHighestBidder,
           title: "You were outbid",
           body: `You were outbid on auction '${auction.title}'. New bid: ${amount}`,
           meta: { auctionId, newAmount: amount, previousAmount: prevBidAmount },
         });
+
         const sockets = userSocketMap.get(prevHighestBidder);
-        if (sockets) sockets.forEach(sid => io?.to(sid).emit("outbid", { auctionId, amount, notificationId: note._id }));
-      } catch (e) { console.error("outbid notify fail:", e); }
+        if (sockets) {
+          sockets.forEach((sid) =>
+            io?.to(sid).emit("outbid", {
+              auctionId,
+              amount,
+              notificationId: note._id,
+            })
+          );
+        }
+      } catch (e) {
+        console.error("outbid notify fail:", e);
+      }
     }
 
     return res.json({ success: true, auction });
   } catch (err) {
-    console.error("placeBidRest err:", err);
+    console.error("placeBid err:", err);
     return res.status(500).json({ success: false, message: err.message });
   }
 };
 
+/**
+ * ✅ Get highest bid
+ * Route: GET /api/auctions/:auctionId/highest-bid
+ */
+export const getHighestBid = async (req, res) => {
+  try {
+    const auction = await Auction.findById(req.params.auctionId);
+    if (!auction) {
+      return res.status(404).json({ success: false, message: "Auction not found" });
+    }
+    return res.json({
+      success: true,
+      highestBid: auction.currentBid,
+      highestBidder: auction.highestBidder,
+    });
+  } catch (err) {
+    console.error("getHighestBid err:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
 
+/**
+ * ✅ Close Auction (Admin only)
+ * Route: POST /api/auctions/:auctionId/close
+ */
+export const closeAuction = async (req, res) => {
+  try {
+    if (!req.admin) {
+      return res.status(403).json({ success: false, message: "Admins only" });
+    }
 
+    const auction = await Auction.findById(req.params.auctionId);
+    if (!auction) {
+      return res.status(404).json({ success: false, message: "Auction not found" });
+    }
+
+    auction.status = "closed";
+    await auction.save();
+
+    io?.to(`auction:${auction._id}`).emit("auctionClosed", {
+      auctionId: auction._id,
+      highestBid: auction.currentBid,
+      highestBidder: auction.highestBidder,
+    });
+
+    return res.json({ success: true, message: "Auction closed", auction });
+  } catch (err) {
+    console.error("closeAuction err:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+/**
+ * ✅ Popular Auctions (Top 10 by activity)
+ * Route: GET /api/auctions/popular
+ */
 export const getPopularAuctions = async (req, res) => {
   try {
-    // Aggregate auctions with bid counts
     const auctions = await Auction.aggregate([
       {
         $lookup: {
           from: "vehicles",
-          localField: "vehicles",
+          localField: "vehicle",
           foreignField: "_id",
-          as: "vehicles",
+          as: "vehicle",
         },
       },
-      {
-        $addFields: {
-          bidsCount: { $size: "$bids" },
-        },
-      },
+      { $unwind: "$vehicle" },
+      { $addFields: { bidsCount: { $size: "$bids" } } },
       {
         $sort: {
-          bidsCount: -1,  // most active auctions first
-          currentBid: -1, // then highest price
-          createdAt: -1,  // then most recent
+          bidsCount: -1,
+          currentBid: -1,
+          createdAt: -1,
         },
       },
       { $limit: 10 },
@@ -248,23 +239,19 @@ export const getPopularAuctions = async (req, res) => {
           startingPrice: 1,
           currentBid: 1,
           bidsCount: 1,
-          "vehicles._id": 1,
-          "vehicles.make": 1,
-          "vehicles.model": 1,
-          "vehicles.year": 1,
-          "vehicles.price": 1,
-          "vehicles.mainImage": 1,
-          "vehicles.mileage": 1,     // ✅ Added for Low Mileage badge
-          "vehicles.condition": 1,   // ✅ Added for Excellent Condition badge
+          "vehicle._id": 1,
+          "vehicle.make": 1,
+          "vehicle.model": 1,
+          "vehicle.year": 1,
+          "vehicle.price": 1,
+          "vehicle.mainImage": 1,
+          "vehicle.mileage": 1,
+          "vehicle.condition": 1,
         },
       },
     ]);
 
-    return res.json({
-      success: true,
-      count: auctions.length,
-      data: auctions,
-    });
+    return res.json({ success: true, count: auctions.length, data: auctions });
   } catch (error) {
     console.error("❌ getPopularAuctions error:", error);
     res.status(500).json({
@@ -274,3 +261,7 @@ export const getPopularAuctions = async (req, res) => {
     });
   }
 };
+
+
+
+

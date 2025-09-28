@@ -5,21 +5,25 @@ import Auction from "../models/Auction.js";
 import { io, userSocketMap } from "../socketServer.js";
 import Notification from "../models/Notification.js";
 
+/**
+ * Cron schedule:
+//  * - For development: run every 30 seconds -> "*/30 * * * * *"
+//  * - For production (every minute): "*/1 * * * *" (without seconds when not using seconds)
+//  */
 export const startAuctionScheduler = () => {
-  // Run every 30s (production: every 1m)
   cron.schedule(
-    "*/15d * * * * *",
+    "*/30 * * * * *", // every 30s (dev). Use "*/1 * * * *" in production for once/minute cron (5 fields).
     async () => {
       try {
         const now = new Date();
 
-        // 1) Mark auctions as LIVE
-        const toLive = await Auction.updateMany(
+        // 1) Set auctions to live that should be live now
+        const toLiveRes = await Auction.updateMany(
           { startAt: { $lte: now }, endAt: { $gt: now }, status: "upcoming" },
           { $set: { status: "live" } }
         );
 
-        if (toLive.modifiedCount > 0) {
+        if (toLiveRes.modifiedCount > 0) {
           const started = await Auction.find({
             startAt: { $lte: now },
             endAt: { $gt: now },
@@ -27,28 +31,21 @@ export const startAuctionScheduler = () => {
           }).select("_id");
 
           started.forEach((a) =>
-            io?.to(`auction:${a._id}`).emit("auctionStarted", {
-              auctionId: a._id,
-            })
+            io?.to(`auction:${a._id}`).emit("auctionStarted", { auctionId: a._id })
           );
         }
 
-        // 2) Finalize expired auctions (batch in chunks of 50)
+        // 2) Finalize ended auctions in batches
         const batchSize = 50;
-        let hasMore = true;
-
-        while (hasMore) {
+        while (true) {
           const endedAuctions = await Auction.find({
             endAt: { $lte: now },
             status: { $in: ["upcoming", "live"] },
           })
             .limit(batchSize)
-            .lean(false); // still get mongoose docs to save
+            .exec();
 
-          if (!endedAuctions.length) {
-            hasMore = false;
-            break;
-          }
+          if (!endedAuctions.length) break;
 
           await Promise.all(
             endedAuctions.map(async (auction) => {
@@ -56,9 +53,7 @@ export const startAuctionScheduler = () => {
 
               // determine winner
               if (auction.bids?.length) {
-                const highest = auction.bids.reduce((p, c) =>
-                  c.amount > p.amount ? c : p
-                );
+                const highest = auction.bids.reduce((p, c) => (c.amount > p.amount ? c : p));
                 auction.winner = highest.bidder;
                 auction.highestBidder = highest.bidder;
                 auction.currentBid = highest.amount;
@@ -83,9 +78,7 @@ export const startAuctionScheduler = () => {
                     meta: { auctionId: auction._id, amount: auction.currentBid },
                   });
 
-                  const sockets = userSocketMap.get(
-                    auction.winner.toString()
-                  );
+                  const sockets = userSocketMap.get(auction.winner.toString());
                   if (sockets) {
                     sockets.forEach((sid) =>
                       io?.to(sid).emit("auctionWon", {
@@ -96,17 +89,14 @@ export const startAuctionScheduler = () => {
                     );
                   }
                 } catch (e) {
-                  console.error(
-                    `❌ Failed notification for auction ${auction._id}:`,
-                    e
-                  );
+                  console.error(`Failed notification for auction ${auction._id}:`, e);
                 }
               }
             })
           );
         }
       } catch (err) {
-        console.error("❌ auctionScheduler error:", err);
+        console.error("auctionScheduler error:", err);
       }
     },
     { timezone: "UTC" }

@@ -36,14 +36,25 @@
 
 import mongoose from "mongoose";
 
-const BidSchema = new mongoose.Schema({
-  bidder: { type: mongoose.Schema.Types.ObjectId, ref: "Dealer", required: true },
-  amount: { type: Number, required: true },
-  time: { type: Date, default: Date.now },
-  depositStatus: { type: String, enum: ["Verified", "Not Verified"], default: "Not Verified" },
-  autoBid: { type: Boolean, default: false }, // optional for future
-  maxAutoBidAmount: { type: Number, default: null },
-});
+// const BidSchema = new mongoose.Schema({
+//   bidder: { type: mongoose.Schema.Types.ObjectId, ref: "Dealer", required: true },
+//   amount: { type: Number, required: true },
+//   time: { type: Date, default: Date.now },
+//   depositStatus: { type: String, enum: ["Verified", "Not Verified"], default: "Not Verified" },
+//   autoBid: { type: Boolean, default: false }, // optional for future
+//   maxAutoBidAmount: { type: Number, default: null },
+// });
+const BidSchema = new mongoose.Schema(
+  {
+    bidder: { type: mongoose.Schema.Types.ObjectId, ref: "Dealer", required: true },
+    amount: { type: Number, required: true },
+    depositStatus: { type: String, enum: ["Verified", "Not Verified"], default: "Not Verified" },
+    autoBid: { type: Boolean, default: false },
+    maxAutoBidAmount: { type: Number, default: null },
+  },
+  { timestamps: true }
+);
+
 
 const AuctionSchema = new mongoose.Schema({
   title: { type: String, required: true },

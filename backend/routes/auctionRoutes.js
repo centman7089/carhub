@@ -1,40 +1,25 @@
-// import express from "express";
-// import {
-//   createAuction,
-//   placeBid,
-//   getAllAuctions,
-//   getAuctionById,
-//   closeAuction,
-// } from "../controllers/auctionController.js";
-// import protectRoute  from "../middlewares/protectRoute.js";
-
-// const router = express.Router();
-
-// // Create auction for vehicle
-// router.post("/:vehicleId", protectRoute, createAuction);
-
-// // Place a bid
-// router.post("/bid/:auctionId", protectRoute, placeBid);
-
-// // Get all auctions
-// router.get("/", getAllAuctions);
-
-// // Get single auction
-// router.get("/:auctionId", getAuctionById);
-
-// // Close auction
-// router.post("/close/:auctionId", protectRoute, closeAuction);
-
-// export default router;
-
-
 import express from "express";
-import { createAuction, getAuctions, placeBidRest, getPopularAuctions } from "../controllers/auctionController.js";
+import {
+  createAuction,
+  getAuctions,
+  getAuctionById,
+  placeBid,
+  getHighestBid,
+  closeAuction,
+  getPopularAuctions,
+} from "../controllers/auctionController.js";
+
+import { authorizeRoles, protectAdmin } from "../middlewares/adminAuth.js";
+import protectDealer from "../middlewares/protectDealer.js";
+
 const router = express.Router();
 
-router.post("/", createAuction);
-router.get( "/", getAuctions );
+router.post("/:vehicleId",protectAdmin, authorizeRoles("superadmin", "admin"), createAuction);
+router.get("/", getAuctions);
 router.get("/popular", getPopularAuctions);
-router.post("/:auctionId/bid", placeBidRest);
+router.get("/:id", getAuctionById);
+router.post("/:auctionId/bid",protectDealer, placeBid);
+router.get("/:auctionId/highest-bid", getHighestBid);
+router.post("/:auctionId/close",protectAdmin, authorizeRoles("superadmin", "admin") , closeAuction);
 
 export default router;

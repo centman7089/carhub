@@ -36,7 +36,7 @@ export const addVehicle = async (req, res) => {
       color,
       condition,
       lotNumber,
-      category, // category NAME
+      // category, // category NAME
       description,
       features,
       zipCode,
@@ -47,12 +47,12 @@ export const addVehicle = async (req, res) => {
     } = req.body;
 
     // ✅ Find category by name
-    const categoryDoc = await Category.findOne({ name: category });
-    if (!categoryDoc) {
-      return res
-        .status(400)
-        .json({ success: false, message: `Category '${category}' not found` });
-    }
+    // const categoryDoc = await Category.findOne({ name: category });
+    // if (!categoryDoc) {
+    //   return res
+    //     .status(400)
+    //     .json({ success: false, message: `Category '${category}' not found` });
+    // }
 
     // ✅ Find bodyType by name
     const bodyTypeDoc = await BodyType.findOne({ name: bodyType });
@@ -93,7 +93,7 @@ export const addVehicle = async (req, res) => {
         : [],
       mainImage: mainImage || null,
       supportingImages,
-      category: categoryDoc._id, // store ObjectId
+      // category: categoryDoc._id, // store ObjectId
       zipCode,
       address,
       state,
@@ -103,9 +103,9 @@ export const addVehicle = async (req, res) => {
     });
 
     // ✅ Populate category + bodyType names
-    const populatedVehicle = await Vehicle.findById(vehicle._id)
-      .populate("category", "name")
-      .populate("bodyType", "name");
+    const populatedVehicle = await Vehicle.findById( vehicle._id )
+      .populate( "bodyType", "name" );
+      //  .populate("category", "name");
 
     return res
       .status(201)
@@ -309,20 +309,20 @@ export const updateVehicle = async (req, res) => {
       state,
       city,
       priority,
-      category, // category NAME
+      // category, // category NAME
     } = req.body;
 
-    // ✅ Handle category update by name (optional)
-    if (category) {
-      const categoryDoc = await Category.findOne({ name: category });
-      if (!categoryDoc) {
-        return res.status(400).json({
-          success: false,
-          message: `Category '${category}' not found`,
-        });
-      }
-      vehicle.category = categoryDoc._id;
-    }
+    // // ✅ Handle category update by name (optional)
+    // if (category) {
+    //   const categoryDoc = await Category.findOne({ name: category });
+    //   if (!categoryDoc) {
+    //     return res.status(400).json({
+    //       success: false,
+    //       message: `Category '${category}' not found`,
+    //     });
+    //   }
+    //   vehicle.category = categoryDoc._id;
+    // }
 
     // ✅ Handle bodyType update by name (optional)
     if (bodyType) {
