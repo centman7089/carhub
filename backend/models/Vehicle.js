@@ -71,7 +71,7 @@ const vehicleSchema = new mongoose.Schema(
     features: [{ type: String, trim: true }],
  
     // ✅ Reference Category by ID
-    category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
+    // category: { type: mongoose.Schema.Types.ObjectId, ref: "Category", required: true },
     // ✅ Images
     mainImage: { type: String },
     supportingImages: [{ type: String }],
