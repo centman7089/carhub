@@ -8,7 +8,7 @@ import Notification from "../models/Notification.js";
 export const startAuctionScheduler = () => {
   // Run every 30s (production: every 1m)
   cron.schedule(
-    "*/30 * * * * *",
+    "*/15d * * * * *",
     async () => {
       try {
         const now = new Date();

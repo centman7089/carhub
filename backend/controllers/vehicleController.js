@@ -1,3 +1,4 @@
+// @ts-nocheck
 import Vehicle from "../models/Vehicle.js";
 import { Parser } from "json2csv";
 import Category from "../models/categoryModel.js";

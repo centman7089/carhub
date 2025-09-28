@@ -86,8 +86,8 @@ app.use("/auth", socialRoutes);
 app.get("/", (req, res) => res.send("Welcome 🚀"));
 
 // init socket.io and auction scheduler
-initSocket(server);           // sets up socket handlers
-startAuctionScheduler();      // runs cron that updates auction status and finalizes auctions
+// initSocket(server);           // sets up socket handlers
+// startAuctionScheduler();      // runs cron that updates auction status and finalizes auctions
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
