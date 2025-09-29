@@ -3,6 +3,12 @@ import mongoose from "mongoose";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 
+
+const passwordHistorySchema = new mongoose.Schema({
+  password: { type: String, required: true },
+  changedAt: { type: Date, default: Date.now },
+});
+
 const identityDocumentsSchema = new mongoose.Schema(
   {
     idCardFront: { type: String },
@@ -95,12 +101,13 @@ const userSchema = new mongoose.Schema(
     verificationToken: String,
 
     // Track last 5 passwords
-    passwordHistory: [
-      {
-        password: String, // hashed
-        changedAt: Date,
-      },
-    ],
+    // passwordHistory: [
+    //   {
+    //     password: String, // hashed
+    //     changedAt: Date,
+    //   },
+    // ],
+    passwordHistory: [passwordHistorySchema],
 
     createdAt: { type: Date, default: Date.now },
   },
@@ -108,9 +115,22 @@ const userSchema = new mongoose.Schema(
 );
 
 // 🔒 Hash password before save
+// Hash password before save
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  this.password = await bcrypt.hash(this.password, 12);
+
+  // Hash new password
+  const hashed = await bcrypt.hash(this.password, 12);
+  this.password = hashed;
+
+  // Add to password history
+  this.passwordHistory.push({ password: this.password });
+
+  // Keep only last 5
+  if (this.passwordHistory.length > 5) {
+    this.passwordHistory = this.passwordHistory.slice(-5);
+  }
+
   next();
 });
 

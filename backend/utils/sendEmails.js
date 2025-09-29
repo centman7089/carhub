@@ -1,38 +1,15 @@
 // sendEmails.js
-//
+// @ts-nocheck
 
-
-// // @ts-nocheck
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import Brevo from "@getbrevo/brevo";
 
 dotenv.config();
 
-// ✅ Create transporter once
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  // port: 465,
-  // secure: true,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  tls: {
-        // do not fail on invalid certs
-        rejectUnauthorized: false,
-      },
-  // debug: true
-});
-
-// ✅ Verify transporter on startup
-transporter.verify((error) => {
-  if (error) {
-    console.error("❌ Email transporter error:", error);
-  } else {
-    console.log("✅ Email server is ready to send messages");
-  }
-});
+// ✅ Configure Brevo client
+const brevoClient = new Brevo.TransactionalEmailsApi();
+const apiKey = brevoClient.authentications["apiKey"];
+apiKey.apiKey = process.env.BREVO_API_KEY; // from your Brevo dashboard
 
 // ✅ Master email template wrapper (uniform branding)
 const buildEmailTemplate = (title, message, code = null, buttonText = null, buttonLink = null) => {
@@ -72,18 +49,20 @@ const buildEmailTemplate = (title, message, code = null, buttonText = null, butt
   </div>`;
 };
 
-// ✅ Send email function
+// ✅ Send email function (Brevo)
 const sendEmail = async (to, subject, html) => {
   try {
-    await transporter.sendMail({
-      from: `"Auction System" <${process.env.EMAIL_USER}>`,
-      to,
-      subject,
-      html,
-    });
+    const sendSmtpEmail = new Brevo.SendSmtpEmail();
+
+    sendSmtpEmail.sender = { name: "Auction System", email: process.env.EMAIL_USER };
+    sendSmtpEmail.to = [{ email: to }];
+    sendSmtpEmail.subject = subject;
+    sendSmtpEmail.htmlContent = html;
+
+    await brevoClient.sendTransacEmail(sendSmtpEmail);
     console.log(`📩 Email sent to ${to}`);
   } catch (err) {
-    console.error("❌ Error sending email:", err);
+    console.error("❌ Error sending email:", err.response?.body || err.message);
   }
 };
 

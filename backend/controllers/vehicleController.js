@@ -141,7 +141,7 @@ export const getAllVehicles = async (req, res) => {
 
     // ✅ Query with population
     let query = Vehicle.find(filter)
-      .populate("category", "name")
+      // .populate("category", "name")
       .populate("bodyType", "name")
       .populate("createdBy", "firstName lastName email");
 
@@ -179,7 +179,7 @@ export const getAllVehicles = async (req, res) => {
       },
       priority: v.priority || "Low",
       status: v.status || "Inactive",
-      category: v.category?.name || "Uncategorized",
+      // category: v.category?.name || "Uncategorized",
       bodyType: v.bodyType?.name || "Unspecified",
       description: v.description || "",
       features: v.features?.length ? v.features : [],
@@ -211,7 +211,7 @@ export const getAllVehicles = async (req, res) => {
 export const getVehicleById = async (req, res) => {
   try {
     const vehicle = await Vehicle.findById(req.params.id)
-      .populate("category", "name")
+      // .populate("category", "name")
       .populate("bodyType", "name")
       .populate("createdBy", "firstName lastName email");
 
@@ -247,7 +247,7 @@ export const getVehicleById = async (req, res) => {
       features: vehicle.features || [],
       mainImage: vehicle.mainImage || "",
       supportingImages: vehicle.supportingImages || [],
-      category: vehicle.category?.name || "Uncategorized",
+      // category: vehicle.category?.name || "Uncategorized",
       bodyType: vehicle.bodyType?.name || "Unspecified",
       status: vehicle.status || "Inactive",
       priority: vehicle.priority || "Low",
@@ -385,7 +385,7 @@ export const updateVehicle = async (req, res) => {
 
     // ✅ Populate category + bodyType names in response
     const populatedVehicle = await Vehicle.findById(vehicle._id)
-      .populate("category", "name")
+      // .populate("category", "name")
       .populate("bodyType", "name")
       .populate("createdBy", "firstName lastName email");
 
@@ -416,7 +416,7 @@ export const updateVehicle = async (req, res) => {
         zipCode: populatedVehicle.zipCode || "",
       },
       priority: populatedVehicle.priority || "",
-      category: populatedVehicle.category?.name || "",
+      // category: populatedVehicle.category?.name || "",
       mainImage: populatedVehicle.mainImage || "",
       supportingImages: populatedVehicle.supportingImages || [],
       createdBy: populatedVehicle.createdBy || {},
@@ -501,7 +501,7 @@ export const exportVehiclesCSV = async (req, res) => {
       { label: "Color", value: "color" },
       { label: "Fuel Type", value: "fuelType" },
       { label: "Transmission", value: "transmission" },
-      { label: "Category", value: (row) => row.category?.name || "" },
+      // { label: "Category", value: (row) => row.category?.name || "" },
       { label: "Body Type", value: (row) => row.bodyType?.name || "" },
       { label: "Priority", value: "priority" },
       { label: "Status", value: "status" },
@@ -527,7 +527,7 @@ export const exportVehiclesCSV = async (req, res) => {
 export const exportVehiclesExcel = async (req, res) => {
   try {
     const vehicles = await Vehicle.find()
-      .populate("category", "name")
+      // .populate("category", "name")
       .populate("bodyType", "name")
       .populate("createdBy", "firstName lastName email");
 
@@ -552,7 +552,7 @@ export const exportVehiclesExcel = async (req, res) => {
       { header: "Color", key: "color", width: 15 },
       { header: "Fuel Type", key: "fuelType", width: 15 },
       { header: "Transmission", key: "transmission", width: 15 },
-      { header: "Category", key: "category", width: 15 },
+      // { header: "Category", key: "category", width: 15 },
       { header: "Body Type", key: "bodyType", width: 15 },
       { header: "Priority", key: "priority", width: 12 },
       { header: "Status", key: "status", width: 12 },
@@ -576,7 +576,7 @@ export const exportVehiclesExcel = async (req, res) => {
         color: v.color,
         fuelType: v.fuelType,
         transmission: v.transmission,
-        category: v.category?.name || "",
+        // category: v.category?.name || "",
         bodyType: v.bodyType?.name || "",
         priority: v.priority,
         status: v.status,
@@ -702,7 +702,7 @@ export const searchVehicles = async (req, res) => {
       minPrice,
       maxPrice,
       condition,
-      category,
+      // category,
       bodyType,
       fuelType,
       transmission,
@@ -727,10 +727,10 @@ export const searchVehicles = async (req, res) => {
       filter.condition = condition;
     }
 
-    // ✅ Category (case-insensitive exact)
-    if (category && category !== "All") {
-      filter.category = { $regex: new RegExp(`^${category}$`, "i") };
-    }
+    // // ✅ Category (case-insensitive exact)
+    // if (category && category !== "All") {
+    //   filter.category = { $regex: new RegExp(`^${category}$`, "i") };
+    // }
 
     // ✅ BodyType (case-insensitive exact)
     if (bodyType && bodyType !== "All") {
@@ -763,7 +763,7 @@ export const searchVehicles = async (req, res) => {
 
     // ✅ Fetch with relations
     const vehicles = await Vehicle.find(filter)
-      .populate("category", "name")
+      // .populate("category", "name")
       .populate("bodyType", "name")
       .populate("createdBy", "firstName lastName email")
       .sort({ createdAt: -1 });
@@ -791,7 +791,7 @@ export const getVehiclesByBodyType = async (req, res) => {
 
     const vehicles = await Vehicle.find({ bodyType: bodyType._id })
       .populate("bodyType", "name")
-      .populate("category", "name");
+      // .populate("category", "name");
 
     res.json(vehicles);
   } catch (error) {

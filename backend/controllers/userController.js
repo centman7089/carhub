@@ -168,85 +168,7 @@ const register = async (req, res) => {
 };
 
 
-// const login = async (req, res) => {
-//   try {
-//     const { email, password } = req.body;
 
-//     const user = await User.findOne({ email });
-//     if (!user) return res.status(400).json({ msg: "Invalid credentials" });
-
-//     const isPasswordCorrect = await user.correctPassword(password);
-//     if (!isPasswordCorrect) {
-//       return res.status(400).json({ error: "Invalid password" });
-//     }
-
-//     // if not verified -> send code and token for limited actions
-//     if (!user.isVerified) {
-//       const code = generateCode();
-//       user.emailCode = code;
-//       user.emailCodeExpires = Date.now() + 10 * 60 * 1000;
-//       await user.save();
-
-//       await sendVerificationEmail(email, code);
-
-//       const token = generateTokenAndSetCookie(user._id, res, "userId");
-
-//       return res.status(403).json({
-//         msg: "Account not verified. A new verification code has been sent.",
-//         isVerified: false,
-//         token, // return token here too
-//         userId: user._id, // still return userId
-//       });
-//     }
-
-//     // always update login details
-//     user.lastLogin = new Date();
-//     user.loginStatus = "Active";
-
-//     if (
-//       user.identityDocuments?.status === "approved" &&
-//       user.onboardingStage !== "completed"
-//     ) {
-//       user.onboardingStage = "completed";
-//       user.onboardingCompleted = true;
-//     }
-
-//     await user.save();
-
-//     // ✅ generate token before early returns
-//     const token = generateTokenAndSetCookie(user._id, res, "userId");
-
-//     // if dealer not approved yet
-//     if (!user.isApproved || user.identityDocuments.status !== "approved") {
-//       return res.status(403).json({
-//         msg: "Login Successful. Awaiting admin approval",
-//         isVerified: true,
-//         isApproved: false,
-//         documentStatus: user.identityDocuments?.status || "pending",
-//         token, // return token here too
-//         userId: user._id, // still return userId
-//       } );
-//     }
-
-//     // ✅ approved user
-//     return res.status(200).json({
-//       token,
-//       _id: user._id,
-//       email: user.email,
-//       msg: "Login Successful",
-//       isVerified: true,
-//       role: user.role,
-//       lastLogin: user.lastLogin,
-//       loginStatus: user.loginStatus,
-//       isApproved: user.isApproved,
-//       documentStatus: user.identityDocuments?.status,
-//       onboardingCompleted: user.onboardingCompleted,
-//     });
-//   } catch (err) {
-//     console.error("Error in login:", err.message);
-//     res.status(500).json({ error: err.message });
-//   }
-// };
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -295,7 +217,7 @@ const login = async (req, res) => {
     // ✅ generate token before early returns
     const token = generateTokenAndSetCookie(user._id, res, "userId");
 
-    // if dealer not approved yet
+    // if user not approved yet
     if (!user.isApproved || user.identityDocuments.status !== "approved") {
       return res.status(200).json({
         msg: "Login Successful. Awaiting admin approval",
@@ -469,19 +391,12 @@ const resendCode = async (req, res) => {
 };
   
 
-  // Change Password (Requires token)
+
+
 // const changePassword = async (req, res) => {
 //   try {
-//     const userId = req.user?._id;
-//     if (!userId) {
-//       return res.status(401).json({ msg: "Unauthorized, no user in request" });
-//     }
-
+//     const userId = req.user._id;
 //     const { currentPassword, newPassword, confirmNewPassword } = req.body;
-
-//     if (!currentPassword || !newPassword || !confirmNewPassword) {
-//       return res.status(400).json({ msg: "All fields are required" });
-//     }
 
 //     if (newPassword !== confirmNewPassword) {
 //       return res.status(400).json({ msg: "Passwords do not match" });
@@ -491,80 +406,68 @@ const resendCode = async (req, res) => {
 //     if (!user) return res.status(404).json({ msg: "User not found" });
 
 //     // Verify current password
-//     const isMatch = await bcrypt.compare(currentPassword, user.password);
-//     if (!isMatch) return res.status(400).json({ msg: "Incorrect current password" });
-
-//     // Prevent setting same as current
-//     if (await bcrypt.compare(newPassword, user.password)) {
-//       return res.status(400).json({ msg: "New password cannot be the same as the old password" });
+//     if (!(await user.correctPassword(currentPassword))) {
+//       return res.status(400).json({ msg: "Incorrect current password" });
 //     }
 
-//     // Prevent reusing old passwords
-//     for (const entry of user.passwordHistory || []) {
-//       if (await bcrypt.compare(newPassword, entry.password)) {
-//         return res.status(400).json({ msg: "You have already used this password before" });
-//       }
-//     }
-
-//     // Store old password in history
-//     user.passwordHistory = user.passwordHistory || [];
-//     user.passwordHistory.push({
-//       password: user.password,
-//       changedAt: new Date(),
-//     });
-//     if (user.passwordHistory.length > 5) {
-//       user.passwordHistory.shift(); // keep last 5
-//     }
-
-//     // Assign new password in plain text — pre-save hook will hash it
-//     user.password = newPassword;
-//     await user.save();
-
+//    // Prevent reuse (check against history)
+//            for (let entry of user.passwordHistory) {
+//              const reused = await bcrypt.compare(newPassword, entry.password);
+//              if (reused) {
+//                return res.status(400).json({ msg: "Password reused from history" });
+//              }
+//            }
+           
+//         user.password = newPassword;
+   
+//        // Push new password hash to history
+//        user.passwordHistory.push({ password: user.password, changedAt: new Date() });
+//        if (user.passwordHistory.length > 5) user.passwordHistory.shift();
+   
+//        await user.save();
 //     res.json({ msg: "Password changed successfully" });
 //   } catch (err) {
-//     console.error("changePassword error:", err);
+//     console.error(err);
 //     res.status(500).json({ msg: "Server error" });
 //   }
 // };
-
+// Change Password
 const changePassword = async (req, res) => {
   try {
     const userId = req.user._id;
     const { currentPassword, newPassword, confirmNewPassword } = req.body;
 
     if (newPassword !== confirmNewPassword) {
-      return res.status(400).json({ msg: "Passwords do not match" });
+      return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ msg: "User not found" });
+    const user = await User.findById(userId).select("+password +passwordHistory");
+    if (!user) return res.status(404).json({ message: "User not found" });
 
-    // Verify current password
-    if (!(await user.correctPassword(currentPassword))) {
-      return res.status(400).json({ msg: "Incorrect current password" });
+    const validCurrent = await user.correctPassword(currentPassword);
+    if (!validCurrent) {
+      return res.status(400).json({ message: "Incorrect current password" });
     }
 
-   // Prevent reuse (check against history)
-           for (let entry of user.passwordHistory) {
-             const reused = await bcrypt.compare(newPassword, entry.password);
-             if (reused) {
-               return res.status(400).json({ msg: "Password reused from history" });
-             }
-           }
-           
-        user.password = newPassword;
-   
-       // Push new password hash to history
-       user.passwordHistory.push({ password: user.password, changedAt: new Date() });
-       if (user.passwordHistory.length > 5) user.passwordHistory.shift();
-   
-       await user.save();
-    res.json({ msg: "Password changed successfully" });
+    // Prevent reuse
+    for (let entry of user.passwordHistory) {
+      const reused = await bcrypt.compare(newPassword, entry.password);
+      if (reused) {
+        return res.status(400).json({ message: "You cannot reuse an old password" });
+      }
+    }
+
+    // Just set and save — model handles history + hashing
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: "Password changed successfully" });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ msg: "Server error" });
+    console.error("Change password error:", err);
+    res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // FORGOT PASSWORD
 // =============================
@@ -614,72 +517,110 @@ const forgotPassword = async (req, res) => {
 // Step 3 – change the password with the JWT
 
 
+// const resetPassword = async (req, res) => {
+//   try {
+//     const { token, newPassword, confirmPassword } = req.body;
+//     if (!token || !newPassword || !confirmPassword) {
+//       return res.status(400).json({ message: "All fields are required" });
+//     }
+
+//     if (newPassword !== confirmPassword) {
+//       return res.status(400).json({ message: "Passwords do not match" });
+//     }
+
+//     // 🔑 Verify token
+//     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+//     if (decoded.purpose !== "password_reset") {
+//       return res.status(400).json({ message: "Invalid token" });
+//     }
+
+//     // 🔍 Find user
+//     const user = await User.findById(decoded.userId);
+//     if (!user) return res.status(404).json({ message: "User not found" });
+
+//     // ⛔ Prevent reusing current password
+//     if (await bcrypt.compare(newPassword, user.password)) {
+//       return res
+//         .status(400)
+//         .json({ message: "New password cannot be the same as the old password" });
+//     }
+
+//     // ⛔ Prevent reusing passwords from history
+//     for (const entry of user.passwordHistory || []) {
+//       if (await bcrypt.compare(newPassword, entry.password)) {
+//         return res
+//           .status(400)
+//           .json({ message: "You have already used this password before" });
+//       }
+//     }
+
+//     // ✅ Save current hashed password into history
+//     user.passwordHistory = user.passwordHistory || [];
+//     user.passwordHistory.push({
+//       password: user.password, // already hashed
+//       changedAt: new Date(),
+//     });
+
+//     // Keep only the last 5 passwords
+//     if (user.passwordHistory.length > 5) {
+//       user.passwordHistory.shift();
+//     }
+
+//     // ✅ Assign new password (plain) — pre-save hook will hash it
+//     user.password = newPassword;
+
+//     // 🔄 Clear reset tokens
+//     user.emailCode = undefined;
+//     user.emailCodeExpires = undefined;
+//     user.resetCode = undefined;
+//     user.resetCodeExpires = undefined;
+
+//     await user.save();
+
+//     res.json({ success: true, message: "Password updated successfully ✅" });
+//   } catch (err) {
+//     if (err.name === "TokenExpiredError") {
+//       return res.status(400).json({ message: "Token expired" });
+//     }
+//     console.error("resetPassword error:", err);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
+// Reset Password
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword, confirmPassword } = req.body;
-    if (!token || !newPassword || !confirmPassword) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
     if (newPassword !== confirmPassword) {
       return res.status(400).json({ message: "Passwords do not match" });
     }
 
-    // 🔑 Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.purpose !== "password_reset") {
       return res.status(400).json({ message: "Invalid token" });
     }
 
-    // 🔍 Find user
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(decoded.userId).select("+password +passwordHistory");
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    // ⛔ Prevent reusing current password
-    if (await bcrypt.compare(newPassword, user.password)) {
-      return res
-        .status(400)
-        .json({ message: "New password cannot be the same as the old password" });
-    }
-
-    // ⛔ Prevent reusing passwords from history
-    for (const entry of user.passwordHistory || []) {
-      if (await bcrypt.compare(newPassword, entry.password)) {
-        return res
-          .status(400)
-          .json({ message: "You have already used this password before" });
+    // Prevent reuse
+    for (let entry of user.passwordHistory) {
+      const reused = await bcrypt.compare(newPassword, entry.password);
+      if (reused) {
+        return res.status(400).json({ message: "You cannot reuse an old password" });
       }
     }
 
-    // ✅ Save current hashed password into history
-    user.passwordHistory = user.passwordHistory || [];
-    user.passwordHistory.push({
-      password: user.password, // already hashed
-      changedAt: new Date(),
-    });
-
-    // Keep only the last 5 passwords
-    if (user.passwordHistory.length > 5) {
-      user.passwordHistory.shift();
-    }
-
-    // ✅ Assign new password (plain) — pre-save hook will hash it
     user.password = newPassword;
-
-    // 🔄 Clear reset tokens
-    user.emailCode = undefined;
-    user.emailCodeExpires = undefined;
     user.resetCode = undefined;
     user.resetCodeExpires = undefined;
-
     await user.save();
 
-    res.json({ success: true, message: "Password updated successfully ✅" });
+    res.json({ success: true, message: "Password reset successfully" });
   } catch (err) {
+    console.error("Reset password error:", err);
     if (err.name === "TokenExpiredError") {
       return res.status(400).json({ message: "Token expired" });
     }
-    console.error("resetPassword error:", err);
     res.status(500).json({ message: "Server error" });
   }
 };

@@ -1,6 +1,7 @@
+db.auctions.deleteMany({});
 
 
 
 // Delete all Dealers
 // @ts-ignore
-db.admins.deleteMany({});
+// db.vehicles.deleteMany({});

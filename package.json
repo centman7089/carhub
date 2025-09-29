@@ -14,6 +14,7 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
+		"@getbrevo/brevo": "^3.0.1",
 		"async-handler": "^0.0.3",
 		"axios": "^1.10.0",
 		"bcryptjs": "^2.4.3",

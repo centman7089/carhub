@@ -59,7 +59,7 @@ const BidSchema = new mongoose.Schema(
 const AuctionSchema = new mongoose.Schema({
   title: { type: String, required: true },
   // support single or multiple vehicles (your earlier versions used both)
-  vehicles: [{ type: mongoose.Schema.Types.ObjectId, ref: "Vehicle", required: true }],
+  vehicle: [{ type: mongoose.Schema.Types.ObjectId, ref: "Vehicle", required: true }],
 
   startAt: { type: Date, required: true },
   endAt: { type: Date, required: true },
