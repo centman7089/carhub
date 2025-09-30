@@ -1,18 +1,38 @@
 // sendEmails.js
 // @ts-nocheck
-
+import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import Brevo from "@getbrevo/brevo";
 
 dotenv.config();
 
-// ✅ Configure Brevo client
-const brevoClient = new Brevo.TransactionalEmailsApi();
-const apiKey = brevoClient.authentications["apiKey"];
-apiKey.apiKey = process.env.BREVO_API_KEY; // from your Brevo dashboard
+// ✅ MailerSend SMTP transporter (username + password)
+const transporter = nodemailer.createTransport({
+  host: "smtp.mailersend.net",
+  port: 587, // TLS (STARTTLS)
+  secure: false, // must be false for port 587
+  auth: {
+    user: process.env.MAILERSEND_SMTP_USER, // your MailerSend SMTP username
+    pass: process.env.MAILERSEND_SMTP_PASS, // your MailerSend SMTP password
+  },
+});
 
-// ✅ Master email template wrapper (uniform branding)
-const buildEmailTemplate = (title, message, code = null, buttonText = null, buttonLink = null) => {
+// ✅ Verify transporter
+transporter.verify((error) => {
+  if (error) {
+    console.error("❌ MailerSend transporter error:", error);
+  } else {
+    console.log("✅ MailerSend SMTP server is ready to send messages");
+  }
+});
+
+// ✅ Email template builder
+const buildEmailTemplate = (
+  title,
+  message,
+  code = null,
+  buttonText = null,
+  buttonLink = null
+) => {
   return `
   <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto;
               border: 1px solid #eee; padding: 20px; border-radius: 10px; background: #fafafa;">
@@ -49,29 +69,31 @@ const buildEmailTemplate = (title, message, code = null, buttonText = null, butt
   </div>`;
 };
 
-// ✅ Send email function (Brevo)
+// ✅ Send email
 const sendEmail = async (to, subject, html) => {
   try {
-    const sendSmtpEmail = new Brevo.SendSmtpEmail();
-
-    sendSmtpEmail.sender = { name: "Auction System", email: process.env.EMAIL_USER };
-    sendSmtpEmail.to = [{ email: to }];
-    sendSmtpEmail.subject = subject;
-    sendSmtpEmail.htmlContent = html;
-
-    await brevoClient.sendTransacEmail(sendSmtpEmail);
+    await transporter.sendMail({
+      from: process.env.MAILERSEND_FROM, // must be a verified sender in MailerSend
+      to,
+      subject,
+      html,
+    });
     console.log(`📩 Email sent to ${to}`);
   } catch (err) {
-    console.error("❌ Error sending email:", err.response?.body || err.message);
+    console.error("❌ Error sending email:", err.message || err);
   }
 };
 
-// ✅ Quick helpers for common use cases
+// ✅ Quick helpers
 const sendVerificationEmail = async (to, code) => {
   return sendEmail(
     to,
     "Verify Your Auction System Email",
-    buildEmailTemplate("Verify Your Email", "Please use the code below to verify your email. It expires in 10 minutes.", code)
+    buildEmailTemplate(
+      "Verify Your Email",
+      "Please use the code below to verify your email. It expires in 10 minutes.",
+      code
+    )
   );
 };
 
@@ -79,7 +101,11 @@ const sendPasswordResetEmail = async (to, code) => {
   return sendEmail(
     to,
     "Password Reset Code",
-    buildEmailTemplate("Password Reset Request", "Use the code below to reset your password. It expires in 10 minutes.", code)
+    buildEmailTemplate(
+      "Password Reset Request",
+      "Use the code below to reset your password. It expires in 10 minutes.",
+      code
+    )
   );
 };
 

@@ -296,7 +296,7 @@ export const closeAuction = async (req, res) => {
       return res.status(404).json({ success: false, message: "Auction not found" });
     }
 
-    auction.status = "closed";
+    auction.status = "finished";
     await auction.save();
 
     io?.to(`auction:${auction._id}`).emit("auctionClosed", {
