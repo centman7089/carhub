@@ -20,6 +20,6 @@ router.get("/popular", getPopularAuctions);
 router.get("/:id", getAuctionById);
 router.post("/:auctionId/bid",protectDealer, placeBid);
 router.get("/:auctionId/highest-bid", getHighestBid);
-router.post("/:auctionId/close",protectAdmin, authorizeRoles("superadmin", "admin") , closeAuction);
+router.post("/:auctionId/finished",protectAdmin, authorizeRoles("superadmin", "admin") , closeAuction);
 
 export default router;
