@@ -680,70 +680,78 @@ export const searchVehicles = async (req, res) => {
       minPrice,
       maxPrice,
       condition,
-      bodyType,   // 🔥 query by name
+      bodyType,
       fuelType,
       transmission,
       minYear,
       maxYear,
     } = req.query;
 
-    const filter = {};
+    const orConditions = [];
+    const andConditions = [];
 
-    // Make
+    // --- OR filters ---
+
     if (make && make !== "Any") {
-      filter.make = { $regex: new RegExp(`^${make}$`, "i") };
+      orConditions.push({ make: { $regex: new RegExp(make, "i") } });
     }
 
-    // Model
     if (model && model !== "Any") {
-      filter.model = { $regex: new RegExp(model, "i") };
+      orConditions.push({ model: { $regex: new RegExp(model, "i") } });
     }
 
-    // Condition
     if (condition && condition !== "All") {
-      filter.condition = condition;
+      orConditions.push({ condition: { $regex: new RegExp(condition, "i") } });
     }
 
-    // BodyType (search by name in BodyType collection)
     if (bodyType && bodyType !== "All") {
       const bodyTypeDocs = await BodyType.find({
         name: { $regex: new RegExp(bodyType, "i") },
       }).select("_id");
 
       if (bodyTypeDocs.length > 0) {
-        filter.bodyType = { $in: bodyTypeDocs.map((b) => b._id) };
-      } else {
-        return res.status(200).json({ success: true, count: 0, vehicles: [] });
+        orConditions.push({ bodyType: { $in: bodyTypeDocs.map((b) => b._id) } });
       }
     }
 
-    // FuelType (enum string)
     if (fuelType && fuelType !== "All") {
-      filter.fuelType = fuelType;
+      orConditions.push({ fuelType: { $regex: new RegExp(fuelType, "i") } });
     }
 
-    // Transmission (enum string)
     if (transmission && transmission !== "All") {
-      filter.transmission = transmission;
+      orConditions.push({ transmission: { $regex: new RegExp(transmission, "i") } });
     }
 
-    // Price Range
+    // --- AND filters (always applied) ---
+
     if (minPrice || maxPrice) {
-      filter.price = {};
-      if (minPrice) filter.price.$gte = Number(minPrice);
-      if (maxPrice) filter.price.$lte = Number(maxPrice);
+      const priceFilter = {};
+      if (minPrice) priceFilter.$gte = Number(minPrice);
+      if (maxPrice) priceFilter.$lte = Number(maxPrice);
+      andConditions.push({ price: priceFilter });
     }
 
-    // Year Range
     if (minYear || maxYear) {
-      filter.year = {};
-      if (minYear) filter.year.$gte = Number(minYear);
-      if (maxYear) filter.year.$lte = Number(maxYear);
+      const yearFilter = {};
+      if (minYear) yearFilter.$gte = Number(minYear);
+      if (maxYear) yearFilter.$lte = Number(maxYear);
+      andConditions.push({ year: yearFilter });
     }
 
-    // Fetch vehicles
+    // --- Final filter ---
+    let filter = {};
+    if (orConditions.length > 0 && andConditions.length > 0) {
+      filter = { $and: [ { $or: orConditions }, ...andConditions ] };
+    } else if (orConditions.length > 0) {
+      filter = { $or: orConditions };
+    } else if (andConditions.length > 0) {
+      filter = { $and: andConditions };
+    }
+
+    // console.log("🔍 Final filter:", JSON.stringify(filter, null, 2));
+
     const vehicles = await Vehicle.find(filter)
-      .populate("bodyType", "name") // 🔥 Get bodyType name
+      .populate("bodyType", "name")
       .populate("createdBy", "firstName lastName email")
       .sort({ createdAt: -1 });
 
@@ -761,6 +769,7 @@ export const searchVehicles = async (req, res) => {
     });
   }
 };
+
 
 
 
