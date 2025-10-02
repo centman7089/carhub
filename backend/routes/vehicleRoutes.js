@@ -21,10 +21,12 @@ const router = express.Router();
  */
 // Export CSV route
 router.get( "/export/csv", exportVehiclesCSV );
+router.get( "/search", searchVehicles);
 router.get("/category/:name", getVehiclesCategory);
 router.get("/bodyType/:name", getVehiclesByBodyType);
 router.get( "/", getAllVehicles );
-router.get("/:id", getVehicleById);
+
+router.get("/vehicles/:VehicleId", getVehicleById);
 
 /**
  * Admin routes (add/update/delete vehicles)
@@ -65,8 +67,8 @@ router.delete( "/:id", protectAdmin, deleteVehicle );
 router.patch( "/:id/priority", protectAdmin, updateVehiclePriority );
 // router.get( "/category/:categoryId", getVehiclesByCategory );
 router.get( "/category/:category", getVehiclesByCategory );
-// GET /api/vehicles/search?make=Toyota&model=Corolla&minPrice=5000&maxPrice=20000&condition=Used&category=SUV
-router.get("/search", searchVehicles);
+// GET /api/vehicles/search?make=Toyota&model=Corolla&minPrice=5000&maxPrice=20000&condition=New&bodyType=SUV
+
 
 
 export default router;

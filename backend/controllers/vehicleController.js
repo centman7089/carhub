@@ -4,6 +4,7 @@ import { Parser } from "json2csv";
 import Category from "../models/categoryModel.js";
 import BodyType from "../models/bodytypeModel.js";
 import ExcelJS from "exceljs";
+import mongoose from "mongoose";
 /**
  * @desc Add a new vehicle (Admin only)
  * @route POST /api/vehicles
@@ -208,68 +209,45 @@ export const getAllVehicles = async (req, res) => {
  * @route GET /api/vehicles/:id
  * @access Public
  */
+
+
+
+
+
 export const getVehicleById = async (req, res) => {
   try {
-    const vehicle = await Vehicle.findById(req.params.id)
-      // .populate("category", "name")
+    const { vehicleId } = req.params;
+
+    // ✅ Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(vehicleId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid vehicle ID",
+      });
+    }
+
+    const vehicle = await Vehicle.findById(vehicleId)
       .populate("bodyType", "name")
       .populate("createdBy", "firstName lastName email");
 
     if (!vehicle) {
-      return res.status(404).json({
-        success: false,
-        message: "Vehicle not found",
-      });
+      return res
+        .status(404)
+        .json({ success: false, message: "Vehicle not found" });
     }
 
-    // ✅ Format vehicle to match UI structure
-    const formattedVehicle = {
-      id: vehicle._id,
-      title: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
-      make: vehicle.make,
-      model: vehicle.model,
-      year: vehicle.year,
-      vin: vehicle.vin,
-      price: vehicle.price,
-      mileage: vehicle.mileage,
-      color: vehicle.color,
-      condition: vehicle.condition,
-      transmission: vehicle.transmission,
-      fuelType: vehicle.fuelType,
-      lotNumber: vehicle.lotNumber,
-      location: {
-        address: vehicle.address || "",
-        city: vehicle.city || "",
-        state: vehicle.state || "",
-        zipCode: vehicle.zipCode || "",
-      },
-      description: vehicle.description || "",
-      features: vehicle.features || [],
-      mainImage: vehicle.mainImage || "",
-      supportingImages: vehicle.supportingImages || [],
-      // category: vehicle.category?.name || "Uncategorized",
-      bodyType: vehicle.bodyType?.name || "Unspecified",
-      status: vehicle.status || "Inactive",
-      priority: vehicle.priority || "Low",
-      saleDate: vehicle.dateListed,
-      performance: {
-        views: vehicle.views || 0,
-        interested: vehicle.interested?.length || 0,
-      },
-      createdBy: vehicle.createdBy || {},
-      createdAt: vehicle.createdAt,
-      updatedAt: vehicle.updatedAt,
-    };
-
-    res.status(200).json({ success: true, vehicle: formattedVehicle });
+    res.status(200).json({ success: true, vehicle });
   } catch (error) {
-    console.error("Error fetching vehicle:", error);
+    console.error("❌ Error fetching vehicle:", error);
     res.status(500).json({
       success: false,
       message: "Failed to fetch vehicle",
+      error: error.message,
     });
   }
 };
+
+
 
 /**
  * @desc Update vehicle (Admin only)
@@ -702,8 +680,7 @@ export const searchVehicles = async (req, res) => {
       minPrice,
       maxPrice,
       condition,
-      // category,
-      bodyType,
+      bodyType,   // 🔥 query by name
       fuelType,
       transmission,
       minYear,
@@ -712,59 +689,61 @@ export const searchVehicles = async (req, res) => {
 
     const filter = {};
 
-    // ✅ Make (case-insensitive exact)
+    // Make
     if (make && make !== "Any") {
       filter.make = { $regex: new RegExp(`^${make}$`, "i") };
     }
 
-    // ✅ Model (case-insensitive partial)
+    // Model
     if (model && model !== "Any") {
       filter.model = { $regex: new RegExp(model, "i") };
     }
 
-    // ✅ Condition
+    // Condition
     if (condition && condition !== "All") {
       filter.condition = condition;
     }
 
-    // // ✅ Category (case-insensitive exact)
-    // if (category && category !== "All") {
-    //   filter.category = { $regex: new RegExp(`^${category}$`, "i") };
-    // }
-
-    // ✅ BodyType (case-insensitive exact)
+    // BodyType (search by name in BodyType collection)
     if (bodyType && bodyType !== "All") {
-      filter.bodyType = { $regex: new RegExp(`^${bodyType}$`, "i") };
+      const bodyTypeDocs = await BodyType.find({
+        name: { $regex: new RegExp(bodyType, "i") },
+      }).select("_id");
+
+      if (bodyTypeDocs.length > 0) {
+        filter.bodyType = { $in: bodyTypeDocs.map((b) => b._id) };
+      } else {
+        return res.status(200).json({ success: true, count: 0, vehicles: [] });
+      }
     }
 
-    // ✅ FuelType
+    // FuelType (enum string)
     if (fuelType && fuelType !== "All") {
-      filter.fuelType = { $regex: new RegExp(`^${fuelType}$`, "i") };
+      filter.fuelType = fuelType;
     }
 
-    // ✅ Transmission
+    // Transmission (enum string)
     if (transmission && transmission !== "All") {
-      filter.transmission = { $regex: new RegExp(`^${transmission}$`, "i") };
+      filter.transmission = transmission;
     }
 
-    // ✅ Price range
+    // Price Range
     if (minPrice || maxPrice) {
       filter.price = {};
       if (minPrice) filter.price.$gte = Number(minPrice);
       if (maxPrice) filter.price.$lte = Number(maxPrice);
     }
 
-    // ✅ Year range
+    // Year Range
     if (minYear || maxYear) {
       filter.year = {};
       if (minYear) filter.year.$gte = Number(minYear);
       if (maxYear) filter.year.$lte = Number(maxYear);
     }
 
-    // ✅ Fetch with relations
+    // Fetch vehicles
     const vehicles = await Vehicle.find(filter)
-      // .populate("category", "name")
-      .populate("bodyType", "name")
+      .populate("bodyType", "name") // 🔥 Get bodyType name
       .populate("createdBy", "firstName lastName email")
       .sort({ createdAt: -1 });
 
@@ -782,6 +761,8 @@ export const searchVehicles = async (req, res) => {
     });
   }
 };
+
+
 
 export const getVehiclesByBodyType = async (req, res) => {
   try {
