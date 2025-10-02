@@ -672,6 +672,103 @@ export const getCategoriesFromVehicles = async ( req, res ) =>
 };
 
 
+// export const searchVehicles = async (req, res) => {
+//   try {
+//     const {
+//       make,
+//       model,
+//       minPrice,
+//       maxPrice,
+//       condition,
+//       bodyType,
+//       fuelType,
+//       transmission,
+//       minYear,
+//       maxYear,
+//     } = req.query;
+
+//     const orConditions = [];
+//     const andConditions = [];
+
+//     // --- OR filters ---
+
+//     if (make && make !== "Any") {
+//       orConditions.push({ make: { $regex: new RegExp(make, "i") } });
+//     }
+
+//     if (model && model !== "Any") {
+//       orConditions.push({ model: { $regex: new RegExp(model, "i") } });
+//     }
+
+//     if (condition && condition !== "All") {
+//       orConditions.push({ condition: { $regex: new RegExp(condition, "i") } });
+//     }
+
+//     if (bodyType && bodyType !== "All") {
+//       const bodyTypeDocs = await BodyType.find({
+//         name: { $regex: new RegExp(bodyType, "i") },
+//       }).select("_id");
+
+//       if (bodyTypeDocs.length > 0) {
+//         orConditions.push({ bodyType: { $in: bodyTypeDocs.map((b) => b._id) } });
+//       }
+//     }
+
+//     if (fuelType && fuelType !== "All") {
+//       orConditions.push({ fuelType: { $regex: new RegExp(fuelType, "i") } });
+//     }
+
+//     if (transmission && transmission !== "All") {
+//       orConditions.push({ transmission: { $regex: new RegExp(transmission, "i") } });
+//     }
+
+//     // --- AND filters (always applied) ---
+
+//     if (minPrice || maxPrice) {
+//       const priceFilter = {};
+//       if (minPrice) priceFilter.$gte = Number(minPrice);
+//       if (maxPrice) priceFilter.$lte = Number(maxPrice);
+//       andConditions.push({ price: priceFilter });
+//     }
+
+//     if (minYear || maxYear) {
+//       const yearFilter = {};
+//       if (minYear) yearFilter.$gte = Number(minYear);
+//       if (maxYear) yearFilter.$lte = Number(maxYear);
+//       andConditions.push({ year: yearFilter });
+//     }
+
+//     // --- Final filter ---
+//     let filter = {};
+//     if (orConditions.length > 0 && andConditions.length > 0) {
+//       filter = { $and: [ { $or: orConditions }, ...andConditions ] };
+//     } else if (orConditions.length > 0) {
+//       filter = { $or: orConditions };
+//     } else if (andConditions.length > 0) {
+//       filter = { $and: andConditions };
+//     }
+
+//     // console.log("🔍 Final filter:", JSON.stringify(filter, null, 2));
+
+//     const vehicles = await Vehicle.find(filter)
+//       .populate("bodyType", "name")
+//       .populate("createdBy", "firstName lastName email")
+//       .sort({ createdAt: -1 });
+
+//     return res.status(200).json({
+//       success: true,
+//       count: vehicles.length,
+//       vehicles,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error searching vehicles:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Failed to search vehicles",
+//       error: error.message,
+//     });
+//   }
+// };
 export const searchVehicles = async (req, res) => {
   try {
     const {
@@ -741,14 +838,14 @@ export const searchVehicles = async (req, res) => {
     // --- Final filter ---
     let filter = {};
     if (orConditions.length > 0 && andConditions.length > 0) {
-      filter = { $and: [ { $or: orConditions }, ...andConditions ] };
+      filter = { $and: [{ $or: orConditions }, ...andConditions] };
     } else if (orConditions.length > 0) {
       filter = { $or: orConditions };
     } else if (andConditions.length > 0) {
       filter = { $and: andConditions };
     }
 
-    // console.log("🔍 Final filter:", JSON.stringify(filter, null, 2));
+    console.log("🔍 Final filter:", JSON.stringify(filter, null, 2));
 
     const vehicles = await Vehicle.find(filter)
       .populate("bodyType", "name")
@@ -769,6 +866,7 @@ export const searchVehicles = async (req, res) => {
     });
   }
 };
+
 
 
 

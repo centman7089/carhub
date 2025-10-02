@@ -15,6 +15,8 @@ import {
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import Dealer from "../models/dealerModel.js";
+// controllers/dealerController.js
+import Vehicle from "../models/vehicle.js";
 
 // In-memory session store (use Redis in production)
 const resetSessions = new Map();
@@ -994,6 +996,147 @@ const getDealerById = async (req, res) => {
 
 
 
+// ✅ 1. Dealer Orders (with filters)
+const getDealerOrders = async (req, res) => {
+  try {
+    const { dealerId } = req.params;
+    const { make, model, year, status, minPrice, maxPrice } = req.query;
+
+    // // 🛡️ Restrict access
+    // if (
+    //   req.user.role !== "admin" &&
+    //   req.user.role !== "superadmin" &&
+    //   req.user._id.toString() !== dealerId
+    // ) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Unauthorized to view these orders",
+    //   });
+    // }
+
+    // ✅ Build filters
+    const filter = { createdBy: dealerId };
+
+    if (make) filter.make = new RegExp(`^${make}$`, "i");
+    if (model) filter.model = new RegExp(`^${model}$`, "i");
+    if (year) filter.year = parseInt(year, 10);
+    if (status && status !== "All") filter.status = new RegExp(`^${status}$`, "i");
+
+    if (minPrice || maxPrice) {
+      filter.price = {};
+      if (minPrice) filter.price.$gte = Number(minPrice);
+      if (maxPrice) filter.price.$lte = Number(maxPrice);
+    }
+
+    const vehicles = await Vehicle.find(filter)
+      .populate("createdBy", "firstName lastName email")
+      .sort({ createdAt: -1 });
+
+    // ✅ Format results
+    const orders = vehicles.map((v) => ({
+      vehicleId: v._id,
+      vehicleDetails: {
+        make: v.make,
+        model: v.model,
+        year: v.year,
+        vin: v.vin,
+        image: v.mainImage || v.images?.[0] || null,
+        price: v.price,
+        status: v.status,
+      },
+      shipment: v.shipment || null,
+    }));
+
+    // ✅ Summary
+    const totalValue = vehicles.reduce((sum, v) => sum + (v.price || 0), 0);
+    const statusCounts = vehicles.reduce((acc, v) => {
+      const s = v.status || "Unknown";
+      acc[s] = (acc[s] || 0) + 1;
+      return acc;
+    }, {});
+
+    res.json({
+      success: true,
+      count: orders.length,
+      orders,
+      summary: { totalValue, statusCounts },
+    });
+  } catch (err) {
+    console.error("❌ Error in getDealerOrders:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// ✅ 2. Dealer Active Shipments (for a single dealer vehicle)
+const getDealerActiveShipments = async (req, res) => {
+  try {
+    const { dealerId, vehicleId } = req.params;
+    const { status, from, to } = req.query;
+
+    // 🛡️ Restrict access
+    // if (
+    //   req.user.role !== "admin" &&
+    //   req.user.role !== "superadmin" &&
+    //   req.user._id.toString() !== dealerId
+    // ) {
+    //   return res.status(403).json({
+    //     success: false,
+    //     message: "Unauthorized to view this shipment",
+    //   });
+    // }
+
+    // ✅ Base filter: dealer + vehicle
+    const filter = { createdBy: dealerId, _id: vehicleId, shipment: { $exists: true } };
+
+    // ✅ Filter by shipment status
+    if (status && status !== "All") {
+      const statusArray = status.split(",").map((s) => s.trim());
+      filter["shipment.shippingStatus"] = {
+        $in: statusArray.map((s) => new RegExp(`^${s}$`, "i")),
+      };
+    }
+
+    // ✅ Filter by date range
+    if (from || to) {
+      const dateFilter = {};
+      if (from) dateFilter.$gte = new Date(from);
+      if (to) dateFilter.$lte = new Date(to);
+      filter["shipment.pickupDate"] = dateFilter; 
+      // OR use deliveryDate if needed
+    }
+
+    const vehicle = await Vehicle.findOne(filter)
+      .populate("createdBy", "firstName lastName email");
+
+    if (!vehicle) {
+      return res.status(404).json({ success: false, message: "Shipment not found" });
+    }
+
+    // ✅ Build shipment response
+    const shipment = {
+      vehicleId: vehicle._id,
+      vehicleDetails: {
+        make: vehicle.make,
+        model: vehicle.model,
+        year: vehicle.year,
+        vin: vehicle.vin,
+        image: vehicle.images?.[0] || null,
+        price: vehicle.price || 0,
+      },
+      shipment: vehicle.shipment,
+    };
+
+    res.json({
+      success: true,
+      shipment,
+    });
+  } catch (err) {
+    console.error("❌ Error in getDealerActiveShipments:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+
 
 
 export {
@@ -1012,6 +1155,8 @@ export {
     acceptTerms,
     uploadDocuments,
     updateProfilePhoto,
-    getDealerById
+  getDealerById,
+  getDealerOrders,
+    getDealerActiveShipments
   // approveUser
 };

@@ -21,7 +21,9 @@ import {
     acceptTerms,
     getDealerById,
     getMyProfile,
-    updateProfilePhoto
+  updateProfilePhoto,
+  getDealerOrders,
+    getDealerActiveShipments
    
 } from "../controllers/dealerController.js";
 import protectDealer from "../middlewares/protectDealer.js";
@@ -71,7 +73,20 @@ dealerRouter.patch(
 );
 
 // Accept terms
-dealerRouter.post("/:dealerId/terms", protectDealer, acceptTerms);
+dealerRouter.post( "/:dealerId/terms", protectDealer, acceptTerms );
+// ✅ Dealer Orders (with filters)
+dealerRouter.get(
+  "/:dealerId/orders",
+  protectDealer,
+  getDealerOrders
+);
+
+// ✅ Dealer Active Shipment (for a specific vehicle)
+dealerRouter.get(
+  "/:dealerId/orders/:vehicleId/shipment",
+  protectDealer,
+  getDealerActiveShipments
+);
 
 // Admin approves
 // dealerRouter.post("/:userId/approve", approveUser);

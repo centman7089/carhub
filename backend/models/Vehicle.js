@@ -13,7 +13,9 @@ const shipmentSchema = new mongoose.Schema({
   expectedDelivery: { type: Date },
   shippingStatus: {
     type: String,
-    enum: ["Pending", "In Transit", "Delivered", "Cancelled"],
+    enum: ["Pending", "Vessel In Transit", "Delivered", "Cancelled", 
+      "Purchase Confirmed", "Drop Off (Title: Pending)", "Drop Off (Title: Available)",
+      "Vessel Picked Up", "Permitted To Load" , "Loaded on Vessel", "Vessel Arrived", "Custom Cleared",],
     default: "Pending",
   },
   pickupAddress: {
